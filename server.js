@@ -13,6 +13,7 @@ const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddlew
 
 
 app.use('/v1/master', require('./router/master/indexRouter'));
+app.use('/v1/group', require('./router/group/indexGroupRouter'));
 
  
 
