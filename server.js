@@ -12,8 +12,7 @@ const {db_Select,saveRecord} =  require('./model/pgcommon');
 const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddleware");
 
 
-const bdRouter = require('./router/master/bdRouter');
-app.use('/v1/bd', bdRouter)
+app.use('/v1/master', require('./router/master/indexRouter'));
 
 app.post("/login", async (req, res) => {
     try {
