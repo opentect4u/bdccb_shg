@@ -1,0 +1,8 @@
+.env
+node_modules
+*.zip
+package-lock.json
+web.config
+db
+/assets/uploads/
+config

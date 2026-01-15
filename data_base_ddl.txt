@@ -1,0 +1,39 @@
+DDL in postgres
+
+//   Create table for DISTRICT  ///
+CREATE TABLE md_district (
+    dist_code INTEGER PRIMARY KEY, 
+    dist_name VARCHAR(600)
+);
+INSERT INTO md_district (dist_code, dist_name) VALUES
+(1,'ALIPURDUAR'),
+(2,'BANKURA'),
+(3,'BIRBHUM'),
+(4,'COOCHBEHAR'),
+(5,'DAKSHIN DINAJPUR'),
+(6,'DARJEELING'),
+(7,'HOOGHLY'),
+(8,'HOWRAH'),
+(9,'JALPAIGURI'),
+(10,'JHARGRAM'),
+(11,'KALIMPONG'),
+(12,'MALDAH'),
+(13,'MURSHIDABAD'),
+(14,'NADIA'),
+(15,'NORTH 24 PARAGANAS'),
+(16,'PASCHIM BARDHAMAN'),
+(17,'PASCHIM MEDINIPUR'),
+(18,'PURBA BARDHAMAN'),
+(19,'PURBA MEDINIPUR'),
+(20,'PURULIA'),
+(21,'SOUTH 24 PARAGANAS'),
+(22,'UTTAR DINAJPUR'),
+(23,'KOLKATA')
+
+//   Create table for block  ///
+CREATE TABLE md_block (
+    block_id BIGINT GENERATED ALWAYS AS IDENTITY,
+    dist_id INTEGER,
+    block_name VARCHAR(600),
+    PRIMARY KEY (block_id)
+);
