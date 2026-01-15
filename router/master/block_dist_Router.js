@@ -5,7 +5,7 @@ bdRouter = express.Router();
     // get district
     bdRouter.get("/dist_list", async (req, res) => {
         const id = parseInt(req.query.dist_code || 0);
-        var select = "dist_code,dist_name",
+        var select = "dist_code as dist_id,dist_name",
         table_name = "md_district",
         whr = null,
         order = null;
