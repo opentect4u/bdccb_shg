@@ -29,7 +29,7 @@ bdRouter = express.Router();
         }
     });
 
-    // get block
+    // get block details
      bdRouter.get("/block_list", async (req, res) => {
             const id = parseInt(req.query.block_id || 0);
             const dist_id = parseInt(req.query.dist_id || 0);
