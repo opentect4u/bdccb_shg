@@ -31,18 +31,21 @@ bdRouter = express.Router();
 
     // get block
      bdRouter.get("/block_list", async (req, res) => {
-            const id = parseInt(req.query.block_id || 0, 10);
-            const select = "block_id, block_name";
-            const table_name = "md_block";
-            let whr = null;
-            const order = "block_name ASC";
+            const id = parseInt(req.query.block_id || 0);
+            const dist_id = parseInt(req.query.dist_id || 0);
+            const select = "a.block_id,a.block_name,a.dist_id,b.dist_name";
+            const table_name = "md_block a, md_district b";
+            let whr = 'a.dist_id = b.dist_code';
+            const order = "a.block_name ASC";
             if (id > 0) {
-                whr = `block_id = ${id}`;
+                whr += ` AND a.block_id = ${id}`;
+            }
+            if (dist_id > 0) {
+                whr += ` AND a.dist_id = ${dist_id}`;
             }
     
             try {
                 const block_data = await db_Select(select, table_name, whr, order);
-                console.log("Block Data", block_data);
                 return res.send({
                 success: true,
                 msg: id > 0 ? "Block details" : "Block list",

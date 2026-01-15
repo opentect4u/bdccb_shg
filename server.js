@@ -14,21 +14,41 @@ const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddlew
 
 app.use('/v1/master', require('./router/master/indexRouter'));
 
-app.post("/login", async (req, res) => {
+ 
+
+app.post("/v1/login", async (req, res) => {
     try {
         const user = { username: "admin", password: "admin123" };
         const { username, password } = req.body;
         if (username === user.username && password === user.password) {
              const userData = { username:username, age: "30", role: "Backend Developer" };
             const jwtToken = await createToken(userData);
-            return res.status(200).send({
+            const user_dtls = {
+                          "emp_id": 9999,
+                          "brn_code": "100",
+                          "id": 4,
+                          "user_type": "Super Admin",
+                          "session_id": 8585858585,
+                          "emp_name": "Test EMP",
+                          "phone_home": 0,
+                          "phone_mobile": 0,
+                          "email": "",
+                          "gender": "M",
+                          "active_flag": "Y",
+                          "area_code": 0,
+                          "branch_name": "SSVWS",
+                          "dist_code": 10021,
+                          "transaction_date": "2026-01-15"
+                       };
+            return res.send({
                 success: true,
                 msg: "Login Successful",
-                data: [userData],
-                token: jwtToken.token
+                user_dtls: [user_dtls],
+                token: jwtToken.token,
+                refresh_token: jwtToken.token
             });
         }else{
-             return res.status(401).send({
+             return res.send({
                 success: false,
                 msg: "Invalid Credentials"
                 });
@@ -36,7 +56,7 @@ app.post("/login", async (req, res) => {
 
     } catch (error) {
         console.error("Error in /login route:", error);
-        return res.status(500).send({
+        return res.send({
         success: false,
         msg: "Internal server error",
         errorCode: "SERVER_ERROR"

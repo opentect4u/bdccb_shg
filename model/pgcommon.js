@@ -23,9 +23,9 @@ pgdb = require("../db/pgdb");
           sql += ` OFFSET $${idx++}`;
           values.push(Number(offset));
         }
-
+       console.log('Executed SQL:', sql, 'values:', values);
         const result = await pgdb.query(sql, values);
-        console.log('Executed SQL:', sql, 'values:', values);
+       
         return { suc: 1, msg: result.rows };
 
       } catch (err) {
