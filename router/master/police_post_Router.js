@@ -36,7 +36,8 @@ ppRouter = express.Router();
 
     ppRouter.post("/save_post", async (req, res) => {
         try {
-            const { dist_id, block_id, post_name, pin, po_id,created_by,created_at,created_ip } = req.body;
+            const { dist_id, post_name, pin, po_id,created_by,created_at,created_ip } = req.body;
+            const block_id = 0;
             const table = "md_postoffice";
             const columns = po_id > 0 ? ["dist_id","block_id","post_name","pin","modified_by","modified_at","ip_address"] : ["dist_id","block_id","post_name","pin","created_by","created_at","ip_address"];
 
