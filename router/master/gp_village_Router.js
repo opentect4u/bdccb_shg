@@ -8,21 +8,30 @@ gpvillRouter = express.Router();
         const id = parseInt(req.query.gp_id || 0);
         const dist_id = parseInt(req.query.dist_id || 0);
         const block_id = parseInt(req.query.block_id || 0);
+
+        // DIST ID AND BLOCK ID IS MANDATORY
+            if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0) {
+                return res.send({
+                    success: false,
+                    msg: "dist_id and block id is required"
+                });
+            }
+
         var select = "a.gp_id,a.dist_id,a.block_id,a.gp_name,b.block_name,c.dist_name",
-        table_name = "md_gp a, md_block b, md_district c",
-        whr = 'a.dist_id = c.dist_code AND a.block_id = b.block_id',
+        table_name = "md_gp a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code",
+        whr = ` a.block_id = ${block_id} AND a.dist_id = ${dist_id}`,
         order = null;
-        if (id > 0) {
-            whr += ` AND a.gp_id = ${id}`;
-        }
-        if (block_id > 0) {
-            whr += ` AND a.block_id = ${block_id}`;
-        }
-        if (dist_id > 0) {
-            whr += ` AND a.dist_id = ${dist_id}`;
-        }
+        // if (id > 0) {
+        //     whr += ` AND a.gp_id = ${id}`;
+        // }
+        // if (block_id > 0) {
+        //     whr += ` AND a.block_id = ${block_id}`;
+        // }
+        // if (dist_id > 0) {
+        //     whr += ` AND a.dist_id = ${dist_id}`;
+        // }
         try {
-            console.log("Where Clause:", whr);
+            // console.log("Where Clause:", whr);
         var gp_datas = await db_Select(select,table_name,whr,order);
             return res.send({
                 success: true,
@@ -42,9 +51,12 @@ gpvillRouter = express.Router();
     gpvillRouter.post("/save_gp", async (req, res) => {
         try {
             const { dist_id, block_id, gp_name, gp_id ,created_by,created_ip } = req.body;
+            console.log(req.body);
+            
+
             const table = "md_gp";
-            const columns = gp_id > 0 ? ["dist_id","block_id","gp_name","modified_by","modified_at","ip_address"] : ["dist_id","block_id","gp_name","created_by","created_at","ip_address"];
-            const values = [dist_id, block_id, gp_name, created_by, new Date(), created_ip];
+            const columns = gp_id > 0 ? ["dist_id","block_id","gp_name","modified_by","modified_at","ip_address"] : ["dist_id","block_id","gp_name", "delete_flag","created_by","created_at","ip_address"];
+            const values = gp_id > 0 ? [dist_id, block_id, gp_name, created_by, new Date(), created_ip] : [dist_id, block_id, gp_name, 'N', created_by, new Date(), created_ip];
             const whereColumns = gp_id > 0 ? ["gp_id"] : [];
             const whereValues = gp_id > 0 ? [gp_id] : [];
             const flag = gp_id > 0 ? 1 : 0; // 0 for insert, 1 for update
@@ -69,23 +81,32 @@ gpvillRouter = express.Router();
         const dist_id = parseInt(req.query.dist_id || 0);
         const block_id = parseInt(req.query.block_id || 0);
         const gp_id = parseInt(req.query.gp_id || 0);
+
+        // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
+            if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0 || !gp_id || gp_id <= 0) {
+                return res.send({
+                    success: false,
+                    msg: "dist id and block id and gp id is required"
+                });
+            }
+
         var select = "a.vill_id,a.dist_id,a.block_id,a.gp_id,a.vill_name,b.block_name,c.dist_name,d.gp_name",
-        table_name = "md_village a, md_block b, md_district c,md_gp d",
-        whr = 'a.dist_id = c.dist_code AND a.block_id = b.block_id AND a.gp_id = d.gp_id',
+        table_name = "md_village a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_gp d ON a.gp_id = d.gp_id",
+        whr = `a.dist_id = ${dist_id} AND a.block_id = ${block_id} AND a.gp_id = ${gp_id}`,
         order = null;
-        if (id > 0) {
-            whr += ` AND a.vill_id = ${id}`;
-        }
-        if (gp_id > 0) {
-            whr += ` AND a.gp_id = ${gp_id}`;
-        }
-        if (block_id > 0) {
-            whr += ` AND a.block_id = ${block_id}`;
-        }
-        if (dist_id > 0) {
-            whr += ` AND a.dist_id = ${dist_id}`;
-        }
-         console.log("Where Clause:", whr);
+        // if (id > 0) {
+        //     whr += ` AND a.vill_id = ${id}`;
+        // }
+        // if (gp_id > 0) {
+        //     whr += ` AND a.gp_id = ${gp_id}`;
+        // }
+        // if (block_id > 0) {
+        //     whr += ` AND a.block_id = ${block_id}`;
+        // }
+        // if (dist_id > 0) {
+        //     whr += ` AND a.dist_id = ${dist_id}`;
+        // }
+        //  console.log("Where Clause:", whr);
         try {
            
         var gp_datas = await db_Select(select,table_name,whr,order);
@@ -107,9 +128,10 @@ gpvillRouter = express.Router();
     gpvillRouter.post("/save_vill", async (req, res) => {
         try {
             const { dist_id, block_id,gp_id, vill_name, vill_id ,created_by,created_ip } = req.body;
+
             const table = "md_village";
-            const columns = vill_id > 0 ? ["dist_id","block_id","gp_id","vill_name","modified_by","modified_at","ip_address"] : ["dist_id","block_id","gp_id","vill_name","created_by","created_at","ip_address"];
-            const values = [dist_id, block_id, gp_id, vill_name, created_by, new Date(), created_ip];
+            const columns = vill_id > 0 ? ["dist_id","block_id","gp_id","vill_name","modified_by","modified_at","ip_address"] : ["dist_id","block_id","gp_id","vill_name","delete_flag","created_by","created_at","ip_address"];
+            const values = vill_id > 0 ? [dist_id, block_id, gp_id, vill_name, created_by, new Date(), created_ip] : [dist_id, block_id, gp_id, vill_name, 'N', created_by, new Date(), created_ip];
             const whereColumns = vill_id > 0 ? ["vill_id"] : [];
             const whereValues = vill_id > 0 ? [vill_id] : [];
             const flag = vill_id > 0 ? 1 : 0; // 0 for insert, 1 for update
