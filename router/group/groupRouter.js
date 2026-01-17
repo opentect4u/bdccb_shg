@@ -8,22 +8,22 @@ const groupCode = async (branch_code) => {
   const select = `
     COALESCE(
       MAX(
-        CAST(SUBSTRING(group_code FROM 4) AS INTEGER)
+        CAST(group_code AS INTEGER)
       ),
       0
-    ) + 1 AS next_no
+    ) + 1 AS group_no
   `;
 
   const table_name = "bdccb.md_group";
-  const whr = `branch_code = '${branch_code}'`;
+  const res_dt = await db_Select(select, table_name, null, null);
 
-  const res_dt = await db_Select(select, table_name, whr, null);
+  const group_no = res_dt.msg[0].group_no;
 
-  const nextNo = res_dt.msg[0].next_no;
+  const group_code = `${branch_code}${String(group_no).padStart(2, "0")}`;
+  console.log(group_code,'grrr');
 
-  return `${branch_code}${nextNo}`;
+  return group_code;
 };
-
 
 
 
@@ -76,22 +76,23 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
-      const { branch_code,group_name,gp_leader_id,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,created_by,ip_address } = req.body;
+      const { group_code,branch_code,group_name,gp_leader_id,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,created_by,ip_address } = req.body;
       console.log(req.body,'data');
       
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-      let group_code = await groupCode(branch_code);
+
+      let grp_code = await groupCode(branch_code);
 
       const table = "bdccb.md_group";
-      const columns = ["group_code","branch_code","group_name","gp_leader_id","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
-      const values = [group_code,branch_code,group_name,gp_leader_id,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,'O',datetime,'N',created_by,datetime,ip_address];
+      const columns = group_code > 0 ? ["branch_code","group_name","gp_leader_id","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","gp_leader_id","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
+      const values = group_code > 0 ? [branch_code,group_name,gp_leader_id || null,phone1 || null,sahayika_id || null,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no || null,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,gp_leader_id || null,phone1 || null,sahayika_id || null,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no || null,'O',datetime,'N',created_by,datetime,ip_address];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
-      const whereValues = group_code > 0 ? [group_code] : [];
+      const whereValues = group_code > 0 ? [grp_code] : [];
       const flag = group_code > 0 ? 1 : 0;
       const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
       return res.send({
         success: true,
-        msg: "Record Inserted Successfully",
+        msg: group_code > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
         data: result.lastId
       });
       } catch (error) {
