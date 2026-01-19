@@ -41,17 +41,13 @@ bdRouter = express.Router();
                     msg: "dist_id is required"
                 });
             }
-            
             const select = "a.block_id,a.block_name,a.dist_id,b.dist_name";
             const table_name = "md_block a LEFT JOIN md_district b ON a.dist_id = b.dist_code";
             let whr = `a.dist_id = ${dist_id}`;
             const order = "a.block_name ASC";
-            // if (id > 0) {
-            //     whr += ` AND a.block_id = ${id}`;
-            // }
-            // if (dist_id > 0) {
-            //     whr += ` AND a.dist_id = ${dist_id}`;
-            // }    
+            if (id > 0) {
+                whr += ` AND a.block_id = ${id}`;
+            }  
             try {
                 const block_data = await db_Select(select, table_name, whr, order);
                 return res.send({
@@ -62,7 +58,6 @@ bdRouter = express.Router();
                 });
             } catch (error) {
                 console.error("Error fetching block data:", error);
-    
                 return res.send({
                 success: false,
                 msg: "Internal server error",
