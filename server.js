@@ -66,7 +66,7 @@ app.post("/v1/login", async (req, res) => {
                 tenant_id: res_dt.msg[0].tenant_id,
                 tenant_name: res_dt.msg[0].tenant_name,
                  emp_id: 9999,
-                brn_code: "100",
+                brn_code: "2",
                 id: 4,
                 user_type: "Super Admin",
                 session_id: 8585858585,

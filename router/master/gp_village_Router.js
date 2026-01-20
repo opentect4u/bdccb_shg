@@ -166,7 +166,7 @@ gpvillRouter = express.Router();
                 });
             }
 
-        var select = "a.branch_id,a.dist_id,a.block_id,a.tenant_id,a.branch_type,a.branch_name,a.branch_address,a.branch_city,a.pin_no,a.contact_person,a.branch_phone,b.block_name,c.dist_name,d.tenant_name",
+        var select = "a.branch_id,a.dist_id,a.block_id,a.tenant_id,a.branch_type,a.branch_name,a.branch_address,a.branch_city,a.pin_no,a.contact_person,a.branch_phone,a.branch_status,b.block_name,c.dist_name,d.tenant_name",
         table_name = "md_branch a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_tenant d ON a.tenant_id = d.tenant_id",
         whr = `a.dist_id = ${dist_id} AND a.tenant_id = ${tenant_id} `,
         order = null;

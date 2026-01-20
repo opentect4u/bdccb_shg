@@ -1,7 +1,30 @@
 const { db_Select, saveRecord } = require('../../model/pgcommon');
 const express = require('express'),
 groupRouter = express.Router();
-
+ 
+ 
+// create group code
+// const groupCode = async (branch_code) => {
+//   const select = `
+//     COALESCE(
+//       MAX(
+//         CAST(group_code AS INTEGER)
+//       ),
+//       0
+//     ) + 1 AS group_no
+//   `;
+ 
+//   const table_name = "bdccb.md_group";
+//   const res_dt = await db_Select(select, table_name, null, null);
+ 
+//   const group_no = res_dt.msg[0].group_no;
+ 
+//   // const group_code = `${branch_code}${String(group_no).padStart(2, "0")}`;
+//   const group_code = `${branch_code}${String(group_no)}`;
+//   // console.log(group_code,'grrr');
+ 
+//   return group_code;
+// };
  
 const groupCode = async (branch_code) => {
  
@@ -20,31 +43,49 @@ const groupCode = async (branch_code) => {
 };
  
  
- 
- 
 // fetch group details
-groupRouter.post("/fetch_sahiyaka_details", async (req, res) => {
+groupRouter.post("/fetch_group_details", async (req, res) => {
  try{
   var data = req.body;
  
+  // search group list //
   var select = "a.group_code,a.group_name,b.branch_name",
   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id",
-  whr = `a.branch_code = '${data.branch_code}' AND (a.group_name like '%${data.group_name}%' OR a.group_code like '%${data.group_name}%')`,
+  whr = `a.branch_code = '${data.branch_code}' AND (a.group_name ILIKE '%${data.group_name}%' OR a.group_code::text ILIKE '%${data.group_name}%')`,
    order = null;
    var search_group_web = await db_Select(select,table_name,whr,order);
  
    if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
       return res.send({
         success: false,
-        msg: "No group found"
+        msg: "No group found",
+        data: []
       });
     }
  
+    // Fetch full group details //
+ 
    var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.gp_leader_id,c.member_name group_leader_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.sb_ac_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag",
   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_member c ON a.gp_leader_id = c.member_code LEFT JOIN public.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
-  whr = `a.group_code = '${data.group_name}' AND a.branch_code = '${data.branch_code}'`,
+  whr = `a.group_code = '${search_group_web.msg[0].group_code}' AND a.branch_code = '${data.branch_code}'`,
   order = null;
   var fetch_group_data = await db_Select(select,table_name,whr,order);
+ 
+    if (fetch_group_data.suc !== 1 || fetch_group_data.msg.length === 0) {
+      return res.send({
+        success: false,
+        msg: "Failed to fetch group data"
+      });
+    }
+ 
+    // FETCH GROUP MEMBERS //
+ 
+    var select = "member_code,member_name,group_code,approval_status",
+    table_name = "bdccb.md_member",
+    whr = `group_code = '${fetch_group_data.msg[0].group_code}' AND approval_status != 'R' AND delete_flag != 'Y'`,
+    order = null;
+    var grp_mem_dt = await db_Select(select,table_name,whr,order);
+    fetch_group_data.msg[0]['memb_dt'] = grp_mem_dt.suc > 0 ? (grp_mem_dt.msg.length > 0 ? grp_mem_dt.msg : []) : [];
  
   if (fetch_group_data.suc === 1 && fetch_group_data.msg.length > 0) {
       return res.send({
@@ -55,7 +96,8 @@ groupRouter.post("/fetch_sahiyaka_details", async (req, res) => {
     } else {
       return res.send({
         success: false,
-        msg: "Failed to fetch group data"
+        msg: "Failed to fetch group data",
+        data: []
       });
     }
  }catch(error){
