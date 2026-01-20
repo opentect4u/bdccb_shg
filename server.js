@@ -14,8 +14,7 @@ const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddlew
 
 app.use('/v1/master', require('./router/master/indexRouter'));
 app.use('/v1/group', require('./router/group/indexGroupRouter'));
-app.use('/v1/member', require('./router/member/indexMemberRouter'));
-app.use('/v1/loan', require('./router/loan/indexLoanRouter'));
+app.use('/v1/trans', require('./router/transacation/indexTransRouter'));
 
  
 
@@ -67,7 +66,7 @@ app.post("/v1/login", async (req, res) => {
                 tenant_id: res_dt.msg[0].tenant_id,
                 tenant_name: res_dt.msg[0].tenant_name,
                  emp_id: 9999,
-                brn_code: "100",
+                brn_code: "2",
                 id: 4,
                 user_type: "Super Admin",
                 session_id: 8585858585,
