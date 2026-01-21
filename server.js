@@ -14,6 +14,7 @@ const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddlew
 
 app.use('/v1/master', require('./router/master/indexRouter'));
 app.use('/v1/group', require('./router/group/indexGroupRouter'));
+app.use('/v1/member', require('./router/member/indexMemberRouter'));
 app.use('/v1/trans', require('./router/transacation/indexTransRouter'));
 app.use('/v1/depsav', require('./router/deposit_saving/indexdepsavingRouter'));
  
