@@ -51,7 +51,8 @@ sahayikaRouter.get("/sahayika_list", async (req, res) => {
         } else {
           return res.send({
             success: false,
-            msg: "Failed to fetch Sahayika data"
+            msg: "Failed to fetch Sahayika data",
+            data: []
           });
         }
     }catch(error){
