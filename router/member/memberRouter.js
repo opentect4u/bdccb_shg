@@ -33,7 +33,7 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
 
    if (search_member_web.suc !== 1 || search_member_web.msg.length === 0) {
       return res.send({
-        success: false,
+        success: true,
         msg: "No Member found",
         data: []
       });
@@ -53,7 +53,7 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
     });
     } else {
       return res.send({
-        success: false,
+        success: true,
         msg: "Failed to fetch member data",
         data: []
       });
@@ -78,7 +78,7 @@ memberRouter.post("/save_member", async (req, res) => {
         // GENDER VALIDATION
         if (!["M", "F", "O"].includes(gender)) {
           return res.send({
-            success: false,
+            success: true,
             msg: "Invalid gender value",
             data: []
           });
@@ -95,7 +95,7 @@ memberRouter.post("/save_member", async (req, res) => {
           const d = new Date(dobInput);
           if (isNaN(d)) {
             return res.send({
-              success: false,
+              success: true,
               msg: "Invalid date of birth",
             data: []
             });
@@ -108,7 +108,7 @@ memberRouter.post("/save_member", async (req, res) => {
           const phoneStr = phone_no.toString().trim();
           if (!/^[6-9]\d{9}$/.test(phoneStr)) {
             return res.send({
-              success: false,
+              success: true,
               msg: "Phone number must be a valid 10-digit mobile number",
               data: []
             });
@@ -118,7 +118,7 @@ memberRouter.post("/save_member", async (req, res) => {
         // PIN VALIDATION
         if (pin_no && !/^\d{6}$/.test(pin_no)) {
           return res.send({
-            success: false,
+            success: true,
             msg: "Invalid PIN code",
             data: []
           });
@@ -127,7 +127,7 @@ memberRouter.post("/save_member", async (req, res) => {
         // AADHAR VALIDATION (optional)
         if (aadhar_no && !/^\d{12}$/.test(aadhar_no)) {
           return res.send({
-            success: false,
+            success: true,
             msg: "Invalid Aadhar number",
             data: []
           });
@@ -150,7 +150,7 @@ memberRouter.post("/save_member", async (req, res) => {
 
       if (!result_member || result_member.suc !== 1) {
         return res.send({
-          success: false,
+          success: true,
           msg: result_member.msg || "Failed to save member",
           data: []
         });

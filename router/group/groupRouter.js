@@ -57,7 +57,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  
    if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
       return res.send({
-        success: false,
+        success: true,
         msg: "No group found",
         data: []
       });
@@ -73,8 +73,9 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  
     if (fetch_group_data.suc !== 1 || fetch_group_data.msg.length === 0) {
       return res.send({
-        success: false,
-        msg: "Failed to fetch group data"
+        success: true,
+        msg: "Failed to fetch group data",
+        data: []
       });
     }
 
@@ -94,7 +95,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     });
     } else {
       return res.send({
-        success: false,
+        success: true,
         msg: "Failed to fetch group data",
         data: []
       });
