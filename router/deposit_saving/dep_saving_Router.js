@@ -1,6 +1,6 @@
 const { db_Select, saveRecord } = require('../../model/pgcommon');
 const express = require('express'),
-sahayikaRouter = express.Router();
+depsavingRouter = express.Router();
 
 
 // create group code
@@ -19,13 +19,13 @@ const sahayikaCode = async (tenant_id) => {
 };
 
 // fetch group details
-sahayikaRouter.get("/sahayika_list", async (req, res) => {
+depsavingRouter.get("/deposit_list", async (req, res) => {
     try{
         const tenant_id = parseInt(req.query.tenant_id || 0);
         const dist_id = parseInt(req.query.dist_id || 0);
         const sahayika_id = parseInt(req.query.sahayika_id || 0);
             // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-                if (!dist_id || dist_id <= 0 || !tenant_id || tenant_id <= 0) {
+                if (!branch_id || branch_id <= 0 || !tenant_id || tenant_id <= 0) {
                     return res.send({
                         success: false,
                         msg: "dist id and tenant id is required"
@@ -65,7 +65,7 @@ sahayikaRouter.get("/sahayika_list", async (req, res) => {
 });
 
 // save / edit group
-sahayikaRouter.post("/save_sahayika", async (req, res) => {
+depsavingRouter.post("/save_sahayika", async (req, res) => {
     try {
       const { sahayika_id,tenant_id,branch_id,dist_id,sahayika_name,phone_no,address,created_by,ip_address } = req.body;
       let sahayika_gen_id = 0;
@@ -98,4 +98,4 @@ sahayikaRouter.post("/save_sahayika", async (req, res) => {
 });
 
 
-module.exports = {sahayikaRouter}
+module.exports = {depsavingRouter}
