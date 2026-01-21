@@ -24,13 +24,13 @@ const memberCode = async (branch_id) => {
 memberRouter.post("/fetch_member_details", async (req, res) => {
  try{
   var data = req.body;
-
+ 
   var select = "a.member_code,a.member_name,b.branch_name",
   table_name = "bdccb.md_member a LEFT JOIN public.md_branch b ON a.branch_id = b.branch_id",
   whr = `a.branch_id = '${data.branch_code}' AND (a.member_name ILIKE '%${data.member_name}%' OR a.member_code::text ILIKE '%${data.member_name}%')`,
    order = null;
    var search_member_web = await db_Select(select,table_name,whr,order);
-
+ 
    if (search_member_web.suc !== 1 || search_member_web.msg.length === 0) {
       return res.send({
         success: true,
@@ -38,8 +38,8 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
         data: []
       });
     }
-
-  var select = "a.member_code, a.branch_id, a.group_code, a.member_name, a.gender, a.dob, a.gurdian_name, a.tenant_id,a.address, a.phone_no, a.pin_no, a.aadhar_no, a.pan_no, a.voter_id, a.religion, a.caste, a.education, a.occupation,a.weaker_section,a.approval_status,b.branch_name,c.group_name,d.tenant_name",
+ 
+  var select = "a.member_code, a.branch_id, a.group_code, a.member_name, a.gender, TO_CHAR(a.dob, 'DD-MM-YYYY') dob, a.gurdian_name, a.tenant_id,a.address, a.phone_no, a.pin_no, a.aadhar_no, a.pan_no, a.voter_id, a.religion, a.caste, a.education, a.occupation,a.weaker_section,a.approval_status,b.branch_name,c.group_name,d.tenant_name",
   table_name = "bdccb.md_member a LEFT JOIN public.md_branch b ON a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN public.md_tenant d ON a.tenant_id = d.tenant_id",
   whr = `a.branch_id = '${data.branch_code}' AND a.member_code = '${data.member_name}'`,
   order = null;
