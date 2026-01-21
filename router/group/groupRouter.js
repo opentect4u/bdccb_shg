@@ -66,7 +66,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     // Fetch full group details //
  
    var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.gp_leader_id,c.member_name group_leader_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.sb_ac_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag",
-  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_member c ON a.gp_leader_id = c.member_code LEFT JOIN public.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
+  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_member c ON a.gp_leader_id = c.member_code LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
   whr = `a.group_code = '${search_group_web.msg[0].group_code}' AND a.branch_code = '${data.branch_code}'`,
   order = null;
   var fetch_group_data = await db_Select(select,table_name,whr,order);
