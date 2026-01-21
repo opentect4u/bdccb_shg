@@ -77,12 +77,11 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
         msg: "Failed to fetch group data"
       });
     }
- 
-    // FETCH GROUP MEMBERS //
- 
+
+    // FETCH GROUP MEMBERS //  
     var select = "member_code,member_name,group_code,approval_status",
     table_name = "bdccb.md_member",
-    whr = `group_code = '${fetch_group_data.msg[0].group_code}' AND approval_status != 'R' AND delete_flag != 'Y'`,
+    whr = `group_code = '${search_group_web.msg[0].group_code}' AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
     order = null;
     var grp_mem_dt = await db_Select(select,table_name,whr,order);
     fetch_group_data.msg[0]['memb_dt'] = grp_mem_dt.suc > 0 ? (grp_mem_dt.msg.length > 0 ? grp_mem_dt.msg : []) : [];
