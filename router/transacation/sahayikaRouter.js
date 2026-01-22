@@ -25,21 +25,25 @@ sahayikaRouter.get("/sahayika_list", async (req, res) => {
         const dist_id = parseInt(req.query.dist_id || 0);
         const sahayika_id = parseInt(req.query.sahayika_id || 0);
             // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-                if (!dist_id || dist_id <= 0 || !tenant_id || tenant_id <= 0) {
+                if (!tenant_id || tenant_id <= 0) {
                     return res.send({
                         success: false,
-                        msg: "dist id and tenant id is required"
+                        msg: "tenant id is required"
                     });
                 }
 
       var select = "a.sahayika_id,a.tenant_id,a.dist_id,a.sahayika_name,a.phone_no,a.address,b.dist_name",
       table_name = "bdccb.md_sahayika a LEFT JOIN md_district b ON a.dist_id = b.dist_code",
       order = null;
-      whr = `a.dist_id = '${dist_id}' AND a.tenant_id = '${tenant_id}'`,
+      whr = `a.tenant_id = '${tenant_id}'`,
       order = null;
       if(sahayika_id > 0){
         whr += ` AND a.sahayika_id = '${sahayika_id}'`;
       }
+      if(dist_id > 0){
+        whr += ` AND a.dist_id = '${dist_id}'`;
+      }
+      
       var fetch_data = await db_Select(select,table_name,whr,order);
 
       if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
