@@ -136,6 +136,11 @@ groupRouter.post("/save_group", async (req, res) => {
  
       let grp_code = await groupCode(branch_code);
 
+      const distId = dist_id === "" ? null : dist_id;
+      const blockId = block_id === "" ? null : block_id;
+      const psId = ps_id === "" ? null : ps_id;
+      const poId = po_id === "" ? null : po_id;
+      const gpId = gp_id === "" ? null : gp_id;
       const villageId = village_id === "" ? null : village_id;
       const sahayikaId = sahayika_id === "" ? null : sahayika_id;
       const phone = phone1 ? phone1.toString() : null;
@@ -143,7 +148,7 @@ groupRouter.post("/save_group", async (req, res) => {
  
       const table = "bdccb.md_group";
       const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
-      const values = group_code > 0 ? [branch_code,group_name,phone,sahayikaId,group_addr,dist_id,block_id,ps_id,po_id,gp_id,villageId,pin,sb_ac_no || null,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr,dist_id,block_id,ps_id,po_id,gp_id,villageId,pin,sb_ac_no || null,'O',datetime,'N',created_by,datetime,ip_address];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr,distId,blockId,psId,poId,gpId,villageId,pin,sb_ac_no || null,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr,distId,blockId,psId,poId,gpId,villageId,pin,sb_ac_no || null,'O',datetime,'N',created_by,datetime,ip_address];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
