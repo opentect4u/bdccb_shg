@@ -96,7 +96,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     }
 
     // FETCH GROUP MEMBERS //  
-    var select = "member_code,member_name,group_code,approval_status",
+    var select = "member_code,member_name,group_code,approval_status,gp_leader_flag",
     table_name = "bdccb.md_member",
     whr = `group_code = '${search_group_web.msg[0].group_code}' AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
     order = null;
@@ -135,14 +135,28 @@ groupRouter.post("/save_group", async (req, res) => {
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
  
       let grp_code = await groupCode(branch_code);
+
+      const villageId = village_id === "" ? null : village_id;
+      const sahayikaId = sahayika_id === "" ? null : sahayika_id;
+      const phone = phone1 ? phone1.toString() : null;
+      const pin = pin_no ? pin_no.toString() : null;
  
       const table = "bdccb.md_group";
       const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
-      const values = group_code > 0 ? [branch_code,group_name,phone1 || null,sahayika_id || null,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no || null,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone1 || null,sahayika_id || null,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no || null,'O',datetime,'N',created_by,datetime,ip_address];
+      const values = group_code > 0 ? [branch_code,group_name,phone,sahayikaId,group_addr,dist_id,block_id,ps_id,po_id,gp_id,villageId,pin,sb_ac_no || null,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr,dist_id,block_id,ps_id,po_id,gp_id,villageId,pin,sb_ac_no || null,'O',datetime,'N',created_by,datetime,ip_address];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
       const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
+
+      if (result.suc !== 1) {
+      return res.send({
+        success: true,
+        msg: result.msg || "Failed to save group",
+        data : []
+      });
+    }
+
       return res.send({
         success: true,
         msg: group_code > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
