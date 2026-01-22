@@ -61,7 +61,6 @@ app.post("/v1/login", async (req, res) => {
               dist_code: row.dist_id,
               dist_name: row.dist_name
               }));
-
              const user_dtls = {
                 district_list: district_list,
                 tenant_id: res_dt.msg[0].tenant_id,
