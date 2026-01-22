@@ -123,13 +123,13 @@ memberRouter.post("/save_member", async (req, res) => {
         console.log(req.body,'member');
 
         // GENDER VALIDATION
-        if (!["M", "F", "O"].includes(gender)) {
-          return res.send({
-            success: true,
-            msg: "Invalid gender value",
-            data: []
-          });
-        }
+        // if (!["M", "F", "O"].includes(gender)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid gender value",
+        //     data: []
+        //   });
+        // }
 
         let dobInput = dob;
         if (dobInput === "") {
@@ -163,22 +163,22 @@ memberRouter.post("/save_member", async (req, res) => {
         }
 
         // PIN VALIDATION
-        if (pin_no && !/^\d{6}$/.test(pin_no)) {
-          return res.send({
-            success: true,
-            msg: "Invalid PIN code",
-            data: []
-          });
-        }
+        // if (pin_no && !/^\d{6}$/.test(pin_no)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid PIN code",
+        //     data: []
+        //   });
+        // }
 
         // AADHAR VALIDATION (optional)
-        if (aadhar_no && !/^\d{12}$/.test(aadhar_no)) {
-          return res.send({
-            success: true,
-            msg: "Invalid Aadhar number",
-            data: []
-          });
-        }
+        // if (aadhar_no && !/^\d{12}$/.test(aadhar_no)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid Aadhar number",
+        //     data: []
+        //   });
+        // }
 
         let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -187,9 +187,24 @@ memberRouter.post("/save_member", async (req, res) => {
         mem_code = await memberCode(branch_id); 
         }
 
+      const groupID = group_code === "" ? null : group_code;
+      const tenantID = tenant_id === "" ? null : tenant_id;
+      const phone = phone_no ? phone_no.toString() : null;
+      const pin = pin_no ? pin_no.toString() : null;
+      const aadharNo = aadhar_no ? aadhar_no.toString() : null;
+      const panNo = pan_no ? pan_no.toString() : null;
+      const voterId = voter_id ? voter_id.toString() : null;
+      const religionVal = religion === "" ? null : religion;
+      const casteVal = caste === "" ? null : caste;
+      const educationVal = education === "" ? null : education;
+      const occupationVal = occupation === "" ? null : occupation;
+      const gpLeaderFlag = gp_leader_flag === "" ? null : gp_leader_flag;
+      const genderid = gender === "" ? null : gender;
+
+
       const table = "bdccb.md_member";
       const columns = member_code > 0 ? ["branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","modified_by","modified_at","ip_address","gp_leader_flag"] : ["member_code","branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag"];
-      const values = member_code > 0 ? [branch_id,group_code,member_name || null,gender,dobValue,gurdian_name,tenant_id,address,phone_no,pin_no,aadhar_no,pan_no,voter_id,religion,caste,education,occupation,weaker_section,created_by,datetime,ip_address,gp_leader_flag] : [mem_code,branch_id,group_code,member_name || null,gender,dobValue,gurdian_name,tenant_id,address,phone_no,pin_no,aadhar_no,pan_no,voter_id,religion,caste,education,occupation,weaker_section,'N','U',created_by,datetime,ip_address,gp_leader_flag];
+      const values = member_code > 0 ? [branch_id,groupID,member_name || null,genderid,dobValue,gurdian_name || null,tenantID,address,phone,pin,aadharNo,panNo,voterId,religionVal,casteVal,educationVal,occupationVal,weaker_section,created_by,datetime,ip_address,gpLeaderFlag] : [mem_code,branch_id,groupID,member_name || null,genderid,dobValue,gurdian_name || null,tenantID,address,phone,pin,aadharNo,panNo,voterId,religionVal,casteVal,educationVal,occupationVal,weaker_section,'N','U',created_by,datetime,ip_address,gpLeaderFlag];
       const whereColumns = member_code > 0 ? ["member_code"] : [];
       const whereValues = member_code > 0 ? [member_code] : [];
       const flag = member_code > 0 ? 1 : 0;
