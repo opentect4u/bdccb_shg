@@ -32,7 +32,7 @@ sahayikaRouter.get("/sahayika_list", async (req, res) => {
                     });
                 }
 
-      var select = "a.sahayika_id,a.tenant_id,a.dist_id,a.sahayika_name,a.phone_no,a.address,b.dist_name",
+      var select = "a.sahayika_id,a.tenant_id,a.dist_id,a.branch_id,a.sahayika_name,a.phone_no,a.address,b.dist_name",
       table_name = "bdccb.md_sahayika a LEFT JOIN md_district b ON a.dist_id = b.dist_code",
       order = null;
       whr = `a.tenant_id = '${tenant_id}'`,
