@@ -4,6 +4,7 @@ const cors = require('cors');
 const PORT = process.env.PORT || 3017;
 const app = express();
 const server = http.createServer(app);
+const bcrypt = require("bcrypt");
 
 app.use(cors());
 app.use(express.json());
@@ -19,7 +20,7 @@ app.use('/v1/trans', require('./router/transacation/indexTransRouter'));
 app.use('/v1/loan', require('./router/loan/indexLoanRouter'));
 app.use('/v1/depsav', require('./router/deposit_saving/indexdepsavingRouter'));
 app.use('/v1/account', require('./router/account/indexAccountRouter'));
- 
+
 
 // app.post("/v1/login", async (req, res) => {
 //     try {
