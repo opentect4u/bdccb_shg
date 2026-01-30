@@ -212,7 +212,7 @@ const genDate = (trans_date, period, mode) => {
 // FETCH PACS / SHG DETAILS BASED ON FLAG LOAN TO
 loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
  try{
-  const {loan_to, branch_code, branch_shg_id} = req.body;
+  const {loan_to, branch_code, tenant_id, branch_shg_id} = req.body;
   console.log(req.body,'pacs/shg');
 
    let select = "";
@@ -223,7 +223,7 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
   if(loan_to == 'P'){
    select = "a.branch_id,a.branch_name";
    table_name = "public.md_branch a LEFT JOIN bdccb.td_loan b ON a.branch_id = b.branch_shg_id AND b.loan_to = 'P'";
-   whr = `a.branch_id = '${branch_code}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
+   whr = `a.branch_id = '${branch_code}' AND a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
    order = null;
   }else{
    select = "a.group_code,a.branch_code,a.group_name";
@@ -330,21 +330,36 @@ loanRouter.post("/save_disbursement", async (req, res) => {
 // FETCH PACS DETAILS FOR APPROVE
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
  try{
-  const {} = req.body;
+  const {branch_id, tenant_id, loan_to, approval_status} = req.body;
   console.log(req.body,'fetch');
   
-  var select = "",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.loan_to = 'P' AND b.approval_status = 'U'",
-  whr = ``,
+  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,b.trans_dt,b.trans_id,b.trans_type",
+  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id",
+  whr = `a.branch_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
   order = null;
   var fetch_data = await db_Select(select,table_name,whr,order);
+
+  if(fetch_data.suc === 1 && fetch_data.msg.length > 0){
+   return res.send({
+    success: true,
+    msg: "Fetch unapprove disbursement details",
+    data: fetch_data.msg
+   });
+  }else{
+    return res.send({
+    success: true,
+    msg: "No unapprove disbursement details found",
+    data: []
+   });
+  }
+
  }catch(error){
   console.error("Error in while fetch disbursement details:", error);
   return res.send({
   success: false,
   msg: "Internal server error",
   errorCode: "SERVER_ERROR"
-     });
+  });
  }
 });
 
