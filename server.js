@@ -17,6 +17,7 @@ app.use('/v1/group', require('./router/group/indexGroupRouter'));
 app.use('/v1/member', require('./router/member/indexMemberRouter'));
 app.use('/v1/trans', require('./router/transacation/indexTransRouter'));
 app.use('/v1/depsav', require('./router/deposit_saving/indexdepsavingRouter'));
+app.use('/v1/account', require('./router/account/indexAccountRouter'));
  
 
 app.post("/v1/login", async (req, res) => {
