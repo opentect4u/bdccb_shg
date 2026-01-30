@@ -25,23 +25,37 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
  try{
   var data = req.body;
 
-  var select = "a.member_code,a.member_name,b.branch_name",
+  var select = "a.member_code,a.member_name,a.gp_leader_flag,b.branch_name",
   table_name = "bdccb.md_member a LEFT JOIN public.md_branch b ON a.branch_id = b.branch_id",
-  whr = `a.branch_id = '${data.branch_code}' AND (a.member_name ILIKE '%${data.member_name}%' OR a.member_code::text ILIKE '%${data.member_name}%')`,
+  whr = `a.branch_id = '${data.branch_code}'  AND a.delete_flag = 'N'
+   ${data.member_name && data.member_name.trim() !== "" 
+  ? `AND (a.member_name ILIKE '%${data.member_name}%' OR a.member_code::text ILIKE '%${data.member_name}%')`: ""}`,
    order = null;
    var search_member_web = await db_Select(select,table_name,whr,order);
 
    if (search_member_web.suc !== 1 || search_member_web.msg.length === 0) {
       return res.send({
-        success: false,
+        success: true,
         msg: "No Member found",
         data: []
       });
     }
 
-  var select = "a.member_code, a.branch_id, a.group_code, a.member_name, a.gender, a.dob, a.gurdian_name, a.tenant_id,a.address, a.phone_no, a.pin_no, a.aadhar_no, a.pan_no, a.voter_id, a.religion, a.caste, a.education, a.occupation,a.weaker_section,a.approval_status,b.branch_name,c.group_name,d.tenant_name",
+    // =====================================================
+    // IF ONLY BRANCH CODE PROVIDED RETURN GROUP LIST
+    // =====================================================
+    if (!data.member_name || data.member_name.trim() === "") {
+      return res.send({
+        success: true,
+        msg: "Member List",
+        data: search_member_web.msg
+      });
+    }
+ 
+
+  var select = "a.member_code, a.branch_id, a.group_code, a.member_name, a.gender, TO_CHAR(a.dob, 'DD-MM-YYYY') dob, a.gurdian_name, a.tenant_id,a.address, a.phone_no, a.pin_no, a.aadhar_no, a.pan_no, a.voter_id, a.religion, a.caste, a.education, a.occupation,a.weaker_section,a.approval_status,a.gp_leader_flag,b.branch_name,c.group_name,d.tenant_name",
   table_name = "bdccb.md_member a LEFT JOIN public.md_branch b ON a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN public.md_tenant d ON a.tenant_id = d.tenant_id",
-  whr = `a.branch_id = '${data.branch_code}' AND a.member_code = '${data.member_name}'`,
+  whr = `a.branch_id = '${data.branch_code}' AND a.member_code = '${search_member_web.msg[0].member_code}' AND a.delete_flag = 'N'`,
   order = null;
   var fetch_member_web = await db_Select(select,table_name,whr,order);
  
@@ -53,7 +67,7 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
     });
     } else {
       return res.send({
-        success: false,
+        success: true,
         msg: "Failed to fetch member data",
         data: []
       });
@@ -68,21 +82,54 @@ memberRouter.post("/fetch_member_details", async (req, res) => {
  }
 });
 
-// save / edit member details 
+//FETCH GROUP NAME
+memberRouter.post("/fetch_group_list", async (req, res) => {
+  try{
+    var data = req.body;
 
+    var select = "group_code,group_name",
+    table_name = "bdccb.md_group",
+    whr = `branch_code = '${data.branch_code}'`,
+    order = null;
+    var fetch_grp_list = await db_Select(select,table_name,whr,order);
+
+   if (fetch_grp_list.suc === 1 && fetch_grp_list.msg.length > 0) {
+      return res.send({
+        success: true,
+        msg: "Group List",
+        data: fetch_grp_list.msg
+    });
+    } else {
+      return res.send({
+        success: true,
+        msg: "Failed to fetch group data",
+        data: []
+      });
+    }
+  }catch(error){
+    console.log("Error fetching group data:", error);
+   return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+   });
+  }
+})
+
+// save / edit member details 
 memberRouter.post("/save_member", async (req, res) => {
      try {
-        const { member_code, branch_id, group_code, member_name, gender, dob, gurdian_name, tenant_id, address, phone_no, pin_no, aadhar_no, pan_no, voter_id, religion, caste, education, occupation, weaker_section,created_by,ip_address } = req.body;
+        const { member_code, branch_id, group_code, member_name, gender, dob, gurdian_name, tenant_id, address, phone_no, pin_no, aadhar_no, pan_no, voter_id, religion, caste, education, occupation, weaker_section, gp_leader_flag, created_by,ip_address } = req.body;
         console.log(req.body,'member');
 
         // GENDER VALIDATION
-        if (!["M", "F", "O"].includes(gender)) {
-          return res.send({
-            success: false,
-            msg: "Invalid gender value",
-            data: []
-          });
-        }
+        // if (!["M", "F", "O"].includes(gender)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid gender value",
+        //     data: []
+        //   });
+        // }
 
         let dobInput = dob;
         if (dobInput === "") {
@@ -95,7 +142,7 @@ memberRouter.post("/save_member", async (req, res) => {
           const d = new Date(dobInput);
           if (isNaN(d)) {
             return res.send({
-              success: false,
+              success: true,
               msg: "Invalid date of birth",
             data: []
             });
@@ -108,7 +155,7 @@ memberRouter.post("/save_member", async (req, res) => {
           const phoneStr = phone_no.toString().trim();
           if (!/^[6-9]\d{9}$/.test(phoneStr)) {
             return res.send({
-              success: false,
+              success: true,
               msg: "Phone number must be a valid 10-digit mobile number",
               data: []
             });
@@ -116,22 +163,22 @@ memberRouter.post("/save_member", async (req, res) => {
         }
 
         // PIN VALIDATION
-        if (pin_no && !/^\d{6}$/.test(pin_no)) {
-          return res.send({
-            success: false,
-            msg: "Invalid PIN code",
-            data: []
-          });
-        }
+        // if (pin_no && !/^\d{6}$/.test(pin_no)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid PIN code",
+        //     data: []
+        //   });
+        // }
 
         // AADHAR VALIDATION (optional)
-        if (aadhar_no && !/^\d{12}$/.test(aadhar_no)) {
-          return res.send({
-            success: false,
-            msg: "Invalid Aadhar number",
-            data: []
-          });
-        }
+        // if (aadhar_no && !/^\d{12}$/.test(aadhar_no)) {
+        //   return res.send({
+        //     success: true,
+        //     msg: "Invalid Aadhar number",
+        //     data: []
+        //   });
+        // }
 
         let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -140,17 +187,33 @@ memberRouter.post("/save_member", async (req, res) => {
         mem_code = await memberCode(branch_id); 
         }
 
+      const groupID = group_code === "" ? null : group_code;
+      const tenantID = tenant_id === "" ? null : tenant_id;
+      const phone = phone_no ? phone_no.toString() : null;
+      const pin = pin_no ? pin_no.toString() : null;
+      const aadharNo = aadhar_no ? aadhar_no.toString() : null;
+      const panNo = pan_no ? pan_no.toString() : null;
+      const voterId = voter_id ? voter_id.toString() : null;
+      const religionVal = religion === "" ? null : religion;
+      const casteVal = caste === "" ? null : caste;
+      const educationVal = education === "" ? null : education;
+      const occupationVal = occupation === "" ? null : occupation;
+      const gpLeaderFlag = gp_leader_flag === "" ? null : gp_leader_flag;
+      const genderid = gender === "" ? null : gender;
+
+
       const table = "bdccb.md_member";
-      const columns = member_code > 0 ? ["branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","modified_by","modified_at","ip_address"] : ["member_code","branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","delete_flag","approval_status","created_by","created_at","ip_address"];
-      const values = member_code > 0 ? [branch_id,group_code,member_name || null,gender,dobValue,gurdian_name,tenant_id,address,phone_no,pin_no,aadhar_no,pan_no,voter_id,religion,caste,education,occupation,weaker_section,created_by,datetime,ip_address] : [mem_code,branch_id,group_code,member_name || null,gender,dobValue,gurdian_name,tenant_id,address,phone_no,pin_no,aadhar_no,pan_no,voter_id,religion,caste,education,occupation,weaker_section,'N','U',created_by,datetime,ip_address];
+      const columns = member_code > 0 ? ["branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","modified_by","modified_at","ip_address","gp_leader_flag"] : ["member_code","branch_id","group_code","member_name","gender","dob","gurdian_name","tenant_id","address","phone_no","pin_no","aadhar_no","pan_no","voter_id","religion","caste","education","occupation","weaker_section","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag"];
+      const values = member_code > 0 ? [branch_id,groupID,member_name || null,genderid,dobValue,gurdian_name || null,tenantID,address,phone,pin,aadharNo,panNo,voterId,religionVal,casteVal,educationVal,occupationVal,weaker_section,created_by,datetime,ip_address,gpLeaderFlag] : [mem_code,branch_id,groupID,member_name || null,genderid,dobValue,gurdian_name || null,tenantID,address,phone,pin,aadharNo,panNo,voterId,religionVal,casteVal,educationVal,occupationVal,weaker_section,'N','U',created_by,datetime,ip_address,gpLeaderFlag];
       const whereColumns = member_code > 0 ? ["member_code"] : [];
       const whereValues = member_code > 0 ? [member_code] : [];
       const flag = member_code > 0 ? 1 : 0;
       const result_member = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
-
+      console.log(result_member,'res');
+      
       if (!result_member || result_member.suc !== 1) {
         return res.send({
-          success: false,
+          success: true,
           msg: result_member.msg || "Failed to save member",
           data: []
         });

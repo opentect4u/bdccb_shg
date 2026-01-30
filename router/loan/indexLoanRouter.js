@@ -1,5 +1,5 @@
 const indexLoanRouter = require('express').Router();
 
-indexLoanRouter.use('/', require('./brn_pacs_disbRouter').brn_pacsdisbRouter);
+indexLoanRouter.use('/', require('./loanRouter').loanRouter);
 
 module.exports = indexLoanRouter;
