@@ -80,6 +80,8 @@ sahayikaRouter.post("/save_sahayika", async (req, res) => {
       }else{
           sahayika_gen_id = sahayika_id;
       }
+        // console.log('sahayika_gen_id',sahayika_gen_id);
+
       const table = "bdccb.md_sahayika";
       const columns = sahayika_id > 0 ? ["tenant_id","branch_id","dist_id","sahayika_name","phone_no","address","modified_by","modified_at","ip_address"] : ["sahayika_id","tenant_id","branch_id","dist_id","sahayika_name","phone_no","address","created_by","created_at","ip_address"];
       const values = sahayika_id > 0 ? [tenant_id,branch_id,dist_id,sahayika_name,phone_no,address,created_by,datetime,ip_address] : [sahayika_gen_id,tenant_id,branch_id,dist_id,sahayika_name,phone_no,address,created_by,datetime,ip_address];

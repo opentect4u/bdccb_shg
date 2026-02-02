@@ -120,7 +120,7 @@ memberRouter.post("/fetch_group_list", async (req, res) => {
 memberRouter.post("/save_member", async (req, res) => {
      try {
         const { member_code, branch_id, group_code, member_name, gender, dob, gurdian_name, tenant_id, address, phone_no, pin_no, aadhar_no, pan_no, voter_id, religion, caste, education, occupation, weaker_section, gp_leader_flag, created_by,ip_address } = req.body;
-        console.log(req.body,'member');
+        // console.log(req.body,'member');
 
         // GENDER VALIDATION
         // if (!["M", "F", "O"].includes(gender)) {
@@ -209,7 +209,7 @@ memberRouter.post("/save_member", async (req, res) => {
       const whereValues = member_code > 0 ? [member_code] : [];
       const flag = member_code > 0 ? 1 : 0;
       const result_member = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
-      console.log(result_member,'res');
+      // console.log(result_member,'res');
       
       if (!result_member || result_member.suc !== 1) {
         return res.send({
