@@ -2,6 +2,12 @@ const { db_Select, saveRecord } = require('../../model/pgcommon');
 const express = require('express'),
 accountRouter = express.Router();
 
+  const generateBalanceId = async () => {
+      const timestamp = new Date().getTime();
+      const balID = `${timestamp}`;
+      return(balID);
+  };
+
   function getFinancialYear(date = new Date()) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1; // Jan = 1, Apr = 4
@@ -33,11 +39,30 @@ accountRouter = express.Router();
     const next_voucher_id = res_dt.msg[0].next_voucher_id;
     return next_voucher_id; // INTEGER
   };
-  accountRouter.post("/save_voucher", async (req, res) => {
+  const getbalance = async (pacs_shg_id) => {
+    const select = `COALESCE(NULLIF(balance, 'NaN'::numeric), 0) AS next_balance`;
+    const table_name = "bdccb.td_loan_balance";
+    const whr = `pacs_shg_id = '${pacs_shg_id}' ORDER BY balance_id DESC LIMIT 1`;
+    const res_dt = await db_Select(select, table_name, whr, null);
+    console.log('Balance Query Result:', res_dt);
+    let lastBalance = 0;
+
+      if (res_dt.msg.length > 0 && res_dt.msg[0].next_balance !== null) {
+        lastBalance = parseFloat(res_dt.msg[0].next_balance);
+      }
+    const next_balance = lastBalance;
+    return next_balance; // INTEGER
+  };
+  accountRouter.post("/save_loan_voucher", async (req, res) => {
        try {
         var voucher_ids = 0;
-         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,dr_amt,cr_amt,created_by,ip_address } = req.body;
+         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,loan_id,pacs_shg_id,dr_amt,cr_amt,created_by,ip_address } = req.body;
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        let date = new Date().toISOString().slice(0, 10);
+
+          // Generate balance id
+         var balance_id = await generateBalanceId();
+
          // it check voucher id is > 0 then assign that value otherwise get next voucher id and also check for add or edit operation.
          if(voucher_id > 0){
             voucher_ids = voucher_id;
@@ -53,6 +78,29 @@ accountRouter = express.Router();
           if(dr_amt !== cr_amt){
             return res.send({ success: false, msg: "DR and CR amounts are not equal. Please provide equal amounts." });
          }
+          var balance = await getbalance(pacs_shg_id);
+          console.log('Current Balance:', balance);
+          balance = parseFloat(balance) + parseFloat(cr_amt);
+          // INSERT INTO BALANCE TABLE
+          const table_bal = "bdccb.td_loan_balance";
+          const columns_bal = ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
+          const values_bal = [date,balance_id,tenant_id,loan_to,pacs_shg_id,0,cr_amt,balance];
+          const whereColumns_bal = [];
+          const whereValues_bal = [];
+          const flag_bal = 0;
+          const balance_data = await saveRecord(table_bal, columns_bal, values_bal, whereColumns_bal, whereValues_bal, flag_bal);
+
+          // IF BALANCE INSERT SUCCESS 
+          if(balance_data.suc === 1){
+           const table1 = "bdccb.td_loan_transactions";
+           const columns1 = ["approval_status","approved_by","approved_dt"];
+           const values1 = ["A",created_by,datetime];
+           const whereColumns1 = ["trans_id","loan_id"];
+           const whereValues1 = [trans_id,loan_id];
+           const flag1 = 1;
+           const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+        
+        if(trans_update.suc === 1){
          //  For DR  value 
          const columns = voucher_id > 0 ? ["branch_id","voucher_dt","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","modified_by","modified_at","modified_ip"] : ["tenant_id","branch_id","voucher_dt","voucher_id","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","created_by","created_at","created_ip"];
          const values_dr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address];
@@ -82,6 +130,18 @@ accountRouter = express.Router();
            msg: voucher_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
            // data: result.lastId
          });
+        }else {
+              return res.send({
+               success: true,
+               msg: "Balance inserted but transaction update failed"
+               });
+           }
+           }else{
+           return res.send({
+                 success: true,
+                 msg: "Balance insert failed"
+           });
+          }
          } catch (error) {
            console.error("Error in while save voucher:", error);
            return res.send({

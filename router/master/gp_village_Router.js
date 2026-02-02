@@ -159,19 +159,22 @@ gpvillRouter = express.Router();
         const id = parseInt(req.query.branch_id || 0);
 
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-            if (!dist_id || dist_id <= 0 || !tenant_id || tenant_id <= 0) {
+            if (!tenant_id || tenant_id <= 0) {
                 return res.send({
                     success: false,
-                    msg: "dist id and tenant id is required"
+                    msg: "tenant id is required"
                 });
             }
 
         var select = "a.branch_id,a.dist_id,a.block_id,a.tenant_id,a.branch_type,a.branch_name,a.branch_address,a.pin_no,a.contact_person,a.branch_phone,a.branch_status,b.block_name,c.dist_name,d.tenant_name",
         table_name = "md_branch a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_tenant d ON a.tenant_id = d.tenant_id",
-        whr = `a.dist_id = ${dist_id} AND a.tenant_id = ${tenant_id} `,
+        whr = `a.tenant_id = ${tenant_id} `,
         order = null;
         if (id > 0) {
             whr += ` AND a.branch_id = ${id}`;
+        }
+        if( dist_id > 0) {
+            whr += ` AND a.dist_id = ${dist_id}`;
         }
         if (block_id > 0) {
             whr += ` AND a.block_id = ${block_id}`;
@@ -199,8 +202,8 @@ gpvillRouter = express.Router();
         try {
             const { dist_id,tenant_id, block_id,branch_type, branch_name, branch_address, branch_city, pin_no, contact_person, branch_phone, created_by,created_ip,branch_id,closed_opened_by,closed_opened_at } = req.body;
             const table = "md_branch";
-            const columns = branch_id > 0 ? ["dist_id","tenant_id","block_id","branch_type","branch_name","branch_address","branch_city","pin_no","contact_person","branch_phone","modified_by","modified_at","closed_opened_by","closed_opened_at","ip_address"] : ["dist_id","tenant_id","block_id","branch_type","branch_name","branch_address","branch_city","pin_no","contact_person","branch_phone","created_by","created_at","closed_opened_by","closed_opened_at","ip_address"];
-            const values = [dist_id, tenant_id, block_id, branch_type, branch_name, branch_address, branch_city, pin_no, contact_person, branch_phone, created_by, new Date(),closed_opened_by,closed_opened_at, created_ip];
+            const columns = branch_id > 0 ? ["dist_id","tenant_id","block_id","branch_type","branch_name","branch_address","pin_no","contact_person","branch_phone","modified_by","modified_at","closed_opened_by","closed_opened_at","ip_address"] : ["dist_id","tenant_id","block_id","branch_type","branch_name","branch_address","pin_no","contact_person","branch_phone","created_by","created_at","closed_opened_by","closed_opened_at","ip_address"];
+            const values = [dist_id, tenant_id, block_id, branch_type, branch_name, branch_address, pin_no, contact_person, branch_phone, created_by, new Date(),closed_opened_by,closed_opened_at, created_ip];
             const whereColumns = branch_id > 0 ? ["branch_id"] : [];
             const whereValues = branch_id > 0 ? [branch_id] : [];
             const flag = branch_id > 0 ? 1 : 0; // 0 for insert, 1 for update

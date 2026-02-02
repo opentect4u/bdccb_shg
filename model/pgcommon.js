@@ -96,7 +96,7 @@ pgdb = require("../db/pgdb");
     try {
           const result = await pgdb.query(sql, params);
           let data = {};
-
+          console.log('Save Record Result:', sql, params);
           if (flag === 0) {
               if (result.rows[0]) {
                 const row = result.rows[0];
