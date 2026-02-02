@@ -265,7 +265,7 @@ const genDate = (trans_date, period, mode) => {
 loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
  try{
   const {loan_to, branch_code, tenant_id, branch_shg_id} = req.body;
-  console.log(req.body,'pacs/shg');
+  // console.log(req.body,'pacs/shg');
 
    let select = "";
    let table_name = "";
@@ -311,21 +311,23 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
 // SAVE DISBURSEMENT (BRANCH -> PACS -> SHG / BRNCH -> SHG)
 loanRouter.post("/save_disbursement", async (req, res) => {
     try{
-     const { tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,created_by,ip_address} = req.body;
+     const { tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,created_by,ip_address} = req.body;
      console.log(req.body,'data');
 
     let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     let loan_code = await loanCode(branch_id);
-    let intt_cal_amt = await interest_cal_amt(disb_amt,period,curr_roi,pay_mode);
+    // let intt_cal_amt = await interest_cal_amt(disb_amt,period,curr_roi,pay_mode);
+
+    var pay_mode = "Monthly";
 
     let instl_date = await genDate(disb_dt,period,pay_mode);
     const startDate = instl_date.emtStart;
     const endDate = instl_date.emiEnd;
 
     var table = "bdccb.td_loan";
-    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","created_by","created_dt","ip_address"];
-    var values =  [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,startDate,endDate,disb_amt,intt_cal_amt,created_by,datetime,ip_address];
+    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","created_by","created_dt","ip_address"];
+    var values =  [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,startDate,endDate,disb_amt,0,0,0,created_by,datetime,ip_address];
     var whereColumns = [];
     var whereValues = [];
     var flag = 0;
@@ -343,7 +345,7 @@ loanRouter.post("/save_disbursement", async (req, res) => {
       
       var table = "bdccb.td_loan_transactions";
       var columns = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-      var values = [disb_dt,trans_id,tenant_id,loan_to,branch_shg_id,loan_code,loan_acc_no || null,'D',disb_amt,0,0,0,0,0,disb_amt,intt_cal_amt,0,0,'U',created_by,datetime,ip_address];
+      var values = [disb_dt,trans_id,tenant_id,loan_to,branch_shg_id,loan_code,loan_acc_no || null,'D',disb_amt,0,0,0,0,0,disb_amt,0,0,0,'U',created_by,datetime,ip_address];
       var whereColumns = [];
       var whereValues = [];
       var flag = 0;
@@ -377,11 +379,11 @@ loanRouter.post("/save_disbursement", async (req, res) => {
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
  try{
   const {branch_id, tenant_id, loan_to, approval_status} = req.body;
-  console.log(req.body,'fetch');
+  // console.log(req.body,'fetch');
   
-  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,b.trans_dt,b.trans_id,b.trans_type",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id",
-  whr = `a.branch_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
+  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.created_by,a.created_dt,a.ip_address,b.trans_dt,b.trans_id,b.trans_type",
+  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.branch_shg_id = b.branch_shg_id",
+  whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
   order = null;
   var fetch_data = await db_Select(select,table_name,whr,order);
 
