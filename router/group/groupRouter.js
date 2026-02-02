@@ -130,7 +130,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
 groupRouter.post("/save_group", async (req, res) => {
     try {
       const { group_code,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,created_by,ip_address } = req.body;
-      console.log(req.body,'datagrp');
+      // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
  

@@ -69,7 +69,7 @@ bdRouter = express.Router();
     bdRouter.post("/save_block", async (req, res) => {
         try {
             const { dist_id, block_name,block_id,created_by, created_at } = req.body;
-            console.log(req.body);
+            // console.log(req.body);
             
             const table = "md_block";
             const columns = block_id > 0 ? ["dist_id", "block_name", "modified_by", "modified_at"] : ["dist_id", "block_name", "delete_flag", "created_by", "created_at"];

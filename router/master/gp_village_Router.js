@@ -51,7 +51,7 @@ gpvillRouter = express.Router();
     gpvillRouter.post("/save_gp", async (req, res) => {
         try {
             const { dist_id, block_id, gp_name, gp_id ,created_by,created_ip } = req.body;
-            console.log(req.body);
+            // console.log(req.body);
             
 
             const table = "md_gp";

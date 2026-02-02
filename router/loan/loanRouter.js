@@ -210,6 +210,58 @@ const genDate = (trans_date, period, mode) => {
 
 
 // FETCH PACS / SHG DETAILS BASED ON FLAG LOAN TO
+// loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
+//  try{
+//   const {loan_to, branch_code, tenant_id, branch_shg_id} = req.body;
+//   console.log(req.body,'pacs/shg');
+
+//    let select = "";
+//    let table_name = "";
+//    let whr = "";
+//    let order = null;
+  
+//   if(loan_to == 'P'){
+//    select = "a.branch_id,a.branch_name";
+//    table_name = "public.md_branch a LEFT JOIN bdccb.td_loan b ON a.branch_id = b.branch_shg_id AND b.loan_to = 'P'";
+//    whr = `a.branch_id = '${branch_code}' AND a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
+//    order = null;
+//   }else{
+//    select = "a.group_code,a.branch_code,a.group_name";
+//    table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan b ON a.group_code = b.branch_shg_id AND b.loan_to = 'S'";
+//    whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
+//    order = null;
+//   }
+//   let fetch_details = await db_Select(select,table_name,whr,order);
+
+//   if (fetch_details.suc === 1 && fetch_details.msg.length > 0) {
+//       return res.send({
+//       success: true,
+//       msg: loan_to == 'P' ? "PACS List" : "SHG List",
+//       data: fetch_details.msg
+//     });
+//   } else if (fetch_details.suc === 1 && fetch_details.msg.length === 0){
+//        return res.send({
+//        success: true,
+//        msg: `Loan already disbursed. Please select another ${loan_to == 'P' ? "PACS" : "SHG"}`,
+//        data: []
+//   });
+//   }else{
+//       return res.send({
+//       success: true,
+//       msg: loan_to == 'P' ? "Failed to fetch PACS data" : "Failed to fetch SHG data",
+//       data: []
+//       });
+//   }
+//  }catch(error){
+//    console.error("Error in while fetch pacs/shg details:", error);
+//    return res.send({
+//    success: false,
+//    msg: "Internal server error",
+//    errorCode: "SERVER_ERROR"
+//      });
+//  }
+// });
+
 loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
  try{
   const {loan_to, branch_code, tenant_id, branch_shg_id} = req.body;
@@ -222,13 +274,13 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
   
   if(loan_to == 'P'){
    select = "a.branch_id,a.branch_name";
-   table_name = "public.md_branch a LEFT JOIN bdccb.td_loan b ON a.branch_id = b.branch_shg_id AND b.loan_to = 'P'";
-   whr = `a.branch_id = '${branch_code}' AND a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
+   table_name = "public.md_branch a";
+   whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%')`;
    order = null;
   }else{
    select = "a.group_code,a.branch_code,a.group_name";
-   table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan b ON a.group_code = b.branch_shg_id AND b.loan_to = 'S'";
-   whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%') AND b.branch_shg_id IS NULL`;
+   table_name = "bdccb.md_group a";
+   whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
    order = null;
   }
   let fetch_details = await db_Select(select,table_name,whr,order);
@@ -239,16 +291,10 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
       msg: loan_to == 'P' ? "PACS List" : "SHG List",
       data: fetch_details.msg
     });
-  } else if (fetch_details.suc === 1 && fetch_details.msg.length === 0){
-       return res.send({
-       success: true,
-       msg: `Loan already disbursed. Please select another ${loan_to == 'P' ? "PACS" : "SHG"}`,
-       data: []
-  });
   }else{
       return res.send({
       success: true,
-      msg: loan_to == 'P' ? "Failed to fetch PACS data" : "Failed to fetch SHG data",
+      msg: loan_to == 'P' ? "No PACS data found" : "No SHG data found",
       data: []
       });
   }
@@ -265,7 +311,7 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
 // SAVE DISBURSEMENT (BRANCH -> PACS -> SHG / BRNCH -> SHG)
 loanRouter.post("/save_disbursement", async (req, res) => {
     try{
-     const { tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,disb_dt,disb_amt,pay_mode,created_by,ip_address} = req.body;
+     const { tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,created_by,ip_address} = req.body;
      console.log(req.body,'data');
 
     let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -278,8 +324,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     const endDate = instl_date.emiEnd;
 
     var table = "bdccb.td_loan";
-    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","created_by","created_dt","ip_address"];
-    var values =  [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,disb_dt,disb_amt,pay_mode,startDate,endDate,disb_amt,intt_cal_amt,created_by,datetime,ip_address];
+    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","created_by","created_dt","ip_address"];
+    var values =  [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,startDate,endDate,disb_amt,intt_cal_amt,created_by,datetime,ip_address];
     var whereColumns = [];
     var whereValues = [];
     var flag = 0;
@@ -363,11 +409,11 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
  }
 });
 
-// APPROVE LOAN FROM PACS LEVEL
+// APPROVE LOAN FROM PACS LEVEL ***** this i snot used *****
 loanRouter.post("/approve_loan_pacs_level", async (req, res) => {
 try{
  const {tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,approved_by} = req.body;
- console.log(req.body,'accept_pacs');
+//  console.log(req.body,'accept_pacs');
 
  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
  let date = new Date().toISOString().slice(0, 10);
