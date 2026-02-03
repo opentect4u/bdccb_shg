@@ -1,4 +1,4 @@
-const indexGroupRouter = require('express').Router();
+const indexTransRouter = require('express').Router();
 
-indexGroupRouter.use('/', require('./sahayikaRouter').sahayikaRouter);
-module.exports = indexGroupRouter;
+indexTransRouter.use('/', require('./sahayikaRouter').sahayikaRouter);
+module.exports = indexTransRouter;
