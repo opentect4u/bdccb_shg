@@ -381,8 +381,8 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
   const {branch_id, tenant_id, loan_to, approval_status} = req.body;
   // console.log(req.body,'fetch');
   
-  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.created_by,a.created_dt,a.ip_address,b.trans_dt,b.trans_id,b.trans_type",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.branch_shg_id = b.branch_shg_id",
+  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.created_by,a.created_dt,a.ip_address,b.trans_dt,b.trans_id,b.trans_type,c.branch_name",
+  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
   whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
   order = null;
   var fetch_data = await db_Select(select,table_name,whr,order);
@@ -411,66 +411,145 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
  }
 });
 
-// APPROVE LOAN FROM PACS LEVEL ***** this i snot used *****
-loanRouter.post("/approve_loan_pacs_level", async (req, res) => {
-try{
- const {tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,approved_by} = req.body;
-//  console.log(req.body,'accept_pacs');
+// FETCH MAXIMUM BALANCE ON A PARTICULAR BRANCH //
+loanRouter.post("/fetch_max_balance", async (req, res) => {
+  try{
+   const {loan_to, pacs_shg_id} = req.body;
+   console.log(req.body,'test');
 
- let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
- let date = new Date().toISOString().slice(0, 10);
-
-  // Generate balance id
- let balance = await balance_id();
-
- // Calculate balance
- var balance_amt = (cr_amt || 0) - (debit_amt || 0);
-
- // INSERT INTO BALANCE TABLE
- const table = "bdccb.td_loan_balance";
- const columns = ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
- const values = [date,balance,tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,balance_amt];
- const whereColumns = [];
- const whereValues = [];
- const flag = 0;
- const balance_data = await saveRecord(table, columns, values, whereColumns, whereValues, flag);
-
- // IF BALANCE INSERT SUCCESS 
- if(balance_data.suc === 1){
-  const table1 = "bdccb.td_loan_transactions";
-  const columns1 = ["approval_status","approved_by","approved_dt"];
-  const values1 = ["A",approved_by,datetime];
-  const whereColumns1 = ["trans_id","loan_id"];
-  const whereValues1 = [trans_id,loan_id];
-  const flag1 = 1;
-  const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
-  
-  // IF TRANSACTION UPDATE SUCCESS
-  if(trans_update.suc === 1){
-    return res.send({
-      success: true,
-          msg: "Loan approved & balance inserted"
-        });
-  }else {
-     return res.send({
-      success: true,
-      msg: "Balance inserted but transaction update failed"
+   if (!pacs_shg_id || !loan_to) {
+      return res.json({
+        success: false,
+        message: "loan_to and pacs_shg_id are required"
       });
-  }
- }else{
-  return res.send({
+    }
+
+    const table_name = "bdccb.td_loan_balance";
+
+      // MAX BALANCE DATE //
+      let select1 = "TO_CHAR(MAX(balance_date), 'YYYY-MM-DD') AS balance_date";
+      let whr1 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}'`;
+
+    let maxDateRes = await db_Select(select1, table_name, whr1, null);
+
+     if (maxDateRes.suc !== 1 || maxDateRes.msg.length === 0 || !maxDateRes.msg[0].balance_date) {
+      return res.send({
         success: true,
-        msg: "Balance insert failed"
-  });
- }
-}catch(error){
-  console.error("Error in while approve loan from pacs level:", error);
+        msg: "No balance date found",
+        data: []
+      });
+    }
+
+    const balance_date = maxDateRes.msg[0].balance_date;
+    console.log(balance_date,'balance_date');
+
+      // MAX BALANCE ID //
+    let select2 = "MAX(balance_id) AS balance_id";
+    let whr2 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'`;
+
+    let maxIdRes = await db_Select(select2, table_name, whr2, null);
+
+     if (maxIdRes.suc !== 1 || maxIdRes.msg.length === 0 || !maxIdRes.msg[0].balance_id) {
+      return res.send({
+        success: true,
+        msg: "No balance id found",
+        data: []
+      });
+    }
+
+    const balance_id = maxIdRes.msg[0].balance_id;
+    console.log(balance_id,'balance_id');
+    
+
+     // FETCH BALANCE AMOUNT//
+     let select3 = "balance AS max_balance";
+     let whr3 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'
+      AND balance_id='${balance_id}'`;
+    var fetch_max_balance = await db_Select(select3,table_name,whr3,null);
+
+   if(fetch_max_balance.suc === 1 && fetch_max_balance.msg.length > 0){
+   return res.send({
+    success: true,
+    msg: "Fetch balance",
+    data: fetch_max_balance.msg
+   });
+  }else{
+    return res.send({
+    success: true,
+    msg: "No balance found",
+    data: []
+   });
+  }
+  }catch(error){
+  console.error("Error in while fetch maximum balance on a particular pacs:", error);
   return res.send({
   success: false,
   msg: "Internal server error",
   errorCode: "SERVER_ERROR"
   });
-}
+  }
 });
+
+// APPROVE LOAN FROM PACS LEVEL ***** this i snot used *****
+// loanRouter.post("/approve_loan_pacs_level", async (req, res) => {
+// try{
+//  const {tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,approved_by} = req.body;
+// //  console.log(req.body,'accept_pacs');
+
+//  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+//  let date = new Date().toISOString().slice(0, 10);
+
+//   // Generate balance id
+//  let balance = await balance_id();
+
+//  // Calculate balance
+//  var balance_amt = (cr_amt || 0) - (debit_amt || 0);
+
+//  // INSERT INTO BALANCE TABLE
+//  const table = "bdccb.td_loan_balance";
+//  const columns = ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
+//  const values = [date,balance,tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,balance_amt];
+//  const whereColumns = [];
+//  const whereValues = [];
+//  const flag = 0;
+//  const balance_data = await saveRecord(table, columns, values, whereColumns, whereValues, flag);
+
+//  // IF BALANCE INSERT SUCCESS 
+//  if(balance_data.suc === 1){
+//   const table1 = "bdccb.td_loan_transactions";
+//   const columns1 = ["approval_status","approved_by","approved_dt"];
+//   const values1 = ["A",approved_by,datetime];
+//   const whereColumns1 = ["trans_id","loan_id"];
+//   const whereValues1 = [trans_id,loan_id];
+//   const flag1 = 1;
+//   const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+  
+//   // IF TRANSACTION UPDATE SUCCESS
+//   if(trans_update.suc === 1){
+//     return res.send({
+//       success: true,
+//           msg: "Loan approved & balance inserted"
+//         });
+//   }else {
+//      return res.send({
+//       success: true,
+//       msg: "Balance inserted but transaction update failed"
+//       });
+//   }
+//  }else{
+//   return res.send({
+//         success: true,
+//         msg: "Balance insert failed"
+//   });
+//  }
+// }catch(error){
+//   console.error("Error in while approve loan from pacs level:", error);
+//   return res.send({
+//   success: false,
+//   msg: "Internal server error",
+//   errorCode: "SERVER_ERROR"
+//   });
+// }
+// });
 
 module.exports = {loanRouter}
