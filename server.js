@@ -127,7 +127,7 @@ app.post("/v1/login", async (req, res) => {
       LEFT JOIN public.md_tenant_dist d ON c.tenant_id = d.tenant_id
       LEFT JOIN public.md_district e ON d.dist_id = e.dist_code`;
 
-    let whr = `a.user_name = '${username}' AND a.active_flag = 'Y'`;
+    let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
     let order = null;
 
     let res_dt = await db_Select(select, table_name, whr, order);

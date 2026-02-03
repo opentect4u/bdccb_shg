@@ -110,7 +110,7 @@ accountRouter = express.Router();
          console.log('values_dr:', values_dr);
          const result = await saveRecord(table, columns, values_dr,whereColumns,whereValues,flag);
         // For CR  value
-         const values_cr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,acc_code,trans_type,0,cr_amt,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,acc_code,trans_type,0,cr_amt,created_by,datetime,ip_address];
+         const values_cr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address];
          const whereColumns1 = voucher_id > 0 ? ["voucher_id","tenant_id",'dr_amt'] : [];
          const whereValues1 = voucher_id > 0 ? [voucher_id,tenant_id,0] : [];
          const flag1 = voucher_id > 0 ? 1 : 0;
