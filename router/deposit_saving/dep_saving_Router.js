@@ -90,6 +90,61 @@ depsavingRouter.post("/save_sbacc", async (req, res) => {
        });
       }
 });
+    get_acount_balance = async (sb_id) => {
+        const select = `balance`;
+        const table_name = "bdccb.td_deposit_trans";
+        const whr = `sb_id = '${sb_id}' order by trans_no desc limit 1 `;
+        const order = null; 
+        const res_dt = await db_Select(select, table_name, whr, order);
+        const balance = res_dt.msg[0].balance;
+        return balance; // INTEGER
+    }
+    depsavingRouter.post("/save_dept_trans", async (req, res) => {
+        try {
+            const {trans_no,sb_id,tenant_id,branch_id,acc_no,dep_with_flag,dr_amt,cr_amt,remarks,created_by,created_at,created_ip} = req.body;
+            let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            var trans_dt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+            var balance = await get_acount_balance(sb_id);
+            if(dep_with_flag === 'D'){
+              balance = balance + dr_amt;
+            } else {    
+              balance = balance - cr_amt;
+            }
+         
+            const table = "bdccb.td_deposit_trans";
+            const columns = trans_no > 0
+            ? ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","modified_by","modified_at","modified_ip"]
+            : ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+
+          const values = trans_no > 0
+            ? [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip]
+            : [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip];
+          const whereColumns = trans_no > 0 ? ["sb_id", "trans_no"] : [];
+          const whereValues  = trans_no > 0 ? [sb_id, trans_no] : [];
+          const flag = trans_no > 0 ? 1 : 0;
+
+          const result = await saveRecord(table,columns,values,whereColumns,whereValues,flag);
+          const newSbId = sb_id > 0 ? sb_id : result.lastId;
+
+          /* 2️⃣ Insert opening transaction ONLY for new account */
+          
+          return res.send({
+            success: true,
+            msg: sb_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
+            data: newSbId
+          });
+
+        } catch (error) {
+            console.error("Error while saving SB account:", error);
+            return res.send({
+              success: false,
+              msg: "Internal server error",
+              errorCode: "SERVER_ERROR"
+            });
+        } 
+});
+
 
 
 module.exports = {depsavingRouter}
