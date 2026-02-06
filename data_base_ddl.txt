@@ -37,3 +37,47 @@ CREATE TABLE md_block (
     block_name VARCHAR(600),
     PRIMARY KEY (block_id)
 );
+
+CREATE TABLE bdccb.td_deposit_trans (
+    trans_no      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sb_id         BIGINT NOT NULL,
+    tenant_id     INTEGER NOT NULL,
+	branch_id     INTEGER NOT NULL,
+    acc_no        BIGINT NOT NULL,
+    trans_dt      TIMESTAMP NOT NULL,
+    dep_with_flag bdccb.dep_with_flag NOT NULL,
+    dr_amt        NUMERIC(13,2) NOT NULL DEFAULT 0,
+    cr_amt        NUMERIC(13,2) NOT NULL DEFAULT 0,
+    balance       NUMERIC(13,2) NOT NULL,
+    remarks       VARCHAR(255),
+    created_by    VARCHAR(55),
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_ip    INET,
+    modified_by   VARCHAR(55),
+    modified_at   TIMESTAMP,
+    modified_ip   INET
+);
+
+CREATE TABLE IF NOT EXISTS bdccb.td_deposit
+(
+    sb_id bigint NOT NULL,
+    tenant_id integer NOT NULL,
+    shg_id bigint NOT NULL,
+    branch_id integer NOT NULL,
+    acc_no bigint NOT NULL,
+    acc_opening_dt date NOT NULL,
+    balance numeric(13,2) DEFAULT 0.00,
+    acc_status_flag acc_status_flag NOT NULL DEFAULT 'O'::acc_status_flag,
+    created_by character varying(50) COLLATE pg_catalog."default",
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    created_ip character varying(45) COLLATE pg_catalog."default",
+    modified_by character varying(50) COLLATE pg_catalog."default",
+    modified_at timestamp without time zone,
+    modified_ip character varying(45) COLLATE pg_catalog."default",
+    CONSTRAINT td_deposit_pkey PRIMARY KEY (sb_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS bdccb.td_deposit
+    OWNER to postgres;

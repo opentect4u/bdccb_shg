@@ -67,7 +67,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
     // save / edit group
     depsavingRouter.post("/save_sbacc", async (req, res) => {
         try {
-          const {sb_id, tenant_id,shg_id,branch_id,acc_no,acc_opening_dt,balance,created_by,created_ip } = req.body;
+          const {sb_id,trans_no,tenant_id,shg_id,branch_id,acc_no,acc_opening_dt,balance,created_by,created_ip } = req.body;
           let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
           const table = "bdccb.td_deposit";
           const columns = sb_id > 0 ? ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","modified_by","modified_at","modified_ip"] : ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
@@ -76,10 +76,24 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
           const whereValues = sb_id > 0 ? [sb_id] : [];
           const flag = sb_id > 0 ? 1 : 0;
           const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
+
+            const table_trans = "bdccb.td_deposit_trans";
+            const columns_trans = trans_no > 0
+            ? ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","modified_by","modified_at","modified_ip"]
+            : ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+
+          const values_trans = trans_no > 0
+            ? [trans_no,tenant_id,branch_id,acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,created_ip]
+            : [result.lastId,tenant_id,branch_id,acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,created_ip];
+          const whereColumns_trans = trans_no > 0 ? ["sb_id", "trans_no"] : [];
+          const whereValues_trans = trans_no > 0 ? [trans_no, trans_no] : [];
+          const flag_trans = trans_no > 0 ? 1 : 0;
+          const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans); 
+
           return res.send({
             success: true,
             msg: sb_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
-            data: result.lastId
+            data: result_trans.lastId
           });
           } catch (error) {
             console.error("Error in while save group:", error);
@@ -139,6 +153,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
 
               let balance = await get_acount_balance(sb_id);
               balance = parseFloat(balance);
+              console.log("Current Balance:", balance, "Transaction Amount:", amount, "Transaction Type:", dep_with_flag);
               let dr_amt = 0;
               let cr_amt = 0;
 
@@ -154,10 +169,10 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
                       });
                     
                   }
-
+                // Withdrawal logic: Debit the account
                   dr_amt = amount;
                   cr_amt = 0;
-                  balance = balance - dr_amt;
+                  balance = balance - amount;
 
               } else { 
                   // C = Credit / Deposit
