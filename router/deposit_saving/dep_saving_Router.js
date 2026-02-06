@@ -96,6 +96,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
           if(first_trans_result.suc === 1 && first_trans_result.msg[0].count === '0') {
 
             const inital_balance = await db_Select('balance', 'bdccb.td_deposit', `sb_id = '${sb_id}'`, null);
+            console.log('Initial Balance Result:', inital_balance);
             if(inital_balance.suc === 1 && inital_balance.msg.length > 0) {
               return inital_balance.msg[0].balance; // INTEGER
             }else{
@@ -114,16 +115,56 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
     }
     depsavingRouter.post("/save_dept_trans", async (req, res) => {
         try {
-            const {trans_no,sb_id,tenant_id,branch_id,acc_no,dep_with_flag,dr_amt,cr_amt,remarks,created_by,created_at,created_ip} = req.body;
+            const {trans_no,sb_id,tenant_id,branch_id,acc_no,dep_with_flag,amt,remarks,created_by,created_at,created_ip} = req.body;
+            /* ================= VALIDATION ================= */
+
+            // dep_with_flag required and must be D or W
+            if (!dep_with_flag || !['D', 'W'].includes(dep_with_flag)) {
+              return res.status.json({
+                status: true,
+                message: 'Deposit Withdrawl Flag is required and must be either D or W'
+              });
+            }
+
+            // amt required and must be > 0
+            const amount = parseFloat(amt);
+            if (isNaN(amount) || amount <= 0) {
+              return res.status.json({
+                status: true,
+                message: 'Amount must be a number greater than 0'
+              });
+            }
             let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
             var trans_dt = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-            var balance = await get_acount_balance(sb_id);
-            if(dep_with_flag === 'D'){
-              balance = balance + dr_amt;
-            } else {    
-              balance = balance - cr_amt;
-            }
+              let balance = await get_acount_balance(sb_id);
+              balance = parseFloat(balance);
+              let dr_amt = 0;
+              let cr_amt = 0;
+
+              // D = Debit / Withdraw
+              if (dep_with_flag === 'W') {
+
+                  if (balance < amount) {
+                      console.log("teste---------",balance,amount)
+                      return res.send({
+                        success: false,
+                        msg: "Insufficient balance",
+                        data: null
+                      });
+                    
+                  }
+
+                  dr_amt = amount;
+                  cr_amt = 0;
+                  balance = balance - dr_amt;
+
+              } else { 
+                  // C = Credit / Deposit
+                  dr_amt = 0;
+                  cr_amt = amount;
+                  balance = balance + cr_amt;
+              }
          
             const table = "bdccb.td_deposit_trans";
             const columns = trans_no > 0
