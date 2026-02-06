@@ -44,7 +44,7 @@ accountRouter = express.Router();
     const table_name = "bdccb.td_loan_balance";
     const whr = `pacs_shg_id = '${pacs_shg_id}' ORDER BY balance_id DESC LIMIT 1`;
     const res_dt = await db_Select(select, table_name, whr, null);
-    console.log('Balance Query Result:', res_dt);
+    // console.log('Balance Query Result:', res_dt);
     let lastBalance = 0;
 
       if (res_dt.msg.length > 0 && res_dt.msg[0].next_balance !== null) {
@@ -79,7 +79,7 @@ accountRouter = express.Router();
             return res.send({ success: false, msg: "DR and CR amounts are not equal. Please provide equal amounts." });
          }
           var balance = await getbalance(pacs_shg_id);
-          console.log('Current Balance:', balance);
+          // console.log('Current Balance:', balance);
           balance = parseFloat(balance) + parseFloat(cr_amt);
           // INSERT INTO BALANCE TABLE
           const table_bal = "bdccb.td_loan_balance";
@@ -107,14 +107,14 @@ accountRouter = express.Router();
          const whereColumns = voucher_id > 0 ? ["voucher_id","tenant_id",'cr_amt'] : [];
          const whereValues = voucher_id > 0 ? [voucher_id,tenant_id,0] : [];
          const flag = voucher_id > 0 ? 1 : 0;
-         console.log('values_dr:', values_dr);
+        //  console.log('values_dr:', values_dr);
          const result = await saveRecord(table, columns, values_dr,whereColumns,whereValues,flag);
         // For CR  value
          const values_cr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address];
          const whereColumns1 = voucher_id > 0 ? ["voucher_id","tenant_id",'dr_amt'] : [];
          const whereValues1 = voucher_id > 0 ? [voucher_id,tenant_id,0] : [];
          const flag1 = voucher_id > 0 ? 1 : 0;
-          console.log('values_cr:', values_cr);
+          // console.log('values_cr:', values_cr);
          const result1 = await saveRecord(table, columns, values_cr,whereColumns1,whereValues1,flag1);
    
          if (result.suc !== 1 || result1.suc !== 1) {

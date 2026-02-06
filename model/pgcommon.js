@@ -96,7 +96,7 @@ pgdb = require("../db/pgdb");
     try {
           const result = await pgdb.query(sql, params);
           let data = {};
-          console.log('Save Record Result:', sql, params);
+          // console.log('Save Record Result:', sql, params);
           if (flag === 0) {
               if (result.rows[0]) {
                 const row = result.rows[0];
@@ -129,4 +129,16 @@ pgdb = require("../db/pgdb");
         }
   };
 
-module.exports = { db_Select, saveRecord };
+  const deleteRecord = async (table, whereCols, whereVals) => {
+
+  let where = whereCols
+    .map(col => `${col} = ?`)
+    .join(" AND ");
+
+  let sql = `DELETE FROM ${table} WHERE ${where}`;
+
+  await db.query(sql, whereVals);
+};
+
+
+module.exports = { db_Select, saveRecord, deleteRecord };
