@@ -411,93 +411,93 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 });
 
 // FETCH MAXIMUM BALANCE ON A PARTICULAR BRANCH //
-loanRouter.post("/fetch_max_balance", async (req, res) => {
-  try{
-   const {loan_to, pacs_shg_id} = req.body;
-  //  console.log(req.body,'test');
+// loanRouter.post("/fetch_max_balance", async (req, res) => {
+//   try{
+//    const {loan_to, pacs_shg_id} = req.body;
+//   //  console.log(req.body,'test');
 
-   if (!pacs_shg_id || !loan_to) {
-      return res.json({
-        success: false,
-        message: "loan_to and pacs_shg_id are required"
-      });
-    }
+//    if (!pacs_shg_id || !loan_to) {
+//       return res.json({
+//         success: false,
+//         message: "loan_to and pacs_shg_id are required"
+//       });
+//     }
 
-    const table_name = "bdccb.td_loan_balance";
+//     const table_name = "bdccb.td_loan_balance";
 
-      // MAX BALANCE DATE //
-      let select1 = "TO_CHAR(MAX(balance_date), 'YYYY-MM-DD') AS balance_date";
-      let whr1 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}'`;
+//       // MAX BALANCE DATE //
+//       let select1 = "TO_CHAR(MAX(balance_date), 'YYYY-MM-DD') AS balance_date";
+//       let whr1 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}'`;
 
-    let maxDateRes = await db_Select(select1, table_name, whr1, null);
+//     let maxDateRes = await db_Select(select1, table_name, whr1, null);
 
-     if (maxDateRes.suc !== 1 || maxDateRes.msg.length === 0 || !maxDateRes.msg[0].balance_date) {
-      return res.send({
-        success: true,
-        msg: "No balance date found",
-        data: []
-      });
-    }
+//      if (maxDateRes.suc !== 1 || maxDateRes.msg.length === 0 || !maxDateRes.msg[0].balance_date) {
+//       return res.send({
+//         success: true,
+//         msg: "No balance date found",
+//         data: []
+//       });
+//     }
 
-    const balance_date = maxDateRes.msg[0].balance_date;
-    // console.log(balance_date,'balance_date');
+//     const balance_date = maxDateRes.msg[0].balance_date;
+//     // console.log(balance_date,'balance_date');
 
-      // MAX BALANCE ID //
-    let select2 = "MAX(balance_id) AS balance_id";
-    let whr2 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'`;
+//       // MAX BALANCE ID //
+//     let select2 = "MAX(balance_id) AS balance_id";
+//     let whr2 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'`;
 
-    let maxIdRes = await db_Select(select2, table_name, whr2, null);
+//     let maxIdRes = await db_Select(select2, table_name, whr2, null);
 
-     if (maxIdRes.suc !== 1 || maxIdRes.msg.length === 0 || !maxIdRes.msg[0].balance_id) {
-      return res.send({
-        success: true,
-        msg: "No balance id found",
-        data: []
-      });
-    }
+//      if (maxIdRes.suc !== 1 || maxIdRes.msg.length === 0 || !maxIdRes.msg[0].balance_id) {
+//       return res.send({
+//         success: true,
+//         msg: "No balance id found",
+//         data: []
+//       });
+//     }
 
-    const balance_id = maxIdRes.msg[0].balance_id;
-    // console.log(balance_id,'balance_id');
+//     const balance_id = maxIdRes.msg[0].balance_id;
+//     // console.log(balance_id,'balance_id');
     
 
-     // FETCH BALANCE AMOUNT//
-     let select3 = "balance AS max_balance";
-     let whr3 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'
-      AND balance_id='${balance_id}'`;
-    var fetch_max_balance = await db_Select(select3,table_name,whr3,null);
+//      // FETCH BALANCE AMOUNT//
+//      let select3 = "balance AS max_balance";
+//      let whr3 = `loan_to='${loan_to}' AND pacs_shg_id='${pacs_shg_id}' AND balance_date='${balance_date}'
+//       AND balance_id='${balance_id}'`;
+//     var fetch_max_balance = await db_Select(select3,table_name,whr3,null);
 
-   if(fetch_max_balance.suc === 1 && fetch_max_balance.msg.length > 0){
-   return res.send({
-    success: true,
-    msg: "Fetch balance",
-    data: fetch_max_balance.msg
-   });
-  }else{
-    return res.send({
-    success: true,
-    msg: "No balance found",
-    data: []
-   });
-  }
-  }catch(error){
-  console.error("Error in while fetch maximum balance on a particular pacs:", error);
-  return res.send({
-  success: false,
-  msg: "Internal server error",
-  errorCode: "SERVER_ERROR"
-  });
-  }
-});
+//    if(fetch_max_balance.suc === 1 && fetch_max_balance.msg.length > 0){
+//    return res.send({
+//     success: true,
+//     msg: "Fetch balance",
+//     data: fetch_max_balance.msg
+//    });
+//   }else{
+//     return res.send({
+//     success: true,
+//     msg: "No balance found",
+//     data: []
+//    });
+//   }
+//   }catch(error){
+//   console.error("Error in while fetch maximum balance on a particular pacs:", error);
+//   return res.send({
+//   success: false,
+//   msg: "Internal server error",
+//   errorCode: "SERVER_ERROR"
+//   });
+//   }
+// });
 
 loanRouter.post("/show_loan_status", async (req, res) => {
   try{
    const {branch_id,approval_status} = req.body;
   //  console.log(req.body,'show');
 
-   var select = "a.loan_id,b.trans_dt,b.trans_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,CASE WHEN a.loan_to = 'P' THEN c.branch_name ELSE d.group_name END AS loan_to_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by,b.approved_dt,a.ip_address",
-   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code",
+   var select = "a.loan_id,b.trans_dt,b.trans_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,CASE WHEN a.loan_to = 'P' THEN c.branch_name ELSE d.group_name END AS loan_to_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address",
+   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code LEFT JOIN bdccb.md_user e ON b.approved_by::INTEGER = e.user_id",
    whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}'`,
-   order = null;
+   order = `b.trans_id,b.trans_dt`;
    var show_loan_dtls = await db_Select(select,table_name,whr,order);
 
    if(show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0){

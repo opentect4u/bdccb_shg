@@ -134,30 +134,21 @@ const generateBalanceId = async () => {
       return(balID);
   };
 
-const getbalance = async (tenant_id,group_code) => {
-    const select = `COALESCE(NULLIF(balance, 'NaN'::numeric), 0) AS next_balance`;
-    const table_name = "bdccb.td_loan_balance";
-    const whr = `tenant_id = '${tenant_id}' AND pacs_shg_id = '${group_code}' AND loan_to = 'S' ORDER BY balance_id DESC LIMIT 1`;
-    const res_dt = await db_Select(select, table_name, whr, null);
+// const getbalance = async (tenant_id,group_code) => {
+//     const select = `COALESCE(NULLIF(balance, 'NaN'::numeric), 0) AS next_balance`;
+//     const table_name = "bdccb.td_loan_balance";
+//     const whr = `tenant_id = '${tenant_id}' AND pacs_shg_id = '${group_code}' AND loan_to = 'S' ORDER BY balance_id DESC LIMIT 1`;
+//     const res_dt = await db_Select(select, table_name, whr, null);
 
-    let lastBalance = 0;
+//     let lastBalance = 0;
 
-    if (res_dt.msg.length > 0 && res_dt.msg[0].next_balance !== null) {
-        lastBalance = parseFloat(res_dt.msg[0].next_balance);
-    }
+//     if (res_dt.msg.length > 0 && res_dt.msg[0].next_balance !== null) {
+//         lastBalance = parseFloat(res_dt.msg[0].next_balance);
+//     }
 
-    const next_balance = lastBalance;
-    return next_balance; // INTEGER
-};  
-
-const getGroupDisbTotal = async (tenant_id, group_code) => {
-  const select = `COALESCE(SUM(disb_amt),0) AS total`;
-  const table_name = "bdccb.td_loan_member";
-  const whr = `tenant_id = '${tenant_id}' AND group_code = '${group_code}'`;
-  const res = await db_Select(select, table_name, whr, null);
-
-  return res.msg[0].total || 0;
-};
+//     const next_balance = lastBalance;
+//     return next_balance; // INTEGER
+// };  
 
 
 loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
@@ -176,9 +167,9 @@ loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
   const endDate = instl_date.emiEnd;  
 
   let total_disb_amt = 0;
-  let old_total_disb_amt = 0;
+  // let old_total_disb_amt = 0;
 
-  var balance_id = await generateBalanceId();
+  // var balance_id = await generateBalanceId();
 
    let inserted_members = [];
    let inserted_loans = [];
@@ -191,7 +182,7 @@ loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
         });
       }
 
-   let isEdit = members.some(m => Number(m.member_id) > 0);
+  //  let isEdit = members.some(m => Number(m.member_id) > 0);
 
   // Block edit if recovery started
     // if (isEdit && recovery_flag === "Y") {
@@ -201,22 +192,22 @@ loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
     //   });
     // }    
 
-  if (isEdit) {
+  // if (isEdit) {
 
-    const selectOld = `
-      SELECT COALESCE(SUM(disb_amt),0) AS old_amt
-      FROM bdccb.td_loan_member
-      WHERE group_code = $1
-        AND tenant_id = $2
-        AND branch_id = $3`;
+  //   const selectOld = `
+  //     SELECT COALESCE(SUM(disb_amt),0) AS old_amt
+  //     FROM bdccb.td_loan_member
+  //     WHERE group_code = $1
+  //       AND tenant_id = $2
+  //       AND branch_id = $3`;
 
-    const oldData = await db_Select(
-      selectOld,
-      [group_code,tenant_id,branch_id]
-    );
+  //   const oldData = await db_Select(
+  //     selectOld,
+  //     [group_code,tenant_id,branch_id]
+  //   );
 
-    old_total_disb_amt = Number(oldData[0]?.old_amt || 0);
-  }
+  //   old_total_disb_amt = Number(oldData[0]?.old_amt || 0);
+  // }
 
       // loop start //
   for (const mem of members) {  
@@ -326,68 +317,68 @@ loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
     }
    }
 
-   let diff_amt = 0;
+  //  let diff_amt = 0;
 
-if (isEdit) {
-  diff_amt = Number(total_disb_amt) - Number(old_total_disb_amt);
-}
+// if (isEdit) {
+//   diff_amt = Number(total_disb_amt) - Number(old_total_disb_amt);
+// }
 
-   let prev_balance = await getbalance(tenant_id,group_code);
+  //  let prev_balance = await getbalance(tenant_id,group_code);
 
-  let new_balance = 0;
+  // let new_balance = 0;
 
-if (isEdit) {
-  new_balance = Number(prev_balance) - Number(diff_amt);
-} else {
-  new_balance = Number(prev_balance) - Number(total_disb_amt);
-}
+// if (isEdit) {
+//   new_balance = Number(prev_balance) - Number(diff_amt);
+// } else {
+//   new_balance = Number(prev_balance) - Number(total_disb_amt);
+// }
    
 // New balance
 // let new_balance = Number(prev_balance) - Number(total_disb_amt);
 // fetch maximum balance id
 
   // insert balance row //
-  const table3 = "bdccb.td_loan_balance";
+//   const table3 = "bdccb.td_loan_balance";
 
-  const columns3 = isEdit ? ["debit_amt","balance"] : ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
+//   const columns3 = isEdit ? ["debit_amt","balance"] : ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
 
-  const values3 =  isEdit ? [total_disb_amt,new_balance] : [date,balance_id,tenant_id,"S",group_code,total_disb_amt,0,new_balance];
+//   const values3 =  isEdit ? [total_disb_amt,new_balance] : [date,balance_id,tenant_id,"S",group_code,total_disb_amt,0,new_balance];
 
-  const whereColumns3 =  isEdit ? ["tenant_id","loan_to","pacs_shg_id"] : [];
+//   const whereColumns3 =  isEdit ? ["tenant_id","loan_to","pacs_shg_id"] : [];
 
-  const whereValues3 =  isEdit ? [tenant_id,"S",group_code] : [];
-  const flag3 =  isEdit ? 1 : 0;
+//   const whereValues3 =  isEdit ? [tenant_id,"S",group_code] : [];
+//   const flag3 =  isEdit ? 1 : 0;
 
-  const loan_balance = await saveRecord(table3,columns3,values3,whereColumns3,whereValues3,flag3);
+//   const loan_balance = await saveRecord(table3,columns3,values3,whereColumns3,whereValues3,flag3);
 
-  if (!loan_balance || loan_balance.suc !== 1) {
-     for (const loan_id of inserted_loans) {
-          await deleteRecord(
-            "bdccb.td_loan_member_trans",
-            ["loan_id"],
-            [loan_id]
-          );
+//   if (!loan_balance || loan_balance.suc !== 1) {
+//      for (const loan_id of inserted_loans) {
+//           await deleteRecord(
+//             "bdccb.td_loan_member_trans",
+//             ["loan_id"],
+//             [loan_id]
+//           );
         
-          await deleteRecord(
-            "bdccb.td_loan_member",
-            ["loan_id"],
-            [loan_id]
-          );
-    }
+//           await deleteRecord(
+//             "bdccb.td_loan_member",
+//             ["loan_id"],
+//             [loan_id]
+//           );
+//     }
 
-        for (const member_code of inserted_members) {
-          await deleteRecord(
-            "bdccb.md_member",
-            ["member_code"],
-            [member_code]
-          );
-        }
+//         for (const member_code of inserted_members) {
+//           await deleteRecord(
+//             "bdccb.md_member",
+//             ["member_code"],
+//             [member_code]
+//           );
+//         }
 
-  return res.send({
-    success: true,
-    msg: "Failed to update SHG balance",
-  });
-}
+//   return res.send({
+//     success: true,
+//     msg: "Failed to update SHG balance",
+//   });
+// }
     return res.send({
         success: true,
         msg: isEdit ? "SHG Member Disbursement edit Done Successfully" : "SHG Member Disbursement Done Successfully",
