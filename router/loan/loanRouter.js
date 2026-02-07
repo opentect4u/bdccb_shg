@@ -308,6 +308,38 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
  }
 });
 
+// FETCH TOTAL NO OF GROUPS AND MEMBERS
+loanRouter.post("/fetch_tot_grp_memb", async (req, res) => {
+try{
+ const{branch_code,tenant_id} = req.body;
+ console.log(req.body,'fetch');
+
+
+ /* ------------------ TOTAL GROUP && MEMBER------------------ */
+ var select = "COALESCE(COUNT(a.group_code),0) AS tot_grp, COALESCE(COUNT(b.member_code),0) AS tot_memb",
+ table_name = "bdccb.md_group a LEFT JOIN bdccb.md_member b ON a.branch_code = b.branch_id AND a.group_code = b.group_code",
+ whr = `a.branch_code = '${branch_code}' AND b.tenant_id = '${tenant_id}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND b.approval_status = 'A' AND b.delete_flag = 'N'`,
+ order = null;
+ var fetch_tot_grp_memb_dtls = await db_Select(select,table_name,whr,order);
+
+ return res.send({
+  success: true,
+  msg: "Data fetched successfully",
+  data: {
+  tot_grp: fetch_tot_grp_memb_dtls.suc > 0 ? fetch_tot_grp_memb_dtls.msg[0].tot_grp : 0,
+  tot_memb: fetch_tot_grp_memb_dtls.suc > 0 ? fetch_tot_grp_memb_dtls.msg[0].tot_memb : 0
+  }
+ });
+}catch(error){
+   console.error("Error in while fetch total no of group and member details:", error);
+   return res.send({
+   success: false,
+   msg: "Internal server error",
+   errorCode: "SERVER_ERROR"
+   });
+ }
+});
+
 // SAVE DISBURSEMENT (BRANCH -> PACS -> SHG / BRNCH -> SHG)
 loanRouter.post("/save_disbursement", async (req, res) => {
     try{
