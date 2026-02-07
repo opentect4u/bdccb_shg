@@ -81,3 +81,23 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS bdccb.td_deposit
     OWNER to postgres;
+
+CREATE TABLE IF NOT EXISTS bdccb.md_user
+(
+    user_id integer NOT NULL,
+    tenant_id integer,
+    brn_code integer,
+    user_type character varying(255) COLLATE pg_catalog."default",
+    user_name character varying(255) COLLATE pg_catalog."default",
+    phone_mobile bigint,
+    active_flag active_flag,
+    password character varying(255) COLLATE pg_catalog."default",
+    session_id character varying(255) COLLATE pg_catalog."default",
+    created_by character varying(255) COLLATE pg_catalog."default",
+    created_at timestamp without time zone,
+    de_active_by character varying(255) COLLATE pg_catalog."default",
+    de_active_at timestamp without time zone,
+    deactive_remarks text COLLATE pg_catalog."default",
+    ip_address character varying(255) COLLATE pg_catalog."default",
+    CONSTRAINT md_user_pkey PRIMARY KEY (user_id)
+)
