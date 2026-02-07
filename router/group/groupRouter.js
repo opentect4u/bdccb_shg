@@ -158,7 +158,7 @@ groupRouter.post("/save_group", async (req, res) => {
         });
       }
  
-      let grp_code = await groupCode(branch_code);
+      let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
 
       const distId = dist_id === "" ? null : dist_id;
       const blockId = block_id === "" ? null : block_id;
