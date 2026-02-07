@@ -112,7 +112,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     }
 
     // FETCH GROUP MEMBERS //  
-    var select = "member_code,member_name,group_code,address,aadhar_no,approval_status,gp_leader_flag,asst_gp_leader_flag",
+    var select = "member_code,member_name,address,aadhar_no,approval_status,gp_leader_flag,asst_gp_leader_flag",
     table_name = "bdccb.md_member",
     whr = `group_code = '${search_group_web.msg[0].group_code}' AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
     order = null;
