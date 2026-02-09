@@ -22,40 +22,42 @@ const sahayikaCode = async (tenant_id) => {
 depsavingRouter.get("/deposit_list", async (req, res) => {
     try{
         const tenant_id = parseInt(req.query.tenant_id || 0);
+        const branch_id = parseInt(req.query.branch_id || 0);
         const shg_id = parseInt(req.query.shg_id || 0);
-        const sahayika_id = parseInt(req.query.sahayika_id || 0);
             // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-                if (!shg_id || shg_id <= 0 || !tenant_id || tenant_id <= 0) {
+                if (!tenant_id || tenant_id <= 0) {
                     return res.send({
                         success: false,
                         msg: "shg id and tenant id is required"
                     });
                 }
 
-      var select = "a.sahayika_id,a.tenant_id,a.dist_id,a.sahayika_name,a.phone_no,a.address,b.dist_name",
-      table_name = "bdccb.md_sahayika a LEFT JOIN md_district b ON a.dist_id = b.dist_code",
+      var select = "a.sb_id,a.tenant_id,a.shg_id,a.branch_id,a.acc_no,a.acc_opening_dt,a.acc_status_flag,a.balance",
+      table_name = "bdccb.td_deposit a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code",
       order = null;
-      whr = `a.dist_id = '${dist_id}' AND a.tenant_id = '${tenant_id}'`,
-      order = null;
-      if(sahayika_id > 0){
-        whr += ` AND a.sahayika_id = '${sahayika_id}'`;
+      whr = `a.tenant_id = '${tenant_id}' AND a.acc_status_flag = 'O'`;
+      if (branch_id > 0) {
+        whr += ` AND a.branch_id = '${branch_id}'`;
+      }
+      if(shg_id > 0){
+        whr += ` AND a.shg_id = '${shg_id}'`;
       }
       var fetch_data = await db_Select(select,table_name,whr,order);
 
       if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
           return res.send({
             success: true,
-            msg: "Sahayika List",
+            msg: "Deposit acc List",
             data: fetch_data.msg
         });
         } else {
           return res.send({
             success: false,
-            msg: "Failed to fetch Sahayika data"
+            msg: "Failed to fetch Deposit List"
           });
         }
     }catch(error){
-      console.log("Error fetching group data:", error);
+      console.log("Error fetching Deposit List:", error);
       return res.send({
         success: false,
         msg: "Internal server error",
