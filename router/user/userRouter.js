@@ -5,8 +5,6 @@ userRouter = express.Router();
     userRouter.get("/user_list", async (req, res) => {
         
         const tenant_id = parseInt(req.query.tenant_id || 0);
-        const dist_id = parseInt(req.query.dist_id || 0);
-        const block_id = parseInt(req.query.block_id || 0);
         const id = parseInt(req.query.branch_id || 0);
 
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
@@ -51,17 +49,40 @@ userRouter = express.Router();
     });
     userRouter.post("/save_user", async (req, res) => {
         try {
+            const user_type_list  = ['B','P','S','H'];
+            if (!tenant_id || tenant_id <= 0) {
+                return res.send({
+                    success: false,
+                    msg: "tenant id is required"
+                });
+            }else if(!user_type || !user_type_list.includes(user_type)){
+                return res.send({
+                    success: false,
+                    msg: "user type is required and must be one of B, P, S, H"
+                });
+            }else if(!user_name || user_name.trim() === ""){
+                return res.send({
+                    success: false,
+                    msg: "user name is required"
+                });
+            }else if(!phone_mobile || phone_mobile.trim().length !== 10){
+                return res.send({
+                    success: false,
+                    msg: "mobile number is required"
+                });
+            }
+            
             const {user_id,tenant_id, brn_code, user_type, user_name, phone_mobile, active_flag, password, session_id,created_ip,branch_id,closed_opened_by,closed_opened_at } = req.body;
             const table = "md_branch";
-            const columns = user_id > 0 ? ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","modified_by","modified_at","ip_address"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","created_by","created_at","closed_opened_by","closed_opened_at","ip_address"];
+            const columns = user_id > 0 ? ["tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","modified_by","modified_at","ip_address"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","created_by","created_at","closed_opened_by","closed_opened_at","ip_address"];
             const values = [user_id, tenant_id, brn_code, user_type, user_name, phone_mobile, active_flag, password, session_id, created_by, new Date(),closed_opened_by,closed_opened_at, created_ip];
-            const whereColumns = branch_id > 0 ? ["branch_id"] : [];
-            const whereValues = branch_id > 0 ? [branch_id] : [];
-            const flag = branch_id > 0 ? 1 : 0; // 0 for insert, 1 for update
+            const whereColumns = user_id > 0 ? ["user_id"] : [];
+            const whereValues = user_id > 0 ? [user_id] : [];
+            const flag = user_id > 0 ? 1 : 0; // 0 for insert, 1 for update
             const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
             return res.send({
                 success: true,
-                msg: branch_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
+                msg: user_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
                 data: result.lastId
             });
         } catch (error) {
