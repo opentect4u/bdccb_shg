@@ -1,45 +1,41 @@
 const { db_Select,saveRecord } = require('../../model/pgcommon');
-const express = require('express'),
+const express = require('express');
+const bcrypt = require("bcrypt");
 userRouter = express.Router();
     
     userRouter.get("/user_list", async (req, res) => {
-        
         const tenant_id = parseInt(req.query.tenant_id || 0);
-        const id = parseInt(req.query.branch_id || 0);
+        const branch_id = parseInt(req.query.branch_id || 0);
+        const user_id = parseInt(req.query.user_id || 0);
 
-        // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-            if (!tenant_id || tenant_id <= 0) {
-                return res.send({
-                    success: false,
-                    msg: "tenant id is required"
-                });
-            }
-
-        var select = "a.branch_id,a.dist_id,a.block_id,a.tenant_id,a.branch_type,a.branch_name,a.branch_address,a.pin_no,a.contact_person,a.branch_phone,a.branch_status,b.block_name,c.dist_name,d.tenant_name",
-        table_name = "md_branch a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_tenant d ON a.tenant_id = d.tenant_id",
-        whr = `a.tenant_id = ${tenant_id} `,
+        // Tenant ID IS MANDATORY
+        if (!tenant_id || tenant_id <= 0) {
+            return res.send({
+                success: false,
+                msg: "tenant id is required"
+            });
+        }
+        var select = "user_id,tenant_id,brn_code,user_type,user_name,phone_mobile,active_flag,created_by,created_at,ip_address",
+        table_name = "bdccb.md_user",
+        whr = `tenant_id = ${tenant_id} `,
         order = null;
-        if (id > 0) {
-            whr += ` AND a.branch_id = ${id}`;
+        if (branch_id > 0) {
+            whr += ` AND brn_code = ${branch_id}`;
         }
-        if( dist_id > 0) {
-            whr += ` AND a.dist_id = ${dist_id}`;
+        if (user_id > 0) {
+            whr += ` AND user_id = ${user_id}`;
         }
-        if (block_id > 0) {
-            whr += ` AND a.block_id = ${block_id}`;
-        }
-        
-        //  console.log("Where Clause:", whr);
+    
         try {
            
-        var gp_datas = await db_Select(select,table_name,whr,order);
+        var user_data = await db_Select(select,table_name,whr,order);
             return res.send({
                 success: true,
-                msg: "Branch List",
-                data: gp_datas.msg
+                msg: "User List",
+                data: user_data.msg
             });
         } catch (error) {
-           console.log("Error fetching police station data:", error);
+           console.log("Error fetching user data:", error);
            return res.send({
             success: false,
             msg: "Internal server error",
@@ -47,46 +43,40 @@ userRouter = express.Router();
             });
         }
     });
+    function validationError(res, msg) {
+             return res.send({
+                    success: false,
+                    msg: msg,
+                });
+    }
     userRouter.post("/save_user", async (req, res) => {
+         const {add_edit_flag,user_id,tenant_id, brn_code, user_type, user_name, phone_mobile, session_id,ip_address,branch_id,created_by } = req.body;
         try {
             const user_type_list  = ['B','P','S','H'];
             if (!tenant_id || tenant_id <= 0) {
-                return res.send({
-                    success: false,
-                    msg: "tenant id is required"
-                });
+               validationError(res, "tenant id is required");
             }else if(!user_type || !user_type_list.includes(user_type)){
-                return res.send({
-                    success: false,
-                    msg: "user type is required and must be one of B, P, S, H"
-                });
+                validationError(res, "user type is required and must be one of B, P, S, H");
             }else if(!user_name || user_name.trim() === ""){
-                return res.send({
-                    success: false,
-                    msg: "user name is required"
-                });
+                validationError(res, "user name is required");
             }else if(!phone_mobile || phone_mobile.trim().length !== 10){
-                return res.send({
-                    success: false,
-                    msg: "mobile number is required"
-                });
+                validationError(res, "mobile number is required and must be 10 digits");
             }
-            
-            const {user_id,tenant_id, brn_code, user_type, user_name, phone_mobile, active_flag, password, session_id,created_ip,branch_id,closed_opened_by,closed_opened_at } = req.body;
-            const table = "md_branch";
-            const columns = user_id > 0 ? ["tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","modified_by","modified_at","ip_address"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","created_by","created_at","closed_opened_by","closed_opened_at","ip_address"];
-            const values = [user_id, tenant_id, brn_code, user_type, user_name, phone_mobile, active_flag, password, session_id, created_by, new Date(),closed_opened_by,closed_opened_at, created_ip];
-            const whereColumns = user_id > 0 ? ["user_id"] : [];
-            const whereValues = user_id > 0 ? [user_id] : [];
-            const flag = user_id > 0 ? 1 : 0; // 0 for insert, 1 for update
+            const hashedPassword = await bcrypt.hash('12345', 10);
+            const table = "bdccb.md_user";
+            const columns = add_edit_flag > 0 ? ["tenant_id","brn_code","user_type","user_name","phone_mobile","ip_address"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","session_id","created_by","created_at","ip_address"];
+            const values = add_edit_flag > 0 ? [tenant_id, brn_code, user_type, user_name, phone_mobile,  ip_address] : [user_id, tenant_id, brn_code, user_type, user_name, phone_mobile, 'Y', hashedPassword, session_id, created_by, new Date(), ip_address];
+            const whereColumns = add_edit_flag > 0 ? ["user_id"] : [];
+            const whereValues = add_edit_flag > 0 ? [user_id] : [];
+            const flag = add_edit_flag > 0 ? 1 : 0; // 0 for insert, 1 for update
             const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
             return res.send({
                 success: true,
-                msg: user_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
+                msg: add_edit_flag > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
                 data: result.lastId
             });
         } catch (error) {
-            console.error("Error in /login route:", error);
+            console.error("Error in /save_user route:", error);
             return res.send({
             success: false,
             msg: "Internal server error",
