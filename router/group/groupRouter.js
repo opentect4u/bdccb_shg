@@ -96,10 +96,14 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     }
  
     // Fetch full group details //
+
+    let groupCodes = search_group_web.msg
+  .map(g => `'${g.group_code}'`)
+  .join(",");
  
    var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.sb_ac_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag",
   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
-  whr = `a.group_code = '${search_group_web.msg[0].group_code}' AND a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'`,
+  whr = `a.group_code IN (${groupCodes}) AND a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'`,
   order = null;
   var fetch_group_data = await db_Select(select,table_name,whr,order);
  
@@ -112,12 +116,25 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     }
 
     // FETCH GROUP MEMBERS //  
-    var select = "member_code member_id,member_name,address,aadhar_no,gp_leader_flag,asst_gp_leader_flag",
+    var select = "member_code member_id,group_code,member_name,address,aadhar_no,gp_leader_flag,asst_gp_leader_flag",
     table_name = "bdccb.md_member",
-    whr = `group_code = '${search_group_web.msg[0].group_code}' AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
+    whr = `group_code IN (${groupCodes}) AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
     order = null;
     var grp_mem_dt = await db_Select(select,table_name,whr,order);
-    fetch_group_data.msg[0]['memb_dt'] = grp_mem_dt.suc > 0 ? (grp_mem_dt.msg.length > 0 ? grp_mem_dt.msg : []) : [];
+    // fetch_group_data.msg[0]['memb_dt'] = grp_mem_dt.suc > 0 ? (grp_mem_dt.msg.length > 0 ? grp_mem_dt.msg : []) : [];
+
+    // =====================================================
+    // MAP MEMBERS → RESPECTIVE GROUP
+    // =====================================================
+
+    fetch_group_data.msg.forEach((group) => {
+      group["memb_dt"] =
+        grp_mem_dt.suc === 1
+          ? grp_mem_dt.msg.filter(
+              (m) => m.group_code === group.group_code
+            )
+          : [];
+    });
  
   if (fetch_group_data.suc === 1 && fetch_group_data.msg.length > 0) {
       return res.send({
@@ -158,7 +175,7 @@ groupRouter.post("/save_group", async (req, res) => {
         });
       }
  
-      let grp_code = await groupCode(branch_code);
+      let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
 
       const distId = dist_id === "" ? null : dist_id;
       const blockId = block_id === "" ? null : block_id;
