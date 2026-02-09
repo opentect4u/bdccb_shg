@@ -162,7 +162,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
-      const { sb_id,trans_no,group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,members,acc_opening_dt,balance,created_by,ip_address } = req.body;
+      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,members,acc_opening_dt,balance,created_by,ip_address } = req.body;
       // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -189,7 +189,7 @@ groupRouter.post("/save_group", async (req, res) => {
  
       const table = "bdccb.md_group";
       const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
-      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,'O',datetime,'N',created_by,datetime,ip_address];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,'O',datetime,'N',created_by,datetime,ip_address];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
@@ -226,16 +226,16 @@ groupRouter.post("/save_group", async (req, res) => {
 
      const table2 = "bdccb.td_deposit";
     const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
-    const values2 = [tenant_id,group_code,branch_code,member_code,acc_opening_dt,balance,created_by,datetime,ip_address];
+    const values2 = [tenant_id,grp_code,branch_code,member_code,acc_opening_dt,balance,created_by,datetime,ip_address];
     const whereColumns2 = [];
     const whereValues2 = [];
     const flag2 = 0;
     const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
 
-    if(results || results.suc !== 1){
+    if(!results || results.suc !== 1){
       return res.send({
           success: true,
-          msg: "Failed to save transaction details",
+          msg: "Failed to save deposit details",
           data: []
         });
     }
@@ -249,7 +249,7 @@ groupRouter.post("/save_group", async (req, res) => {
     const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
     
     
-    if(result_trans || result_trans.suc !== 1){
+    if(!result_trans || result_trans.suc !== 1){
       return res.send({
           success: true,
           msg: "Failed to save transaction details",
