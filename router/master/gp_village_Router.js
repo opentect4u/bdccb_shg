@@ -157,6 +157,7 @@ gpvillRouter = express.Router();
         const dist_id = parseInt(req.query.dist_id || 0);
         const block_id = parseInt(req.query.block_id || 0);
         const id = parseInt(req.query.branch_id || 0);
+        const branch_type = req.query.branch_type || '';
 
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
             if (!tenant_id || tenant_id <= 0) {
@@ -178,6 +179,9 @@ gpvillRouter = express.Router();
         }
         if (block_id > 0) {
             whr += ` AND a.block_id = ${block_id}`;
+        }
+        if (branch_type) {
+            whr += ` AND a.branch_type = '${branch_type}'`;
         }
         
         //  console.log("Where Clause:", whr);
