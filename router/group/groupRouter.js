@@ -162,7 +162,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
-      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,members,created_by,ip_address } = req.body;
+      const { sb_id,trans_no,group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,sb_ac_no,members,acc_opening_dt,balance,created_by,ip_address } = req.body;
       // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -207,14 +207,14 @@ groupRouter.post("/save_group", async (req, res) => {
 
      let member_code = await memberCode(branch_code); 
 
-     const table = "bdccb.md_member";
-     const columns = memb.member_id > 0 ? ["member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag"];
-     const values = memb.member_id > 0 ? [memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag] : [member_code,branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag];
-     const whereColumns = memb.member_id > 0 ? ["member_code","branch_id","group_code","tenant_id"] : [];
-     const whereValues = memb.member_id > 0 ? [memb.member_id,branch_code,group_code,tenant_id] : [];
-     const flag = memb.member_id > 0 ? 1 : 0;
+     const table1 = "bdccb.md_member";
+     const columns1 = memb.member_id > 0 ? ["member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag"];
+     const values1 = memb.member_id > 0 ? [memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag] : [member_code,branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag];
+     const whereColumns1 = memb.member_id > 0 ? ["member_code","branch_id","group_code","tenant_id"] : [];
+     const whereValues1 = memb.member_id > 0 ? [memb.member_id,branch_code,group_code,tenant_id] : [];
+     const flag1 = memb.member_id > 0 ? 1 : 0;
        
-     const result_member = await saveRecord(table, columns, values,whereColumns,whereValues,flag);  
+     const result_member = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);  
        
   if (!result_member || result_member.suc !== 1) {
         return res.send({
@@ -223,7 +223,40 @@ groupRouter.post("/save_group", async (req, res) => {
           data: []
         });
    }
+
+     const table2 = "bdccb.td_deposit";
+    const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
+    const values2 = [tenant_id,group_code,branch_code,member_code,acc_opening_dt,balance,created_by,datetime,ip_address];
+    const whereColumns2 = [];
+    const whereValues2 = [];
+    const flag2 = 0;
+    const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
+
+    if(results || results.suc !== 1){
+      return res.send({
+          success: true,
+          msg: "Failed to save transaction details",
+          data: []
+        });
     }
+
+     const table_trans = "bdccb.td_deposit_trans";
+     const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+     const values_trans = [results.lastId,tenant_id,branch_code,member_code,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
+    const whereColumns_trans = [];
+    const whereValues_trans = [];
+    const flag_trans = 0;
+    const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
+    
+    
+    if(result_trans || result_trans.suc !== 1){
+      return res.send({
+          success: true,
+          msg: "Failed to save transaction details",
+          data: []
+        });
+    }
+  }
 
       return res.send({
         success: true,
