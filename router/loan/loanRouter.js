@@ -1,32 +1,30 @@
-const { db_Select, saveRecord } = require('../../model/pgcommon');
-const express = require('express'),
-loanRouter = express.Router();
-
+const { db_Select, saveRecord } = require("../../model/pgcommon");
+const express = require("express"),
+  loanRouter = express.Router();
 
 const loanCode = async (branch_code) => {
- 
   const select = `COALESCE(MAX(SUBSTR(loan_id::TEXT, 4)::INTEGER), 0) + 1 AS loan_code`;
- 
+
   const table = "bdccb.td_loan";
   const res = await db_Select(select, table, null, null);
- 
+
   const loan_no = res.msg[0].loan_code;
- 
+
   const loan_code = `${branch_code}${String(loan_no).padStart(4, "0")}`;
- 
+
   return loan_code;
 };
 
 const transaction_id = async () => {
-    const timestamp = new Date().getTime();
-    const newPayId = `${timestamp}`;
-    return(newPayId);
+  const timestamp = new Date().getTime();
+  const newPayId = `${timestamp}`;
+  return newPayId;
 };
 
 const balance_id = async () => {
-    const timestamp = new Date().getTime();
-    const balID = `${timestamp}`;
-    return(balID);
+  const timestamp = new Date().getTime();
+  const balID = `${timestamp}`;
+  return balID;
 };
 
 const periodic = [
@@ -41,7 +39,7 @@ const periodic = [
     name: "week",
     div_period: 1,
     tot_period: 48,
-  }
+  },
 ];
 
 const interest_cal_amt = async (principal, time, rate, period_mode) => {
@@ -75,10 +73,9 @@ function addMonthsSafe(date, months) {
 
 const genDate = (trans_date, period, mode) => {
   return new Promise((resolve, reject) => {
-   
     var emiStartDate = "",
-    emiEndDate = "";
-    
+      emiEndDate = "";
+
     var dayList = {
       1: "Sunday",
       2: "Monday",
@@ -89,104 +86,103 @@ const genDate = (trans_date, period, mode) => {
       7: "Saturday",
     };
 
-  var dayRevarseList = {
-  Sunday: 1,
-  Monday: 2,
-  Tuesday: 3,
-  Wednesday: 4,
-  Thursday: 5,
-  Friday: 6,
-  Saturday: 7,
-};
+    var dayRevarseList = {
+      Sunday: 1,
+      Monday: 2,
+      Tuesday: 3,
+      Wednesday: 4,
+      Thursday: 5,
+      Friday: 6,
+      Saturday: 7,
+    };
 
     switch (mode) {
       // case "Monthly":
       //   var modendDt = new Date(trans_date);
 
       //   // extract EMI day from transaction date
-      //  const emiDate = modendDt.getDate(); 
+      //  const emiDate = modendDt.getDate();
 
       //   var modDt = new Date(modendDt.setMonth(modendDt.getMonth() + 1 + Number(period)));
       //   // console.log(modDt,'mod');
-        
+
       //   emiEndDate = new Date(modDt.getFullYear(), modDt.getMonth(), emiDate);
       //   // console.log(emiEndDate,'end');
-        
 
       //    // Start Date = next month same date
       //   var modStDt = new Date(trans_date);
       //   modStDt.setMonth(modStDt.getMonth() + 1);
       //   emiStartDate = new Date(modStDt.getFullYear(),modStDt.getMonth(),emiDate);
       //   console.log(emiStartDate,'emiStartDate');
-        
+
       //   break;
 
-        case "Monthly":
+      case "Monthly":
         let disbr = new Date(trans_date);
 
-         // Start EMI next month safely
-          emiStartDate = addMonthsSafe(disbr, 1);
+        // Start EMI next month safely
+        emiStartDate = addMonthsSafe(disbr, 1);
 
-          // End EMI after N months safely
-          emiEndDate = addMonthsSafe(emiStartDate, Number(period));
-          break;
+        // End EMI after N months safely
+        emiEndDate = addMonthsSafe(emiStartDate, Number(period));
+        break;
 
       case "Weekly":
-      //   var modendDt = new Date(trans_date);
+        //   var modendDt = new Date(trans_date);
 
-      //  let selDay = getBankDay(trans_date); 
+        //  let selDay = getBankDay(trans_date);
 
-      //   var emiEndDate = new Date(
-      //     modendDt.setDate(modendDt.getDate() + period * 7)
-      //   );
-        
-      //   for (
-      //     let i = emiEndDate.getDate();          
-      //     i <
-      //     new Date(
-      //       emiEndDate.getFullYear(),
-      //       emiEndDate.getMonth(),
-      //       0
-      //     ).getDate();
-      //     i++
-          
-      //   ) {
-      //     var selectedMon = dayList[selDay];
-      //     if (selectedMon == (new Date(emiEndDate), "dddd")) {
-      //       break;
-      //     }
-      //     emiEndDate.setDate(emiEndDate.getDate() + 1);          
-      //   }
+        //   var emiEndDate = new Date(
+        //     modendDt.setDate(modendDt.getDate() + period * 7)
+        //   );
 
-      //   var modStDt = new Date(trans_date); 
-        
-      //   var selDayNum = dayRevarseList[(new Date(modStDt), "dddd")];
-        
-      //   emiStartDate = new Date(
-      //     modStDt.setDate(modStDt.getDate() + (7 - selDayNum))
-      //   );
-      //   // console.log(emiStartDate);
-        
-      //   for (
-      //     let i = emiStartDate.getDate();
-      //     i <
-      //     new Date(
-      //       emiStartDate.getFullYear(),
-      //       emiStartDate.getMonth(),
-      //       0
-      //     ).getDate();
-      //     i++
-      //   ) {
-      //     var selectedMon = dayList[selDay];
-      //     // console.log(selectedMon,'selectedMon2');
-          
-      //     if (selectedMon == (new Date(emiStartDate), "dddd")) {
-      //       break;
-      //     }
-      //     emiStartDate.setDate(emiStartDate.getDate() + 1);
-      //   }
-      //   break;
-      let disb = new Date(trans_date);
+        //   for (
+        //     let i = emiEndDate.getDate();
+        //     i <
+        //     new Date(
+        //       emiEndDate.getFullYear(),
+        //       emiEndDate.getMonth(),
+        //       0
+        //     ).getDate();
+        //     i++
+
+        //   ) {
+        //     var selectedMon = dayList[selDay];
+        //     if (selectedMon == (new Date(emiEndDate), "dddd")) {
+        //       break;
+        //     }
+        //     emiEndDate.setDate(emiEndDate.getDate() + 1);
+        //   }
+
+        //   var modStDt = new Date(trans_date);
+
+        //   var selDayNum = dayRevarseList[(new Date(modStDt), "dddd")];
+
+        //   emiStartDate = new Date(
+        //     modStDt.setDate(modStDt.getDate() + (7 - selDayNum))
+        //   );
+        //   // console.log(emiStartDate);
+
+        //   for (
+        //     let i = emiStartDate.getDate();
+        //     i <
+        //     new Date(
+        //       emiStartDate.getFullYear(),
+        //       emiStartDate.getMonth(),
+        //       0
+        //     ).getDate();
+        //     i++
+        //   ) {
+        //     var selectedMon = dayList[selDay];
+        //     // console.log(selectedMon,'selectedMon2');
+
+        //     if (selectedMon == (new Date(emiStartDate), "dddd")) {
+        //       break;
+        //     }
+        //     emiStartDate.setDate(emiStartDate.getDate() + 1);
+        //   }
+        //   break;
+        let disb = new Date(trans_date);
 
         // Start EMI next week same weekday
         emiStartDate = new Date(disb);
@@ -194,7 +190,7 @@ const genDate = (trans_date, period, mode) => {
 
         // End EMI after N weeks
         emiEndDate = new Date(emiStartDate);
-        emiEndDate.setDate(emiStartDate.getDate() + (Number(period) * 7));
+        emiEndDate.setDate(emiStartDate.getDate() + Number(period) * 7);
 
         break;
       default:
@@ -203,11 +199,12 @@ const genDate = (trans_date, period, mode) => {
         break;
     }
 
-    resolve({ emtStart: emiStartDate, emiEnd: emiEndDate });
+    resolve({
+      emtStart: emiStartDate,
+      emiEnd: emiEndDate,
+    });
   });
 };
-
-
 
 // FETCH PACS / SHG DETAILS BASED ON FLAG LOAN TO
 // loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
@@ -219,7 +216,7 @@ const genDate = (trans_date, period, mode) => {
 //    let table_name = "";
 //    let whr = "";
 //    let order = null;
-  
+
 //   if(loan_to == 'P'){
 //    select = "a.branch_id,a.branch_name";
 //    table_name = "public.md_branch a LEFT JOIN bdccb.td_loan b ON a.branch_id = b.branch_shg_id AND b.loan_to = 'P'";
@@ -263,151 +260,347 @@ const genDate = (trans_date, period, mode) => {
 // });
 
 loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
- try{
-  const {loan_to, branch_code, tenant_id, branch_shg_id} = req.body;
-  // console.log(req.body,'pacs/shg');
+  try {
+    const { loan_to, branch_code, tenant_id, branch_shg_id } = req.body;
+    // console.log(req.body,'pacs/shg');
 
-   let select = "";
-   let table_name = "";
-   let whr = "";
-   let order = null;
-  
-  if(loan_to == 'P'){
-   select = "a.branch_id,a.branch_name";
-   table_name = "public.md_branch a";
-   whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%')`;
-   order = null;
-  }else{
-   select = "a.group_code,a.branch_code,a.group_name";
-   table_name = "bdccb.md_group a";
-   whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
-   order = null;
-  }
-  let fetch_details = await db_Select(select,table_name,whr,order);
+    let select = "";
+    let table_name = "";
+    let whr = "";
+    let order = null;
 
-  if (fetch_details.suc === 1 && fetch_details.msg.length > 0) {
+    if (loan_to == "P") {
+      select = "a.branch_id,a.branch_name";
+      table_name = "public.md_branch a";
+      whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%')`;
+      order = null;
+    } else {
+      select = "a.group_code,a.branch_code,a.group_name";
+      table_name = "bdccb.md_group a";
+      whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
+      order = null;
+    }
+    let fetch_details = await db_Select(select, table_name, whr, order);
+
+    if (fetch_details.suc === 1 && fetch_details.msg.length > 0) {
       return res.send({
-      success: true,
-      msg: loan_to == 'P' ? "PACS List" : "SHG List",
-      data: fetch_details.msg
-    });
-  }else{
-      return res.send({
-      success: true,
-      msg: loan_to == 'P' ? "No PACS data found" : "No SHG data found",
-      data: []
+        success: true,
+        msg: loan_to == "P" ? "PACS List" : "SHG List",
+        data: fetch_details.msg,
       });
+    } else {
+      return res.send({
+        success: true,
+        msg: loan_to == "P" ? "No PACS data found" : "No SHG data found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    console.error("Error in while fetch pacs/shg details:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
   }
- }catch(error){
-   console.error("Error in while fetch pacs/shg details:", error);
-   return res.send({
-   success: false,
-   msg: "Internal server error",
-   errorCode: "SERVER_ERROR"
-     });
- }
 });
 
-// SAVE DISBURSEMENT (BRANCH -> PACS -> SHG / BRNCH -> SHG)
+// SAVE DISBURSEMENT (BRANCH -> PACS)
 loanRouter.post("/save_disbursement", async (req, res) => {
-    try{
-     const { tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,tot_grp,tot_memb,created_by,ip_address,loan_id,tran_id,} = req.body;
+  try {
+    const {
+      tenant_id,
+      branch_id,
+      loan_acc_no,
+      loan_to,
+      branch_shg_id,
+      period,
+      curr_roi,
+      penal_roi,
+      disb_dt,
+      disb_amt,
+      tot_grp,
+      tot_memb,
+      created_by,
+      ip_address,
+      loan_id,
+      tran_id,
+    } = req.body;
     //  console.log(req.body,'data');
 
-    let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     let loan_code = await loanCode(branch_id);
     // let intt_cal_amt = await interest_cal_amt(disb_amt,period,curr_roi,pay_mode);
 
     var pay_mode = "Monthly";
 
-    let instl_date = await genDate(disb_dt,period,pay_mode);
+    let instl_date = await genDate(disb_dt, period, pay_mode);
     const startDate = instl_date.emtStart;
     const endDate = instl_date.emiEnd;
 
     var table = "bdccb.td_loan";
-    var columns = loan_id > 0 ? ["loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","curr_prn","tot_grp","tot_memb","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","tot_memb","created_by","created_dt","ip_address"];
-    var values = loan_id > 0 ? [loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,startDate,endDate,disb_amt,tot_grp,tot_memb,created_by,datetime,ip_address] : [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,pay_mode,startDate,endDate,disb_amt,0,0,0,tot_grp,tot_memb,created_by,datetime,ip_address];
-    var whereColumns = loan_id > 0 ? ["loan_id","tenant_id","branch_id"] : [];
-    var whereValues = loan_id > 0 ? [loan_id,tenant_id,branch_id] : [];
+    var columns =
+      loan_id > 0
+        ? [
+            "loan_acc_no",
+            "loan_to",
+            "branch_shg_id",
+            "period",
+            "curr_roi",
+            "penal_roi",
+            "disb_dt",
+            "disb_amt",
+            "rep_start_dt",
+            "rep_end_dt",
+            "curr_prn",
+            "tot_grp",
+            "tot_memb",
+            "modified_by",
+            "modified_dt",
+            "ip_address",
+          ]
+        : [
+            "loan_id",
+            "tenant_id",
+            "branch_id",
+            "loan_acc_no",
+            "loan_to",
+            "branch_shg_id",
+            "period",
+            "curr_roi",
+            "penal_roi",
+            "disb_dt",
+            "disb_amt",
+            "pay_mode",
+            "rep_start_dt",
+            "rep_end_dt",
+            "curr_prn",
+            "curr_intt",
+            "ovd_prn",
+            "ovd_intt",
+            "tot_grp",
+            "tot_memb",
+            "created_by",
+            "created_dt",
+            "ip_address",
+          ];
+    var values =
+      loan_id > 0
+        ? [
+            loan_acc_no || null,
+            loan_to,
+            branch_shg_id,
+            period,
+            curr_roi,
+            penal_roi,
+            disb_dt,
+            disb_amt,
+            startDate,
+            endDate,
+            disb_amt,
+            tot_grp,
+            tot_memb,
+            created_by,
+            datetime,
+            ip_address,
+          ]
+        : [
+            loan_code,
+            tenant_id,
+            branch_id,
+            loan_acc_no || null,
+            loan_to,
+            branch_shg_id,
+            period,
+            curr_roi,
+            penal_roi,
+            disb_dt,
+            disb_amt,
+            pay_mode,
+            startDate,
+            endDate,
+            disb_amt,
+            0,
+            0,
+            0,
+            tot_grp,
+            tot_memb,
+            created_by,
+            datetime,
+            ip_address,
+          ];
+    var whereColumns = loan_id > 0 ? ["loan_id", "tenant_id", "branch_id"] : [];
+    var whereValues = loan_id > 0 ? [loan_id, tenant_id, branch_id] : [];
     var flag = loan_id > 0 ? 1 : 0;
-    var result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
+    var result = await saveRecord(
+      table,
+      columns,
+      values,
+      whereColumns,
+      whereValues,
+      flag,
+    );
 
-     if (!result || result.suc !== 1) {
+    if (!result || result.suc !== 1) {
       return res.send({
         success: true,
         msg: loan_id > 0 ? "Loan edit failed" : "Loan save failed",
-        data: []
+        data: [],
       });
     }
 
-      let trans_id = await transaction_id();
-      
-      var table = "bdccb.td_loan_transactions";
-      var columns = loan_id > 0 ? ["trans_dt","loan_to","branch_shg_id","loan_ac_no","dr_amt","curr_prn","modified_by","modified_dt","ip_address"] : ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-      var values = loan_id > 0 ? [disb_dt,loan_to,branch_shg_id,loan_acc_no || null,disb_amt,disb_amt,created_by,datetime,ip_address] : [disb_dt,trans_id,tenant_id,loan_to,branch_shg_id,loan_code,loan_acc_no || null,'D',disb_amt,0,0,0,0,0,disb_amt,0,0,0,'U',created_by,datetime,ip_address];
-      var whereColumns = loan_id > 0 ? ["trans_id","tenant_id","loan_id"] : [];
-      var whereValues = loan_id > 0 ? [tran_id,tenant_id,loan_id] : [];
-      var flag = loan_id > 0 ? 1 : 0;
-      var trans_result = await saveRecord(table,columns,values,whereColumns,whereValues,flag);
-    
+    let trans_id = await transaction_id();
 
-     if (!trans_result || trans_result.suc !== 1) {
-        return res.send({
-          success: true,
-          msg: trans_result.msg || loan_id > 0 ? "Failed to edit loan in transaction table" : "Failed to save loan in transaction table",
-          data: []
-        });
-      }
+    var table = "bdccb.td_loan_transactions";
+    var columns =
+      loan_id > 0
+        ? [
+            "trans_dt",
+            "loan_to",
+            "branch_shg_id",
+            "loan_ac_no",
+            "dr_amt",
+            "curr_prn",
+            "modified_by",
+            "modified_dt",
+            "ip_address",
+          ]
+        : [
+            "trans_dt",
+            "trans_id",
+            "tenant_id",
+            "loan_to",
+            "branch_shg_id",
+            "loan_id",
+            "loan_ac_no",
+            "trans_type",
+            "dr_amt",
+            "cr_amt",
+            "curr_prn_recov",
+            "curr_intt_recov",
+            "ovd_prn_recov",
+            "ovd_intt_recov",
+            "curr_prn",
+            "curr_intt",
+            "ovd_prn",
+            "ovd_intt",
+            "approval_status",
+            "created_by",
+            "created_dt",
+            "ip_address",
+          ];
+    var values =
+      loan_id > 0
+        ? [
+            disb_dt,
+            loan_to,
+            branch_shg_id,
+            loan_acc_no || null,
+            disb_amt,
+            disb_amt,
+            created_by,
+            datetime,
+            ip_address,
+          ]
+        : [
+            disb_dt,
+            trans_id,
+            tenant_id,
+            loan_to,
+            branch_shg_id,
+            loan_code,
+            loan_acc_no || null,
+            "D",
+            disb_amt,
+            0,
+            0,
+            0,
+            0,
+            0,
+            disb_amt,
+            0,
+            0,
+            0,
+            "U",
+            created_by,
+            datetime,
+            ip_address,
+          ];
+    var whereColumns = loan_id > 0 ? ["trans_id", "tenant_id", "loan_id"] : [];
+    var whereValues = loan_id > 0 ? [tran_id, tenant_id, loan_id] : [];
+    var flag = loan_id > 0 ? 1 : 0;
+    var trans_result = await saveRecord(
+      table,
+      columns,
+      values,
+      whereColumns,
+      whereValues,
+      flag,
+    );
+
+    if (!trans_result || trans_result.suc !== 1) {
       return res.send({
         success: true,
-        msg: loan_id > 0 ? "Disbursement edit Done Successfully" : "Disbursement Done Successfully",
+        msg:
+          trans_result.msg || loan_id > 0
+            ? "Failed to edit loan in transaction table"
+            : "Failed to save loan in transaction table",
+        data: [],
       });
-      
-    }catch(error){
-     console.error("Error in while save disbursement:", error);
-        return res.send({
-        success: false,
-        msg: "Internal server error",
-        errorCode: "SERVER_ERROR"
-     });
     }
+    return res.send({
+      success: true,
+      msg:
+        loan_id > 0
+          ? "Disbursement edit Done Successfully"
+          : "Disbursement Done Successfully",
+    });
+  } catch (error) {
+    console.error("Error in while save disbursement:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
 });
 
 // FETCH PACS DETAILS FOR APPROVE
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
- try{
-  const {branch_id, tenant_id, loan_to, approval_status} = req.body;
-  // console.log(req.body,'fetch');
-  
-  var select = "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,a.tot_memb,a.created_by,a.created_dt,a.ip_address,b.trans_dt,b.trans_id,b.trans_type,CASE WHEN a.loan_to = 'P' THEN c.branch_name ELSE d.group_name END AS branch_name",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code",
-  whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
-  order = null;
-  var fetch_data = await db_Select(select,table_name,whr,order);
+  try {
+    const { branch_id, tenant_id, loan_to, approval_status } = req.body;
+    // console.log(req.body,'fetch');
 
-  if(fetch_data.suc === 1 && fetch_data.msg.length > 0){
-   return res.send({
-    success: true,
-    msg: "Fetch unapprove disbursement details",
-    data: fetch_data.msg
-   });
-  }else{
+    var select =
+        "a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,a.tot_memb,a.created_by,a.created_dt,a.ip_address,b.trans_dt,b.trans_id,b.trans_type,CASE WHEN a.loan_to = 'P' THEN c.branch_name ELSE d.group_name END AS branch_name",
+      table_name =
+        "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code",
+      whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = '${approval_status}'`,
+      order = null;
+    var fetch_data = await db_Select(select, table_name, whr, order);
+
+    if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
+      return res.send({
+        success: true,
+        msg: "Fetch unapprove disbursement details",
+        data: fetch_data.msg,
+      });
+    } else {
+      return res.send({
+        success: true,
+        msg: "No unapprove disbursement details found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    console.error("Error in while fetch disbursement details:", error);
     return res.send({
-    success: true,
-    msg: "No unapprove disbursement details found",
-    data: []
-   });
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
   }
-
- }catch(error){
-  console.error("Error in while fetch disbursement details:", error);
-  return res.send({
-  success: false,
-  msg: "Internal server error",
-  errorCode: "SERVER_ERROR"
-  });
- }
 });
 
 //FETCH MAXIMUM BALANCE ON A PARTICULAR BRANCH //
@@ -458,7 +651,6 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 
 //     const balance_id = maxIdRes.msg[0].balance_id;
 //     // console.log(balance_id,'balance_id');
-    
 
 //      // FETCH BALANCE AMOUNT//
 //      let select3 = "balance AS max_balance";
@@ -490,99 +682,370 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 // });
 
 loanRouter.post("/show_loan_status", async (req, res) => {
-  try{
-   const {branch_id,approval_status} = req.body;
-  //  console.log(req.body,'show');
+  try {
+    const { branch_id, approval_status, loan_to } = req.body;
+    //  console.log(req.body,'show');
 
-   var select = "a.loan_id,b.trans_dt,b.trans_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,CASE WHEN a.loan_to = 'P' THEN c.branch_name ELSE d.group_name END AS loan_to_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,a.tot_memb,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address",
-   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code LEFT JOIN bdccb.md_user e ON b.approved_by::INTEGER = e.user_id",
-   whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}'`,
-   order = `b.trans_id,b.trans_dt`;
-   var show_loan_dtls = await db_Select(select,table_name,whr,order);
+    var select =
+        loan_to == "P"
+          ? `a.loan_id,b.trans_dt,b.trans_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,a.tot_memb,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`
+          : `a.loan_id,b.trans_dt,b.trans_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,d.group_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,a.tot_memb,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`,
+      table_name =
+        "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_id = c.branch_id LEFT JOIN bdccb.md_group d ON a.branch_shg_id = d.group_code LEFT JOIN bdccb.md_user e ON b.approved_by::INTEGER = e.user_id",
+      whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}'`,
+      order = `b.trans_id,b.trans_dt`;
+    var show_loan_dtls = await db_Select(select, table_name, whr, order);
 
-   if(show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0){
-   return res.send({
-    success: true,
-    msg: `Fetch ${approval_status == 'A' ? 'Approved' : 'Unapproved'} disbursed Loan Details`,
-    data: show_loan_dtls.msg
-   });
-  }else{
+    if (show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0) {
+      if (loan_to === "S") {
+        const first = show_loan_dtls.msg[0];
+
+        const response = {
+          tenant_id: first.tenant_id,
+          branch_id: first.branch_id,
+          loan_to: first.loan_to,
+          period: first.period,
+          curr_roi: first.curr_roi,
+          penal_roi: first.penal_roi,
+          disb_dt: first.disb_dt,
+          created_by: first.created_by,
+          ip_address: first.ip_address,
+
+          loanee_dtls: show_loan_dtls.msg.map((row) => ({
+            loan_acc_no: row.loan_acc_no,
+            branch_shg_id: row.branch_shg_id,
+            group_name: row.loan_to_name,
+            tot_memb: row.tot_memb,
+            disb_amt: row.disb_amt,
+            loan_id: row.loan_id,
+            tran_id: row.trans_id,
+          })),
+        };
+
+        return res.send({
+          success: true,
+          msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
+          data: response,
+        });
+      }
+      // 👉 PACS case (unchanged flat response)
+      return res.send({
+        success: true,
+        msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
+        data: show_loan_dtls.msg,
+      });
+    } else {
+      return res.send({
+        success: true,
+        msg: `Unable to fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed loan details`,
+        data: [],
+      });
+    }
+  } catch (error) {
+    console.error("Error in while fetch loan status:", error);
     return res.send({
-    success: true,
-    msg: `Unable to fetch ${approval_status == 'A' ? 'Approved' : 'Unapproved'} disbursed loan details`,
-    data: []
-   });
-  }
-  }catch(error){
-  console.error("Error in while fetch loan status:", error);
-  return res.send({
-  success: false,
-  msg: "Internal server error",
-  errorCode: "SERVER_ERROR"
-  });
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
   }
 });
 
-// APPROVE LOAN FROM PACS LEVEL ***** this i snot used *****
-// loanRouter.post("/approve_loan_pacs_level", async (req, res) => {
-// try{
-//  const {tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,approved_by} = req.body;
-// //  console.log(req.body,'accept_pacs');
+// FETCH TOTAL MEMBER IN PARTICULAR SHG
+loanRouter.post("/fetch_tot_memb", async (req, res) => {
+  try {
+    const { group_code, tenant_id } = req.body;
+    // console.log(req.body, "ftech_memb");
 
-//  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-//  let date = new Date().toISOString().slice(0, 10);
+    var select = "COALESCE(COUNT(*),0) AS tot_memb",
+      table_name = "bdccb.md_member",
+      whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}'`,
+      order = null;
+    var fetch_member = await db_Select(select, table_name, whr, order);
 
-//   // Generate balance id
-//  let balance = await balance_id();
+    if (fetch_member.suc > 0 && fetch_member.msg.length > 0) {
+      return res.send({
+        success: true,
+        msg: "fetch member details",
+        data: fetch_member.msg,
+      });
+    } else {
+      return res.send({
+        success: true,
+        msg: "Unable to fetch total no of member in particular shg",
+        data: [],
+      });
+    }
+  } catch (error) {
+    console.error("Error in while fetch member details particular shg:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
 
-//  // Calculate balance
-//  var balance_amt = (cr_amt || 0) - (debit_amt || 0);
+// SAVE DISBURSEMENT (BRANCH -> SHG / PACS -> SHG)
+loanRouter.post("/save_disburse_brn_pacs_shg", async (req, res) => {
+  try {
+    const {
+      tenant_id,
+      branch_id,
+      loan_to,
+      period,
+      curr_roi,
+      penal_roi,
+      disb_dt,
+      loanee_dtls,
+      created_by,
+      ip_address,
+    } = req.body;
+    console.log(req.body, "data shg");
 
-//  // INSERT INTO BALANCE TABLE
-//  const table = "bdccb.td_loan_balance";
-//  const columns = ["balance_date","balance_id","tenant_id","loan_to","pacs_shg_id","debit_amt","cr_amt","balance"];
-//  const values = [date,balance,tenant_id,loan_to,pacs_shg_id,debit_amt,cr_amt,balance_amt];
-//  const whereColumns = [];
-//  const whereValues = [];
-//  const flag = 0;
-//  const balance_data = await saveRecord(table, columns, values, whereColumns, whereValues, flag);
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-//  // IF BALANCE INSERT SUCCESS 
-//  if(balance_data.suc === 1){
-//   const table1 = "bdccb.td_loan_transactions";
-//   const columns1 = ["approval_status","approved_by","approved_dt"];
-//   const values1 = ["A",approved_by,datetime];
-//   const whereColumns1 = ["trans_id","loan_id"];
-//   const whereValues1 = [trans_id,loan_id];
-//   const flag1 = 1;
-//   const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
-  
-//   // IF TRANSACTION UPDATE SUCCESS
-//   if(trans_update.suc === 1){
-//     return res.send({
-//       success: true,
-//           msg: "Loan approved & balance inserted"
-//         });
-//   }else {
-//      return res.send({
-//       success: true,
-//       msg: "Balance inserted but transaction update failed"
-//       });
-//   }
-//  }else{
-//   return res.send({
-//         success: true,
-//         msg: "Balance insert failed"
-//   });
-//  }
-// }catch(error){
-//   console.error("Error in while approve loan from pacs level:", error);
-//   return res.send({
-//   success: false,
-//   msg: "Internal server error",
-//   errorCode: "SERVER_ERROR"
-//   });
-// }
-// });
+    let isEdit = loanee_dtls.some((m) => Number(m.loan_id) > 0);
 
-module.exports = {loanRouter}
+    for (let dt of loanee_dtls) {
+      var pay_mode = "Monthly";
+
+      let instl_date = await genDate(disb_dt, period, pay_mode);
+      const startDate = instl_date.emtStart;
+      const endDate = instl_date.emiEnd;
+
+      let loan_code = await loanCode(branch_id);
+
+      var table = "bdccb.td_loan";
+      var columns =
+        dt.loan_id > 0
+          ? [
+              "loan_acc_no",
+              "loan_to",
+              "branch_shg_id",
+              "period",
+              "curr_roi",
+              "penal_roi",
+              "disb_dt",
+              "disb_amt",
+              "rep_start_dt",
+              "rep_end_dt",
+              "curr_prn",
+              "tot_memb",
+              "modified_by",
+              "modified_dt",
+              "ip_address",
+            ]
+          : [
+              "loan_id",
+              "tenant_id",
+              "branch_id",
+              "loan_acc_no",
+              "loan_to",
+              "branch_shg_id",
+              "period",
+              "curr_roi",
+              "penal_roi",
+              "disb_dt",
+              "disb_amt",
+              "pay_mode",
+              "rep_start_dt",
+              "rep_end_dt",
+              "curr_prn",
+              "curr_intt",
+              "ovd_prn",
+              "ovd_intt",
+              "tot_memb",
+              "created_by",
+              "created_dt",
+              "ip_address",
+            ];
+      var values =
+        dt.loan_id > 0
+          ? [
+              dt.loan_acc_no || null,
+              loan_to,
+              dt.branch_shg_id,
+              period,
+              curr_roi,
+              penal_roi,
+              disb_dt,
+              dt.disb_amt,
+              startDate,
+              endDate,
+              dt.disb_amt,
+              dt.tot_memb,
+              created_by,
+              datetime,
+              ip_address,
+            ]
+          : [
+              loan_code,
+              tenant_id,
+              branch_id,
+              dt.loan_acc_no || null,
+              loan_to,
+              dt.branch_shg_id,
+              period,
+              curr_roi,
+              penal_roi,
+              disb_dt,
+              dt.disb_amt,
+              pay_mode,
+              startDate,
+              endDate,
+              dt.disb_amt,
+              0,
+              0,
+              0,
+              dt.tot_memb,
+              created_by,
+              datetime,
+              ip_address,
+            ];
+      var whereColumns =
+        dt.loan_id > 0 ? ["loan_id", "tenant_id", "branch_id"] : [];
+      var whereValues =
+        dt.loan_id > 0 ? [dt.loan_id, tenant_id, branch_id] : [];
+      var flag = dt.loan_id > 0 ? 1 : 0;
+      var result_shg = await saveRecord(
+        table,
+        columns,
+        values,
+        whereColumns,
+        whereValues,
+        flag,
+      );
+
+      if (!result_shg || result_shg.suc !== 1) {
+        return res.send({
+          success: true,
+          msg: dt.loan_id > 0 ? "Loan edit failed" : "Loan save failed",
+          data: [],
+        });
+      }
+
+      let trans_id = await transaction_id();
+
+      var table = "bdccb.td_loan_transactions";
+      var columns =
+        dt.loan_id > 0
+          ? [
+              "trans_dt",
+              "loan_to",
+              "branch_shg_id",
+              "loan_ac_no",
+              "dr_amt",
+              "curr_prn",
+              "modified_by",
+              "modified_dt",
+              "ip_address",
+            ]
+          : [
+              "trans_dt",
+              "trans_id",
+              "tenant_id",
+              "loan_to",
+              "branch_shg_id",
+              "loan_id",
+              "loan_ac_no",
+              "trans_type",
+              "dr_amt",
+              "cr_amt",
+              "curr_prn_recov",
+              "curr_intt_recov",
+              "ovd_prn_recov",
+              "ovd_intt_recov",
+              "curr_prn",
+              "curr_intt",
+              "ovd_prn",
+              "ovd_intt",
+              "approval_status",
+              "created_by",
+              "created_dt",
+              "ip_address",
+            ];
+      var values =
+        dt.loan_id > 0
+          ? [
+              disb_dt,
+              loan_to,
+              dt.branch_shg_id,
+              dt.loan_acc_no || null,
+              dt.disb_amt,
+              dt.disb_amt,
+              created_by,
+              datetime,
+              ip_address,
+            ]
+          : [
+              disb_dt,
+              trans_id,
+              tenant_id,
+              loan_to,
+              dt.branch_shg_id,
+              loan_code,
+              dt.loan_acc_no || null,
+              "D",
+              dt.disb_amt,
+              0,
+              0,
+              0,
+              0,
+              0,
+              dt.disb_amt,
+              0,
+              0,
+              0,
+              "U",
+              created_by,
+              datetime,
+              ip_address,
+            ];
+      var whereColumns =
+        dt.loan_id > 0 ? ["trans_id", "tenant_id", "loan_id"] : [];
+      var whereValues =
+        dt.loan_id > 0 ? [dt.tran_id, tenant_id, dt.loan_id] : [];
+      var flag = dt.loan_id > 0 ? 1 : 0;
+      var trans_result = await saveRecord(
+        table,
+        columns,
+        values,
+        whereColumns,
+        whereValues,
+        flag,
+      );
+
+      if (!trans_result || trans_result.suc !== 1) {
+        return res.send({
+          success: true,
+          msg:
+            trans_result.msg || dt.loan_id > 0
+              ? "Failed to edit loan in transaction table"
+              : "Failed to save loan in transaction table",
+          data: [],
+        });
+      }
+    }
+    return res.send({
+      success: true,
+      msg: isEdit
+        ? "Disbursement edit Done Successfully"
+        : "Disbursement Done Successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Error in while save disbursement from Branch/Pacs to SHG:",
+      error,
+    );
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+module.exports = {
+  loanRouter,
+};
