@@ -129,6 +129,15 @@ pgdb = require("../db/pgdb");
         }
   };
 
+  const deposit_balance_update = async (sb_id, amount, dep_with_flag) => {
+    try {
+      const balance_update_query = `UPDATE bdccb.td_deposit SET balance = balance + ${dep_with_flag === 'W' ? -amount : amount} WHERE sb_id = ${sb_id}`;
+      await pgdb.query(balance_update_query);
+    } catch (err) {
+      console.error("Error updating deposit balance:", err);
+      throw err;
+    }
+  }
   const deleteRecord = async (table, whereCols, whereVals) => {
 
   let where = whereCols
@@ -141,4 +150,4 @@ pgdb = require("../db/pgdb");
 };
 
 
-module.exports = { db_Select, saveRecord, deleteRecord };
+module.exports = { db_Select, saveRecord, deleteRecord,deposit_balance_update };
