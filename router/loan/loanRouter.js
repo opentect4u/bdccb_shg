@@ -697,41 +697,40 @@ loanRouter.post("/show_loan_status", async (req, res) => {
     var show_loan_dtls = await db_Select(select, table_name, whr, order);
 
     if (show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0) {
-      if (loan_to === "S") {
-        const first = show_loan_dtls.msg[0];
+      // if (loan_to === "S") {
+      //   const first = show_loan_dtls.msg[0];
 
-        const response = 
-        [
-          {
-          tenant_id: first.tenant_id,
-          branch_id: first.branch_id,
-          loan_to: first.loan_to,
-          period: first.period,
-          curr_roi: first.curr_roi,
-          penal_roi: first.penal_roi,
-          disb_dt: first.disb_dt,
-          created_by: first.created_by,
-          ip_address: first.ip_address,
+      //   const response = 
+      //   [
+      //     {
+      //     tenant_id: first.tenant_id,
+      //     branch_id: first.branch_id,
+      //     loan_to: first.loan_to,
+      //     period: first.period,
+      //     curr_roi: first.curr_roi,
+      //     penal_roi: first.penal_roi,
+      //     disb_dt: first.disb_dt,
+      //     created_by: first.created_by,
+      //     ip_address: first.ip_address,
 
-          loanee_dtls: show_loan_dtls.msg.map((row) => ({
-            loan_acc_no: row.loan_acc_no,
-            branch_shg_id: row.branch_shg_id,
-            group_name: row.loan_to_name,
-            tot_memb: row.tot_memb,
-            disb_amt: row.disb_amt,
-            loan_id: row.loan_id,
-            tran_id: row.trans_id,
-          })),
-        },
-      ];
+      //     loanee_dtls: show_loan_dtls.msg.map((row) => ({
+      //       loan_acc_no: row.loan_acc_no,
+      //       branch_shg_id: row.branch_shg_id,
+      //       group_name: row.loan_to_name,
+      //       tot_memb: row.tot_memb,
+      //       disb_amt: row.disb_amt,
+      //       loan_id: row.loan_id,
+      //       tran_id: row.trans_id,
+      //     })),
+      //   },
+      // ];
 
-        return res.send({
-          success: true,
-          msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
-          data: response,
-        });
-      }
-      // 👉 PACS case (unchanged flat response)
+      //   return res.send({
+      //     success: true,
+      //     msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
+      //     data: response,
+      //   });
+      // }
       return res.send({
         success: true,
         msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
