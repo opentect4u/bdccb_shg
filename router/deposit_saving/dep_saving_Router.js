@@ -16,7 +16,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
                     });
                 }
 
-      var select = "a.sb_id,a.tenant_id,a.shg_id,a.branch_id,a.acc_no,a.acc_opening_dt,a.acc_status_flag,a.balance",
+      var select = "a.shg_id,b.group_name,sum(a.balance) as balance",
       table_name = "bdccb.td_deposit a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code",
       order = null;
       whr = `a.tenant_id = '${tenant_id}' AND a.acc_status_flag = 'O'`;
@@ -26,6 +26,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
       if(shg_id > 0){
         whr += ` AND a.shg_id = '${shg_id}'`;
       }
+        whr += ` GROUP BY a.shg_id,b.group_name ORDER BY b.group_name`;
       var fetch_data = await db_Select(select,table_name,whr,order);
 
       if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
@@ -93,7 +94,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
     get_acount_balance = async (sb_id) => {
         //  First check first transaction OR NOT  // 
           const first_trans_result = await db_Select('count(*) as count ', 'bdccb.td_deposit_trans', `sb_id = '${sb_id}'`, null);
-          if(first_trans_result.suc === 1 && first_trans_result.msg[0].count === '0') {
+         // if(first_trans_result.suc === 1 && first_trans_result.msg[0].count === '0') {
 
             const inital_balance = await db_Select('balance', 'bdccb.td_deposit', `sb_id = '${sb_id}'`, null);
             console.log('Initial Balance Result:', inital_balance);
@@ -103,15 +104,15 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
               return 0;
             }
           // No transactions found, return 0 balance
-        }else{
-              const select = `balance`;
-              const table_name = "bdccb.td_deposit_trans";
-              const whr = `sb_id = '${sb_id}' order by trans_no desc limit 1 `;
-              const order = null; 
-              const res_dt = await db_Select(select, table_name, whr, order);
-              const balance = res_dt.msg[0].balance;
-              return balance; // INTEGER
-        }
+        // }else{
+        //       const select = `balance`;
+        //       const table_name = "bdccb.td_deposit_trans";
+        //       const whr = `sb_id = '${sb_id}' order by trans_no desc limit 1 `;
+        //       const order = null; 
+        //       const res_dt = await db_Select(select, table_name, whr, order);
+        //       const balance = res_dt.msg[0].balance;
+        //       return balance; // INTEGER
+        // }
     }
    depsavingRouter.post("/get_meb_acc_dtls", async (req, res) => {
 
@@ -142,7 +143,6 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
 
       depsavingRouter.post("/get_meb_acc_dtls_edit", async (req, res) => {
         try{
-
              const {shg_id} = req.body;
             var select = "c.trans_no,a.sb_id,a.acc_no,a.balance,b.member_name";
             var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_code JOIN bdccb.td_deposit_trans c ON a.sb_id = c.sb_id AND c.trans_no = ( SELECT MAX(ct.trans_no) FROM bdccb.td_deposit_trans ct WHERE ct.sb_id = a.sb_id)";
@@ -193,67 +193,63 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
 
                 // amt required and must be > 0
                 const amount = parseFloat(amt);
-                if (isNaN(amount) || amount <= 0) {
-                  return res.status.json({
-                    status: true,
-                    message: 'Amount must be a number greater than 0'
-                  });
-                }
-                let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                var trans_dt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+              if (isNaN(amount) || amount <= 0) {
 
-                  let balance = await get_acount_balance(sb_id);
-                  balance = parseFloat(balance);
-                  // console.log("Current Balance:", balance, "Transaction Amount:", amount, "Transaction Type:", dep_with_flag);
-                  let dr_amt = 0;
-                  let cr_amt = 0;
+                  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                  var trans_dt = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-                  // D = Debit / Withdraw
-                  if (dep_with_flag === 'W') {
+                    let balance = await get_acount_balance(sb_id);
+                    balance = parseFloat(balance);
+                    // console.log("Current Balance:", balance, "Transaction Amount:", amount, "Transaction Type:", dep_with_flag);
+                    let dr_amt = 0;
+                    let cr_amt = 0;
 
-                      if (balance < amount) {
-                          console.log("teste---------",balance,amount)
-                          return res.send({
-                            success: false,
-                            msg: "Insufficient balance",
-                            data: null
-                          });
-                        
-                      }
-                    // Withdrawal logic: Debit the account
-                      dr_amt = amount;
-                      cr_amt = 0;
-                      balance = balance - amount;
+                    // D = Debit / Withdraw
+                    if (dep_with_flag === 'W') {
 
-                  } else { 
-                      // C = Credit / Deposit
-                      dr_amt = 0;
-                      cr_amt = amount;
-                      balance = balance + cr_amt;
-                  }
-            
-                const table = "bdccb.td_deposit_trans";
-                const columns = trans_no > 0
-                ? ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","modified_by","modified_at","modified_ip"]
-                : ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+                        if (balance < amount) {
+                            console.log("teste---------",balance,amount)
+                            return res.send({
+                              success: false,
+                              msg: "Insufficient balance",
+                              data: null
+                            });
+                          
+                        }
+                      // Withdrawal logic: Debit the account
+                        dr_amt = amount;
+                        cr_amt = 0;
+                        balance = balance - amount;
 
-              const values = trans_no > 0
-                ? [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip]
-                : [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip];
-              const whereColumns = trans_no > 0 ? ["sb_id", "trans_no"] : [];
-              const whereValues  = trans_no > 0 ? [sb_id, trans_no] : [];
-              const flag = trans_no > 0 ? 1 : 0;
-
-              const result = await saveRecord(table,columns,values,whereColumns,whereValues,flag);
-            
-              // code for update balance in td_deposit table;
-              if (result.suc === 1) {
-              const balance_update_query = deposit_balance_update(sb_id, amount, dep_with_flag);
-              lastId += result.lastId + ',';
-              count++;
-              }
-      
+                    } else { 
+                        // C = Credit / Deposit
+                        dr_amt = 0;
+                        cr_amt = amount;
+                        balance = balance + cr_amt;
+                    }
               
+                  const table = "bdccb.td_deposit_trans";
+                  const columns = trans_no > 0
+                  ? ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","modified_by","modified_at","modified_ip"]
+                  : ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+
+                const values = trans_no > 0
+                  ? [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip]
+                  : [sb_id,tenant_id,branch_id,acc_no,trans_dt,dep_with_flag,dr_amt,cr_amt,balance,remarks,created_by,datetime,created_ip];
+                const whereColumns = trans_no > 0 ? ["sb_id", "trans_no"] : [];
+                const whereValues  = trans_no > 0 ? [sb_id, trans_no] : [];
+                const flag = trans_no > 0 ? 1 : 0;
+
+                const result = await saveRecord(table,columns,values,whereColumns,whereValues,flag);
+              
+                // code for update balance in td_deposit table;
+                if (result.suc === 1) {
+                const balance_update_query = deposit_balance_update(sb_id, amount, dep_with_flag);
+                lastId += result.lastId + ',';
+                count++;
+                }
+      
+              }
             }
             return res.send({
               success: true,

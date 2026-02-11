@@ -98,7 +98,7 @@ userRouter = express.Router();
             const hashedPassword = await bcrypt.hash(pwd, 10);
             const table = "bdccb.md_user";
             const columns = add_edit_flag > 0 ? ["tenant_id","brn_code","user_type","user_name","phone_mobile","ip_address","designation"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","designation"];
-            const values = add_edit_flag > 0 ? [tenant_id, branch_id, user_type, user_name, phone_mobile,  ip_address, designation] : [user_id, tenant_id, branch_id, user_type, user_name, phone_mobile, 'Y', hashedPassword, created_by, new Date(), ip_address,designation ];
+            const values = add_edit_flag > 0 ? [tenant_id, branch_id, user_type, user_name, phone_mobile,  ip_address, designation] : [user_id, tenant_id, branch_id, user_type, user_name, phone_mobile, 'N', hashedPassword, created_by, new Date(), ip_address,designation ];
             const whereColumns = add_edit_flag > 0 ? ["user_id"] : [];
             const whereValues = add_edit_flag > 0 ? [user_id] : [];
             const flag = add_edit_flag > 0 ? 1 : 0; // 0 for insert, 1 for update
@@ -175,6 +175,35 @@ userRouter = express.Router();
                     const table = "bdccb.md_user";
                     const columns = ["designation"];
                     const values = [designation] 
+                    const whereColumns = ["user_id"] ;
+                    const whereValues = [user_id];
+                    const result = await saveRecord(table, columns, values,whereColumns,whereValues,1);
+                    return res.send({
+                        success: true,
+                        msg: "Profile Updated Successfully",
+                    });
+                    
+                } else {
+                    validationError(res, "User not found or inactive!");
+                }
+                
+            } catch (error) {
+                // Log the error and send an appropriate response
+                console.error("Error during dashboard rendering:", error);
+            }
+    });
+    ///   verify user By admin
+    userRouter.post("/verifyuser", async (req, res) => {
+        const {user_id,verifieby} = req.body;
+        try {
+                var whr = `user_id='${user_id}' AND active_flag='N'`;
+                var res_dt = await db_Select("*", "bdccb.md_user", whr, null);
+
+                if (res_dt.msg.length > 0) {
+                    
+                    const table = "bdccb.md_user";
+                    const columns = ["active_flag"];
+                    const values = ['Y'] 
                     const whereColumns = ["user_id"] ;
                     const whereValues = [user_id];
                     const result = await saveRecord(table, columns, values,whereColumns,whereValues,1);
