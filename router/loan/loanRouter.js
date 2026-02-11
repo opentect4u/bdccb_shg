@@ -700,7 +700,9 @@ loanRouter.post("/show_loan_status", async (req, res) => {
       if (loan_to === "S") {
         const first = show_loan_dtls.msg[0];
 
-        const response = {
+        const response = 
+        [
+          {
           tenant_id: first.tenant_id,
           branch_id: first.branch_id,
           loan_to: first.loan_to,
@@ -720,7 +722,8 @@ loanRouter.post("/show_loan_status", async (req, res) => {
             loan_id: row.loan_id,
             tran_id: row.trans_id,
           })),
-        };
+        },
+      ];
 
         return res.send({
           success: true,
