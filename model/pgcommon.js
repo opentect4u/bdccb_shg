@@ -138,6 +138,20 @@ pgdb = require("../db/pgdb");
       throw err;
     }
   }
+  const get_pacs_of_branch = async (branch_id) => {
+            try{
+                const  query =`SELECT string_agg(a.branch_id::text, ',') AS branch_ids
+                                FROM md_branch a
+                                WHERE a.branch_jurisdiction_id = ${branch_id};`;
+                const result = await pgdb.query(query)
+                return result.rows[0].branch_ids || '';                 
+
+            }catch(err){
+                console.error("Error fetching PACS of branch:", err);
+                throw err;
+            }
+
+  }
   const deleteRecord = async (table, whereCols, whereVals) => {
 
   let where = whereCols
@@ -150,4 +164,4 @@ pgdb = require("../db/pgdb");
 };
 
 
-module.exports = { db_Select, saveRecord, deleteRecord,deposit_balance_update };
+module.exports = { db_Select, saveRecord, deleteRecord,deposit_balance_update,get_pacs_of_branch };
