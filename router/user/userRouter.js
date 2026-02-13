@@ -6,7 +6,7 @@ userRouter = express.Router();
     userRouter.get("/user_list", async (req, res) => {
         const tenant_id = parseInt(req.query.tenant_id || 0);
         const branch_id = parseInt(req.query.branch_id || 0);
-        const user_id = parseInt(req.query.user_id || 0);
+        const user_id = req.query.user_id?.trim() || '';
         const user_type = req.query.user_type || null;
         const user_status = req.query.user_status || null;
 
@@ -22,13 +22,15 @@ userRouter = express.Router();
         whr = `tenant_id = ${tenant_id} `,
         order = null;
         
-        if (user_id) {
+        if (user_id.length > 0) {
             whr += ` AND user_id = '${user_id}'`;
+            console.log("User ID filter applied: " + user_id);
         }
         if(user_status){
             whr += ` AND active_flag = '${user_status}'`;
         }
         if(user_type){whr += ` AND user_type = '${user_type}'`; }
+        
         if(user_type){
                if(user_type == 'P' ){
                 var branch_ids = await get_pacs_of_branch(branch_id);
@@ -140,14 +142,14 @@ userRouter = express.Router();
                     var res_dt = await db_Select("*", "bdccb.md_user", whr, null);
 
                     if (res_dt.msg.length > 0) {
-                            const hasLowercase = /[a-z]/.test(new_pass);
+                            //const hasLowercase = /[a-z]/.test(new_pass);
                             const hasUppercase = /[A-Z]/.test(new_pass);
                             const hasNumber = /[0-9]/.test(new_pass);
-                            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(new_pass);
-                            const hasMinLength = new_pass.length >= 8;
-                            if (hasLowercase && hasUppercase && hasNumber && hasSpecialChar && hasMinLength) {
+                           // const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(new_pass);
+                            const hasMinLength = new_pass.length >= 6;
+                            if (hasUppercase && hasNumber && hasMinLength) {
                                 if (await bcrypt.compare(old_pass, res_dt.msg[0].password)) {
-                                var pass = bcrypt.hashSync(new_pass, 10);
+                                var pass = await bcrypt.hash(new_pass, 10);
                                 var ip = req.clientIp;
                                 const table = "bdccb.md_user";
                                 const columns = ["password"];
@@ -156,9 +158,16 @@ userRouter = express.Router();
                                 const whereValues = [user_id];
                         
                             const result = await saveRecord(table, columns, values,whereColumns,whereValues,1);
-                                req.flash("success_msg", "Update successful!");
-                                res.redirect("/logout");
+                               return res.send({
+                                    success: true,
+                                    msg: "Update successful!",
+                                });
+                                
                                 } else {
+                                    return res.send({
+                                    success: false,
+                                    msg: "Old password is incorrect!",
+                                    });
                                 
                                 }
                         }else{
