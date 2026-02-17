@@ -34,7 +34,7 @@ userRouter = express.Router();
         if(user_type){
                if(user_type == 'P' ){
                 var branch_ids = await get_pacs_of_branch(branch_id);
-                whr += ` AND brn_code IN (${branch_ids})`; 
+                whr += branch_ids.length > 0  ? ` AND brn_code IN (${branch_ids})`:""; 
                 }else{
                    whr += branch_id > 0 ? ` AND brn_code = ${branch_id}` : ""; 
                 }
@@ -174,7 +174,7 @@ userRouter = express.Router();
             }
             const hashedPassword = await bcrypt.hash(pwd, 10);
             // If default password flag is set
-            const hashedDefaultPassword = await bcrypt.hash('bdccb@1234', 10);
+            const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
 
             const table = "bdccb.md_user";
             const columns = add_edit_flag > 0 ? ["tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","approved_by","approved_dt","ip_address","designation"] : ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","designation","shg_id"];
