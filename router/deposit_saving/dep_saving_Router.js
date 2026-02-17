@@ -96,7 +96,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
           const first_trans_result = await db_Select('count(*) as count ', 'bdccb.td_deposit_trans', `sb_id = '${sb_id}'`, null);
          // if(first_trans_result.suc === 1 && first_trans_result.msg[0].count === '0') {
 
-            const inital_balance = await db_Select('balance', 'bdccb.td_deposit', `sb_id = '${sb_id}'`, null);
+            const inital_balance = await db_Select('COALESCE(balance, 0) AS balance', 'bdccb.td_deposit', `sb_id = '${sb_id}'`, null);
             console.log('Initial Balance Result:', inital_balance);
             if(inital_balance.suc === 1 && inital_balance.msg.length > 0) {
               return inital_balance.msg[0].balance; // INTEGER
@@ -118,7 +118,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
 
         try{
             const {shg_id} = req.body;
-            var select = "a.sb_id,a.acc_no,a.balance,b.member_name";
+            var select = "a.sb_id,a.acc_no,COALESCE(a.balance, 0) AS balance,b.member_name";
             var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_code";
             var whr = `a.shg_id = '${shg_id}'`;
             var order = null;
@@ -193,7 +193,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
 
                 // amt required and must be > 0
                 const amount = parseFloat(amt);
-              if (isNaN(amount) || amount <= 0) {
+              if (amount > 0) {
 
                   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
                   var trans_dt = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -227,7 +227,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
                         cr_amt = amount;
                         balance = balance + cr_amt;
                     }
-              
+                
                   const table = "bdccb.td_deposit_trans";
                   const columns = trans_no > 0
                   ? ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","modified_by","modified_at","modified_ip"]
