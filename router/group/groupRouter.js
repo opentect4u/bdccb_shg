@@ -160,6 +160,43 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
    });
  }
 });
+function validationError(res, msg) {
+             return res.send({
+                    success: false,
+                    msg: msg,
+                });
+  }
+groupRouter.get("/checkaddhar", async (req, res) => {
+        const {aadhar_no } = req.query;
+        if(!aadhar_no || aadhar_no.trim() === "" || aadhar_no.length !== 12){
+                validationError(res, "Addhar number is required And must be 12 digits");
+        }
+        try {
+            var whr = `aadhar_no='${aadhar_no}'`;
+            var res_dt = await db_Select("*", "bdccb.md_member", whr, null);
+            if(res_dt.msg.length > 0){
+                return res.send({
+                    success: true,
+                    msg: "Member Already Exists",
+                    user_status: 1
+                });
+            }else{
+                return res.send({
+                    success: true,
+                    msg: "Member Available",
+                    user_status: 0
+                });
+            }
+        } catch (error) {
+            console.error("Error in /checkuser route:", error);
+            return res.send({
+            success: false,
+            msg: "Internal server error",
+            errorCode: "SERVER_ERROR"
+            });
+        }
+                    
+  });
  
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
