@@ -118,7 +118,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
     }
 
     // FETCH GROUP MEMBERS //  
-    var select = "member_code member_id,group_code,member_name,address,aadhar_no,gp_leader_flag,asst_gp_leader_flag",
+    var select = "member_code member_id,group_code,member_name,address,aadhar_no,gp_leader_flag,asst_gp_leader_flag,member_account_no as sb_acc_no",
     table_name = "bdccb.md_member",
     whr = `group_code IN (${groupCodes}) AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
     order = null;
@@ -169,7 +169,7 @@ function validationError(res, msg) {
 groupRouter.get("/checkaddhar", async (req, res) => {
         const {aadhar_no } = req.query;
         if(!aadhar_no || aadhar_no.trim() === "" || aadhar_no.length !== 12){
-                validationError(res, "Addhar number is required And must be 12 digits");
+            return  validationError(res, "Addhar number is required And must be 12 digits");
         }
         try {
             var whr = `aadhar_no='${aadhar_no}'`;
@@ -184,6 +184,41 @@ groupRouter.get("/checkaddhar", async (req, res) => {
                 return res.send({
                     success: true,
                     msg: "Member Available",
+                    user_status: 0
+                });
+            }
+        } catch (error) {
+            console.error("Error in /checkuser route:", error);
+            return res.send({
+            success: false,
+            msg: "Internal server error",
+            errorCode: "SERVER_ERROR"
+            });
+        }
+                    
+  });
+
+  groupRouter.get("/checacc_no", async (req, res) => {
+        const {account_no } = req.query;
+       
+        if(!account_no || account_no.trim() === "" || account_no.length <= 2){
+           return validationError(res, "Account number is required And must be greater than 2 digits");
+        }
+        try {
+            var whr = `member_account_no='${account_no}'`;
+            var res_dt = await db_Select("*", "bdccb.md_member", whr, null);
+            
+            if(res_dt.msg.length > 0){
+               console.log('inside logic -------------------');
+                return res.send({
+                    success: true,
+                    msg: "Account Already Exists",
+                    user_status: 1
+                });
+            }else{
+                return res.send({
+                    success: true,
+                    msg: "Account Available",
                     user_status: 0
                 });
             }
@@ -249,8 +284,8 @@ groupRouter.post("/save_group", async (req, res) => {
      let member_code = await memberCode(branch_code); 
 
      const table1 = "bdccb.md_member";
-     const columns1 = memb.member_id > 0 ? ["member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag"];
-     const values1 = memb.member_id > 0 ? [memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag] : [member_code,branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag];
+     const columns1 = memb.member_id > 0 ? ["member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"];
+     const values1 = memb.member_id > 0 ? [memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null] : [member_code,branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null];
      const whereColumns1 = memb.member_id > 0 ? ["member_code","branch_id","group_code","tenant_id"] : [];
      const whereValues1 = memb.member_id > 0 ? [memb.member_id,branch_code,group_code,tenant_id] : [];
      const flag1 = memb.member_id > 0 ? 1 : 0;
@@ -265,24 +300,13 @@ groupRouter.post("/save_group", async (req, res) => {
         });
    }
 
-    //code for creating user of shg using leader mobile number and default password
-      if(group_code == 0 && phone && phone.length == 10){
-        const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
-        const table3 = "bdccb.md_user";
-        const columns3 = ["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address"];
-        const values3 = [phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address];
-        const whereColumns3 = [];
-        const whereValues3 = [];
-        const flag3 = 0;
-        const result_user = await saveRecord(table3, columns3, values3,whereColumns3,whereValues3,flag3);
-        console.log("User creation result:", result_user);
-      }
+   
       var acc_opening_dt = new Date().toISOString().slice(0, 10);
       var balance = 0;
-     
+      console.log('member id ', memb.sb_acc_no);
       const table2 = "bdccb.td_deposit";
       const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
-      const values2 = [tenant_id,grp_code,branch_code,member_code,acc_opening_dt,balance,created_by,datetime,ip_address];
+      const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
       const whereColumns2 = [];
       const whereValues2 = [];
       const flag2 = 0;
@@ -298,7 +322,7 @@ groupRouter.post("/save_group", async (req, res) => {
 
       const table_trans = "bdccb.td_deposit_trans";
       const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
-      const values_trans = [results.lastId,tenant_id,branch_code,member_code,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
+      const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
       const whereColumns_trans = [];
       const whereValues_trans = [];
       const flag_trans = 0;
@@ -313,6 +337,18 @@ groupRouter.post("/save_group", async (req, res) => {
           });
       }
     }
+
+       //code for creating user of shg using leader mobile number and default password
+      if(phone && phone.length == 10){
+        const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
+        const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
+        const values3 = group_code > 0 ? [phone,phone,created_by,datetime,ip_address] :[phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
+        const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
+        const whereValues3 = group_code > 0 ? [grp_code] : [];
+        const flag3 = group_code > 0 ? 1 : 0;
+        const result_user = await saveRecord("bdccb.md_user", columns3, values3,whereColumns3,whereValues3,flag3);
+        console.log("User creation result:", result_user);
+      }
 
       return res.send({
         success: true,
