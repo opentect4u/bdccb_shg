@@ -101,6 +101,28 @@ accountRouter = express.Router();
            const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
         
         if(trans_update.suc === 1){
+
+            // Fetch member loan ids
+             const mem_fetch_select = "loan_id AS member_loan_id";
+             const mem_fetch_table = "bdccb.td_loan_member";
+             const mem_fetch_whr = `ccb_loan_id = '${loan_id}'`; 
+
+            const member_ids = await db_Select(mem_fetch_select,mem_fetch_table,mem_fetch_whr,null);
+
+              if (member_ids.suc === 1 && member_ids.msg.length > 0) {
+                 // 2️⃣ Loop & update each member trans
+                for (let mem of member_ids.msg) {
+
+                const mem_table = "bdccb.td_loan_member_trans";
+                const mem_columns = ["approval_status","approved_by","approved_dt"];
+                const mem_values = [ "A",created_by, datetime];
+                const mem_whereColumns = ["loan_id"];
+                const mem_whereValues = [mem.member_loan_id];
+                const mem_flag = 1;
+                await saveRecord(mem_table,mem_columns,mem_values,mem_whereColumns,mem_whereValues,mem_flag);
+              }      
+            }
+
          //  For DR  value 
          const columns = voucher_id > 0 ? ["branch_id","voucher_dt","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","modified_by","modified_at","modified_ip"] : ["tenant_id","branch_id","voucher_dt","voucher_id","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","created_by","created_at","created_ip"];
          const values_dr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address];
