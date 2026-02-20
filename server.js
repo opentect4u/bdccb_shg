@@ -18,6 +18,7 @@ app.use('/v1/group', require('./router/group/indexGroupRouter'));
 app.use('/v1/member', require('./router/member/indexMemberRouter'));
 app.use('/v1/trans', require('./router/transacation/indexTransRouter'));
 app.use('/v1/loan', require('./router/loan/indexLoanRouter'));
+app.use('/v1/recov', require('./router/recovery/indexRecovRouter'));
 app.use('/v1/depsav', require('./router/deposit_saving/indexdepsavingRouter'));
 app.use('/v1/account', require('./router/account/indexAccountRouter'));
 app.use('/v1/dashboard', require('./router/dashboard/indexDashboardRouter'));
