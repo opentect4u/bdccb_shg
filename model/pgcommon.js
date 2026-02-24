@@ -23,7 +23,7 @@ pgdb = require("../db/pgdb");
           sql += ` OFFSET $${idx++}`;
           values.push(Number(offset));
         }
-       console.log('Executed SQL:', sql, 'values:', values);
+      //  console.log('Executed SQL:', sql, 'values:', values);
         const result = await pgdb.query(sql, values);
        
         return { suc: 1, msg: result.rows };
@@ -152,15 +152,42 @@ pgdb = require("../db/pgdb");
             }
 
   }
-  const deleteRecord = async (table, whereCols, whereVals) => {
+//   const deleteRecord = async (table, whereCols, whereVals) => {
 
-  let where = whereCols
-    .map(col => `${col} = ?`)
-    .join(" AND ");
+//   let where = whereCols
+//     .map(col => `${col} = ?`)
+//     .join(" AND ");
 
-  let sql = `DELETE FROM ${table} WHERE ${where}`;
+//   let sql = `DELETE FROM ${table} WHERE ${where}`;
 
-  await db.query(sql, whereVals);
+//   await db.query(sql, whereVals);
+// };
+
+const deleteRecord = async (table, whereCols = [], whereVals = []) => {
+  try {
+
+    let idx = 1;
+
+    const whereClause = whereCols
+      .map(col => `${col} = $${idx++}`)
+      .join(" AND ");
+
+    const sql = `DELETE FROM ${table} WHERE ${whereClause}`;
+
+    await pgdb.query(sql, whereVals);
+
+    return {
+      suc: 1,
+      msg: "Deleted Successfully !!"
+    };
+
+  } catch (err) {
+    console.error("Delete Error:", err);
+    return {
+      suc: 0,
+      msg: err.message
+    };
+  }
 };
 
 
