@@ -62,15 +62,114 @@ const memberCode = async (branch_id) => {
  
  
 // fetch group details along with member
+// groupRouter.post("/fetch_group_details", async (req, res) => {
+//  try{
+//   var data = req.body;
+ 
+//   // search group list //
+//   var select = "a.group_code,a.group_name,b.branch_name,a.direct_indirect_flag",
+//   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id",
+//   // whr = `a.branch_code = '${data.branch_code}' AND (a.group_name ILIKE '%${data.group_name}%' OR a.group_code::text ILIKE '%${data.group_name}%')`,
+//   whr = `a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'
+//   ${data.group_name && data.group_name.trim() !== "" 
+//   ? `AND (a.group_name ILIKE '%${data.group_name}%' 
+//   OR a.group_code::text ILIKE '%${data.group_name}%')`
+//   : ""}`
+//    order = null;
+//    var search_group_web = await db_Select(select,table_name,whr,order);
+ 
+//    if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
+//       return res.send({
+//         success: true,
+//         msg: "No group found",
+//         data: []
+//       });
+//     }
+
+//     // =====================================================
+//     // IF ONLY BRANCH CODE PROVIDED RETURN GROUP LIST
+//     // =====================================================
+//     if (!data.group_name || data.group_name.trim() === "") {
+//       return res.send({
+//         success: true,
+//         msg: "Group List",
+//         data: search_group_web.msg
+//       });
+//     }
+ 
+//     // Fetch full group details //
+
+//     let groupCodes = search_group_web.msg
+//   .map(g => `'${g.group_code}'`)
+//   .join(",");
+ 
+//    var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag",
+//   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
+//   whr = `a.group_code IN (${groupCodes}) AND a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'`,
+//   order = null;
+//   var fetch_group_data = await db_Select(select,table_name,whr,order);
+ 
+//     if (fetch_group_data.suc !== 1 || fetch_group_data.msg.length === 0) {
+//       return res.send({
+//         success: true,
+//         msg: "Failed to fetch group data",
+//         data: []
+//       });
+//     }
+
+//     // FETCH GROUP MEMBERS //  
+//     var select = "member_code member_id,group_code,member_name,address,aadhar_no,gp_leader_flag,asst_gp_leader_flag,member_account_no as sb_acc_no",
+//     table_name = "bdccb.md_member",
+//     whr = `group_code IN (${groupCodes}) AND approval_status NOT IN ('R') AND delete_flag = 'N'`,
+//     order = null;
+//     var grp_mem_dt = await db_Select(select,table_name,whr,order);
+//     // fetch_group_data.msg[0]['memb_dt'] = grp_mem_dt.suc > 0 ? (grp_mem_dt.msg.length > 0 ? grp_mem_dt.msg : []) : [];
+
+//     // =====================================================
+//     // MAP MEMBERS → RESPECTIVE GROUP
+//     // =====================================================
+
+//     fetch_group_data.msg.forEach((group) => {
+//       group["memb_dt"] =
+//         grp_mem_dt.suc === 1
+//           ? grp_mem_dt.msg.filter(
+//               (m) => m.group_code === group.group_code
+//             )
+//           : [];
+//     });
+ 
+//   if (fetch_group_data.suc === 1 && fetch_group_data.msg.length > 0) {
+//       return res.send({
+//         success: true,
+//         msg: "Group List",
+//         data: fetch_group_data.msg
+//     });
+//     } else {
+//       return res.send({
+//         success: true,
+//         msg: "Failed to fetch group data",
+//         data: []
+//       });
+//     }
+//  }catch(error){
+//    console.log("Error fetching group data:", error);
+//    return res.send({
+//     success: false,
+//     msg: "Internal server error",
+//     errorCode: "SERVER_ERROR"
+//    });
+//  }
+// });
+
 groupRouter.post("/fetch_group_details", async (req, res) => {
  try{
   var data = req.body;
  
   // search group list //
-  var select = "a.group_code,a.group_name,b.branch_name",
-  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id",
+  var select = "a.group_code,a.group_name",
+  table_name = "bdccb.md_group a",
   // whr = `a.branch_code = '${data.branch_code}' AND (a.group_name ILIKE '%${data.group_name}%' OR a.group_code::text ILIKE '%${data.group_name}%')`,
-  whr = `a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'
+  whr = `a.delete_flag = 'N'
   ${data.group_name && data.group_name.trim() !== "" 
   ? `AND (a.group_name ILIKE '%${data.group_name}%' 
   OR a.group_code::text ILIKE '%${data.group_name}%')`
@@ -103,8 +202,8 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
   .map(g => `'${g.group_code}'`)
   .join(",");
  
-   var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag",
-  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
+   var select = "a.group_code,a.branch_code,b.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name AS pacs_name",
+  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id LEFT JOIN public.md_branch k ON a.pacs_id = k.branch_id",
   whr = `a.group_code IN (${groupCodes}) AND a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'`,
   order = null;
   var fetch_group_data = await db_Select(select,table_name,whr,order);
@@ -160,6 +259,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
    });
  }
 });
+
 function validationError(res, msg) {
              return res.send({
                     success: false,
@@ -306,7 +406,7 @@ groupRouter.get("/checkaddhar", async (req, res) => {
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
-      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,members,created_by,ip_address } = req.body;
+      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,members,created_by,ip_address,direct_indirect_flag,pacs_id } = req.body;
       // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -332,8 +432,8 @@ groupRouter.post("/save_group", async (req, res) => {
       const pin = pin_no ? pin_no.toString() : null;
  
       const table = "bdccb.md_group";
-      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address"];
-      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,'O',datetime,'N',created_by,datetime,ip_address];
+      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","modified_by","modified_at","ip_address"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,created_by,datetime,ip_address] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,'O',datetime,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
