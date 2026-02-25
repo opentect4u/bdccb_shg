@@ -202,6 +202,52 @@ gpvillRouter = express.Router();
             });
         }
     });
+    gpvillRouter.get("/pacs_list", async (req, res) => {
+        
+        const tenant_id = parseInt(req.query.tenant_id || 0);
+        const dist_id = parseInt(req.query.dist_id || 0);
+        const block_id = parseInt(req.query.block_id || 0);
+        const id = parseInt(req.query.branch_id || 0);
+
+        // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
+            if (!tenant_id || tenant_id <= 0) {
+                return res.send({
+                    success: false,
+                    msg: "tenant id is required"
+                });
+            }
+        var branch_whr = `tenant_id = ${tenant_id} AND branch_type = 'B'`;    
+        var result_branch = await db_Select("STRING_AGG(branch_id::text, ',') AS branch_ids", 'md_branch', branch_whr, order);
+        const branch_ids = result_branch.msg[0].branch_ids || '';
+
+        var select = "a.branch_id,a.dist_id,a.block_id,a.tenant_id,a.branch_type,a.branch_name,a.branch_address,a.pin_no,a.contact_person,a.branch_phone,a.branch_status,a.branch_jurisdiction_id,b.block_name,c.dist_name,d.tenant_name",
+        table_name = "md_branch a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_tenant d ON a.tenant_id = d.tenant_id",
+        whr = `a.tenant_id = ${tenant_id} AND branch_jurisdiction_id IN (${branch_ids}) AND branch_type = 'P'`,
+        order = null;
+        if (id > 0) {
+            whr += ` AND a.branch_id = ${id}`;
+        }
+        if( dist_id > 0) {
+            whr += ` AND a.dist_id = ${dist_id}`;
+        }
+    
+        try {
+           
+        var result = await db_Select(select,table_name,whr,order);
+            return res.send({
+                success: true,
+                msg: "Pacs List",
+                data: result.msg
+            });
+        } catch (error) {
+           console.log("Error fetching police station data:", error);
+           return res.send({
+            success: false,
+            msg: "Internal server error",
+            errorCode: "SERVER_ERROR"
+            });
+        }
+    });
     gpvillRouter.post("/save_branch", async (req, res) => {
         try {
             const { dist_id,tenant_id, block_id,branch_type, branch_name, branch_address, branch_city, pin_no, contact_person, branch_phone, created_by,created_ip,branch_id,closed_opened_by,closed_opened_at,branch_jurisdiction_id } = req.body;

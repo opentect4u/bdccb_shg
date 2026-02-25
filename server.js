@@ -44,26 +44,33 @@ app.post("/v1/login", async (req, res) => {
       LEFT JOIN public.md_tenant_dist d ON c.tenant_id = d.tenant_id
       LEFT JOIN public.md_district e ON d.dist_id = e.dist_code`;
 
-    let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
+    //let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
+    let whr = `a.user_id = '${username}' `;
     let order = null;
 
     let res_dt = await db_Select(select, table_name, whr, order);
 
-    // INVALID LOGIN
-    if (res_dt.suc !== 1 || res_dt.msg.length === 0) {
-      return res.send({
-        success: false,
-        msg: "Invalid Username or Password"
-      });
+    // Validate login response structure safely
+    if (!res_dt || res_dt.suc !== 1 || res_dt.msg.length === 0) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid username"
+        });
     }
-
     // CREATE TOKEN
     const userData = res_dt.msg[0];
+    // Check if user is active
+    if (userData.active_flag !== 'Y') {
+        return res.status(403).json({
+            success: false,
+            message: "Account is inactive. Please contact administrator."
+        });
+    }
     
     const isMatch = await bcrypt.compare(password.toString(), userData.password);
 
      if (!isMatch) {
-      return res.send({ success: false, msg: "Invalid Username or Password" });
+      return res.send({ success: false, msg: "Invalid Password" });
     }
     const jwtToken = await createToken(userData);
 
