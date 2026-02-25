@@ -232,6 +232,76 @@ groupRouter.get("/checkaddhar", async (req, res) => {
         }
                     
   });
+
+  // FETCH BRANCH NAME IN GROUP SECTION(DIRECT/INDIRECT LOAN)
+  groupRouter.post("/fetch_branch_name", async (req, res) => {
+    try{
+     const {tenant_id, dist_id} = req.body;
+
+     var select = "tenant_id,branch_id,branch_name",
+     table_name = "public.md_branch",
+     whr = `tenant_id = '${tenant_id}' AND branch_type = 'B' AND branch_status = 'O'`,
+     order = `branch_id`;
+     var fetch_brn_name = await db_Select(select,table_name,whr,order);
+
+     if(fetch_brn_name.suc === 1 && fetch_brn_name.msg.length > 0){
+        return res.send({
+        success: true,
+        msg: "Branch List",
+        data: fetch_brn_name.msg
+        });
+     }else{
+        return res.send({
+        success: true,
+        msg: "Failed to fetch branch List",
+        data: []
+        });
+     }
+    }catch(error){
+      console.error("Error while fetch branch name", error);
+      return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR"
+      });
+    }
+  });
+
+  // FETCH PACS NAME BASED ON BRANCH
+  groupRouter.post("/fetch_society_name", async (req, res) => {
+    try{
+     const {tenant_id, branch_id} = req.body;
+    //  console.log(req.body);
+     
+     var select = "branch_id,branch_name",
+     table_name = "public.md_branch",
+     whr = `tenant_id = '${tenant_id}' AND branch_type = 'P' AND branch_status = 'O'
+     AND branch_jurisdiction_id = '${branch_id}'`,
+     order = null;
+     var fetch_pacs_name = await db_Select(select,table_name,whr,order);
+
+     if(fetch_pacs_name.suc === 1 && fetch_pacs_name.msg.length > 0){
+        return res.send({
+        success: true,
+        msg: "Society List",
+        data: fetch_pacs_name.msg
+        });
+     }else {
+      return res.send({
+        success: true,
+        msg: "Failed to fetch society List",
+        data: []
+      });
+     }
+    }catch(error){
+      console.error("Error while fetch pacs name based on branch", error);
+      return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR"
+      });
+    }
+  });
  
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {

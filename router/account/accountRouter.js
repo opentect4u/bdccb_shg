@@ -95,34 +95,34 @@ accountRouter = express.Router();
 
            /* ================= LOAN UPDATE ================= */
 
-          const loan_table = "bdccb.td_loan";
-          const loan_column = ["curr_prn","modified_by","modified_dt"];
-          const loan_values = [disb_amt,created_by,datetime];
-          const loan_wherecolumn = ["loan_id","loan_acc_no"];
-          const loan_wherevalues = [loan_id,loan_acc_no];
-          const loan_flag = 1;
-          const loan_table_update = await saveRecord(loan_table,loan_column,loan_values,loan_wherecolumn,loan_wherevalues,loan_flag)
+          // const loan_table = "bdccb.td_loan";
+          // const loan_column = ["curr_prn","modified_by","modified_dt"];
+          // const loan_values = [disb_amt,created_by,datetime];
+          // const loan_wherecolumn = ["loan_id","loan_acc_no"];
+          // const loan_wherevalues = [loan_id,loan_acc_no];
+          // const loan_flag = 1;
+          // const loan_table_update = await saveRecord(loan_table,loan_column,loan_values,loan_wherecolumn,loan_wherevalues,loan_flag)
 
-          if (loan_table_update.suc !== 1) {
-            return res.send({ success: false, msg: "Loan update failed" });
-          }
+          // if (loan_table_update.suc !== 1) {
+          //   return res.send({ success: false, msg: "Loan update failed" });
+          // }
 
           /* ================= LOAN TRANS UPDATE ================= */
 
-          const table1 = "bdccb.td_loan_transactions";
-          const columns1 = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
-          const values1 = [disb_amt,"A",created_by,datetime,created_by,datetime];
-          const whereColumns1 = ["trans_id","loan_id"];
-          const whereValues1 = [trans_id,loan_id];
-          const flag1 = 1;
-          const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+          // const table1 = "bdccb.td_loan_transactions";
+          // const columns1 = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
+          // const values1 = [disb_amt,"A",created_by,datetime,created_by,datetime];
+          // const whereColumns1 = ["trans_id","loan_id"];
+          // const whereValues1 = [trans_id,loan_id];
+          // const flag1 = 1;
+          // const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
 
-          if (trans_update.suc !== 1) {
-            return res.send({
-              success: false,
-              msg: "Transaction update failed"
-            });
-          }
+          // if (trans_update.suc !== 1) {
+          //   return res.send({
+          //     success: false,
+          //     msg: "Transaction update failed"
+          //   });
+          // }
           
         
           // if(trans_update.suc === 1){

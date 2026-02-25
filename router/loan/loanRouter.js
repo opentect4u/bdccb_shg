@@ -2,11 +2,24 @@ const { db_Select, saveRecord, deleteRecord } = require("../../model/pgcommon");
 const express = require("express"),
   loanRouter = express.Router();
 
-const loanCode = async (branch_code) => {
-  const select = `COALESCE(MAX(SUBSTR(loan_id::TEXT, 4)::INTEGER), 0) + 1 AS loan_code`;
+// const loanCode = async (branch_code) => {
+//   const select = `COALESCE(MAX(SUBSTR(ccb_loan_id::TEXT, 4)::INTEGER), 0) + 1 AS loan_code`;
 
+//   const table = "bdccb.td_loan_member";
+//   const res = await db_Select(select, table, null, null);
+
+//   const loan_no = res.msg[0].loan_code;
+
+//   const loan_code = `${branch_code}${String(loan_no).padStart(4, "0")}`;
+
+//   return loan_code;
+// };
+
+const loanCode = async (branch_code) => {
+  const select = `COALESCE(MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_code`;
   const table = "bdccb.td_loan_member";
-  const res = await db_Select(select, table, null, null);
+  const whr = `branch_id = '${branch_code}'`;
+  const res = await db_Select(select, table, whr, null);
 
   const loan_no = res.msg[0].loan_code;
 
