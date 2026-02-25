@@ -11,6 +11,63 @@ userRouter = express.Router();
         const user_status = req.query.user_status || null;
 
         // Tenant ID IS MANDATORY
+        if (!tenant_id || tenant_id <= 0 || !branch_id || branch_id <= 0) {
+            return res.send({
+                success: false,
+                msg: "tenant id is required and branch id is required"
+            });
+        }
+        var select = "a.user_id,b.branch_name as branch_society_name,a.tenant_id,a.brn_code,a.user_type,a.user_name,a.phone_mobile,a.active_flag,a.designation",
+        table_name = "bdccb.md_user a ,public.md_branch b",
+        whr = `a.tenant_id = ${tenant_id} AND a.brn_code = b.branch_id `,
+        order = null;
+        
+        if (user_id.length > 0) {
+            whr += ` AND a.user_id = '${user_id}'`;
+            console.log("User ID filter applied: " + user_id);
+        }
+        if(user_status){
+            whr += ` AND a.active_flag = '${user_status}'`;
+        }
+        if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
+        
+        if(user_type){
+               if(user_type == 'B' ){
+                var branch_ids = await get_pacs_of_branch(branch_id);
+                console.log("Branch IDs for user type B: " + branch_ids);
+                whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids})`:""; 
+                }else{
+                   whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
+                }
+        }else{
+            whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : "";
+        }
+        
+    
+        try {
+                var user_data = await db_Select(select,table_name,whr,order);
+                    return res.send({
+                        success: true,
+                        msg: "User List",
+                        data: user_data.msg
+                    });
+        } catch (error) {
+            
+                return res.send({
+                success: false,
+                msg: "Internal server error",
+                errorCode: "SERVER_ERROR"
+                });
+        }
+    });
+    userRouter.get("/user_list_branch", async (req, res) => {
+        const tenant_id = parseInt(req.query.tenant_id || 0);
+        const branch_id = parseInt(req.query.branch_id || 0);
+        const user_id = req.query.user_id?.trim() || '';
+        const user_type = req.query.user_type || null;
+        const user_status = req.query.user_status || null;
+
+        // Tenant ID IS MANDATORY
         if (!tenant_id || tenant_id <= 0) {
             return res.send({
                 success: false,

@@ -52,19 +52,20 @@ app.post("/v1/login", async (req, res) => {
 
     // Validate login response structure safely
     if (!res_dt || res_dt.suc !== 1 || res_dt.msg.length === 0) {
-        return res.status(401).json({
-            success: false,
-            message: "Invalid username"
-        });
+         return res.send({
+              success: false,
+              msg: "Invalid username"
+            });
+   
     }
     // CREATE TOKEN
     const userData = res_dt.msg[0];
     // Check if user is active
     if (userData.active_flag !== 'Y') {
-        return res.status(403).json({
-            success: false,
-            message: "Account is inactive. Please contact administrator."
-        });
+            return res.send({
+               success: false,
+               msg: "Account is inactive. Please contact administrator."
+            });
     }
     
     const isMatch = await bcrypt.compare(password.toString(), userData.password);
