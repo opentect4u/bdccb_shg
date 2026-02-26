@@ -30,17 +30,19 @@ userRouter = express.Router();
         if(user_status){
             whr += ` AND a.active_flag = '${user_status}'`;
         }
+        if(branch_type != 'B' ){
         if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
+        }
         
        
         if(branch_type == 'B' ){
         var branch_ids = await get_pacs_of_branch(branch_id);
-        console.log("Branch IDs for user type B: " + branch_ids);
-        whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids},${branch_id})`:""; 
+        whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids},${branch_id})`:` AND a.brn_code IN (${branch_id})`; 
+        
         }else{
             whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
         }
-    
+       console.log("WHERE clause after applying branch type B filter: " + whr);
         try {
                 var user_data = await db_Select(select,table_name,whr,order);
                     return res.send({
