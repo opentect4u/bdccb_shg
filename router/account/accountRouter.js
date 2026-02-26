@@ -56,7 +56,7 @@ accountRouter = express.Router();
   accountRouter.post("/save_loan_voucher", async (req, res) => {
        try {
         var voucher_ids = 0;
-         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,loan_id,pacs_shg_id,dr_amt,cr_amt,created_by,ip_address } = req.body;
+         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,loan_id,pacs_shg_id,dr_amt,cr_amt,disb_amt,loan_acc_no,member_ids,created_by,ip_address } = req.body;
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let date = new Date().toISOString().slice(0, 10);
 
@@ -92,15 +92,67 @@ accountRouter = express.Router();
 
           // IF BALANCE INSERT SUCCESS 
           // if(balance_data.suc === 1){
-           const table1 = "bdccb.td_loan_transactions";
-           const columns1 = ["approval_status","approved_by","approved_dt"];
-           const values1 = ["A",created_by,datetime];
-           const whereColumns1 = ["trans_id","loan_id"];
-           const whereValues1 = [trans_id,loan_id];
-           const flag1 = 1;
-           const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+
+           /* ================= LOAN UPDATE ================= */
+
+          // const loan_table = "bdccb.td_loan";
+          // const loan_column = ["curr_prn","modified_by","modified_dt"];
+          // const loan_values = [disb_amt,created_by,datetime];
+          // const loan_wherecolumn = ["loan_id","loan_acc_no"];
+          // const loan_wherevalues = [loan_id,loan_acc_no];
+          // const loan_flag = 1;
+          // const loan_table_update = await saveRecord(loan_table,loan_column,loan_values,loan_wherecolumn,loan_wherevalues,loan_flag)
+
+          // if (loan_table_update.suc !== 1) {
+          //   return res.send({ success: false, msg: "Loan update failed" });
+          // }
+
+          /* ================= LOAN TRANS UPDATE ================= */
+
+          // const table1 = "bdccb.td_loan_transactions";
+          // const columns1 = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
+          // const values1 = [disb_amt,"A",created_by,datetime,created_by,datetime];
+          // const whereColumns1 = ["trans_id","loan_id"];
+          // const whereValues1 = [trans_id,loan_id];
+          // const flag1 = 1;
+          // const trans_update = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+
+          // if (trans_update.suc !== 1) {
+          //   return res.send({
+          //     success: false,
+          //     msg: "Transaction update failed"
+          //   });
+          // }
+          
         
-        if(trans_update.suc === 1){
+          // if(trans_update.suc === 1){
+
+           /* ================= MEMBER LOOP ================= */
+
+        if (member_ids && member_ids.length > 0) {
+
+          // Loop & update each member trans
+          for (let mem of member_ids) {
+
+          const mem_table = "bdccb.td_loan_member";
+          const mem_columns = ["prn_amt","modified_by","modified_at"];
+          const mem_values = [mem.disb_amt,created_by, datetime];
+          const mem_whereColumns = ["loan_id","member_code"];
+          const mem_whereValues = [mem.loan_id,mem.member_code];
+          const mem_flag = 1;
+          await saveRecord(mem_table,mem_columns,mem_values,mem_whereColumns,mem_whereValues,mem_flag);   
+
+          const mem_table_trans = "bdccb.td_loan_member_trans";
+          const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
+          const mem_values_trans = [mem.disb_amt,"A",created_by, datetime,created_by, datetime];
+          const mem_whereColumns_trans = ["loan_id","trans_id"];
+          const mem_whereValues_trans = [mem.loan_id,mem.trans_id];
+          const mem_flag_trans = 1;
+          await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
+          }
+        }
+        // }
+
          //  For DR  value 
          const columns = voucher_id > 0 ? ["branch_id","voucher_dt","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","modified_by","modified_at","modified_ip"] : ["tenant_id","branch_id","voucher_dt","voucher_id","trans_id","voucher_type","acc_code","trans_type","dr_amt","cr_amt","created_by","created_at","created_ip"];
          const values_dr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,acc_code,trans_type,dr_amt,0,created_by,datetime,ip_address];
@@ -111,11 +163,11 @@ accountRouter = express.Router();
          const result = await saveRecord(table, columns, values_dr,whereColumns,whereValues,flag);
         // For CR  value
          const values_cr = voucher_id > 0 ? [branch_id,voucher_dt,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address] : [tenant_id,branch_id,voucher_dt,voucher_ids,trans_id,voucher_type,'21101','C',0,cr_amt,created_by,datetime,ip_address];
-         const whereColumns1 = voucher_id > 0 ? ["voucher_id","tenant_id",'dr_amt'] : [];
-         const whereValues1 = voucher_id > 0 ? [voucher_id,tenant_id,0] : [];
-         const flag1 = voucher_id > 0 ? 1 : 0;
+         const whereColumns2 = voucher_id > 0 ? ["voucher_id","tenant_id",'dr_amt'] : [];
+         const whereValues2 = voucher_id > 0 ? [voucher_id,tenant_id,0] : [];
+         const flag2 = voucher_id > 0 ? 1 : 0;
           // console.log('values_cr:', values_cr);
-         const result1 = await saveRecord(table, columns, values_cr,whereColumns1,whereValues1,flag1);
+         const result1 = await saveRecord(table, columns, values_cr,whereColumns2,whereValues2,flag2);
    
          if (result.suc !== 1 || result1.suc !== 1) {
          return res.send({
@@ -130,12 +182,12 @@ accountRouter = express.Router();
            msg: voucher_id > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
            // data: result.lastId
          });
-        }else {
-              return res.send({
-               success: true,
-               msg: "Balance inserted but transaction update failed"
-               });
-           }
+        // }else {
+        //       return res.send({
+        //        success: true,
+        //        msg: "Balance inserted but transaction update failed"
+        //        });
+        //    }
           //  }else{
           //  return res.send({
           //        success: true,
