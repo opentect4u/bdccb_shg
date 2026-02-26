@@ -30,10 +30,11 @@ userRouter = express.Router();
         if(user_status){
             whr += ` AND a.active_flag = '${user_status}'`;
         }
-        if(branch_type != 'B' ){
-        if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
+        if(branch_type == 'B' ){
+        if(user_type){whr += ` AND a.user_type != 'S'`; }
+        }else{
+             if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
         }
-        
        
         if(branch_type == 'B' ){
         var branch_ids = await get_pacs_of_branch(branch_id);
