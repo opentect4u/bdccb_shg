@@ -508,7 +508,7 @@ groupRouter.get("/checkaddhar", async (req, res) => {
 groupRouter.post("/save_group", async (req, res) => {
     try {
       const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,members,created_by,ip_address,direct_indirect_flag,pacs_id } = req.body;
-      // console.log(req.body,'datagrp');
+      console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -556,7 +556,7 @@ groupRouter.post("/save_group", async (req, res) => {
 
      const table1 = "bdccb.md_member";
      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"];
-     const values1 = memb.member_id > 0 ? [branch_code,memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null] : [member_code,branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null];
+     const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.aadhar_no || null,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null];
      const whereColumns1 = memb.member_id > 0 ? ["member_code","branch_id","group_code","tenant_id"] : [];
      const whereValues1 = memb.member_id > 0 ? [memb.member_id,branch_code,group_code,tenant_id] : [];
      const flag1 = memb.member_id > 0 ? 1 : 0;
