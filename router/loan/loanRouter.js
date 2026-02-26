@@ -300,14 +300,14 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
     let order = null;
 
     if (loan_to == "P") {
-      select = "a.branch_id,a.branch_name";
+      select = "a.branch_id,a.branch_name,a.branch_jurisdiction_id";
       table_name = "public.md_branch a";
       whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND a.branch_jurisdiction_id = '${branch_code}'`;
       order = null;
     } else {
       select = "a.group_code,a.branch_code,a.group_name";
       table_name = "bdccb.md_group a";
-      whr = `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
+      whr = `a.pacs_id = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
       order = null;
     }
     let fetch_details = await db_Select(select, table_name, whr, order);
