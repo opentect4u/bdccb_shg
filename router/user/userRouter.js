@@ -8,10 +8,11 @@ userRouter = express.Router();
         const branch_id = parseInt(req.query.branch_id || 0);
         const user_id = req.query.user_id?.trim() || '';
         const user_type = req.query.user_type || null;
+        const branch_type = req.query.branch_type || null;
         const user_status = req.query.user_status || null;
 
         // Tenant ID IS MANDATORY
-        if (!tenant_id || tenant_id <= 0 || !branch_id || branch_id <= 0) {
+        if (!tenant_id || tenant_id <= 0 || !branch_id || branch_id <= 0 ) {
             return res.send({
                 success: false,
                 msg: "tenant id is required and branch id is required"
@@ -31,18 +32,14 @@ userRouter = express.Router();
         }
         if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
         
-        if(user_type){
-               if(user_type == 'B' ){
-                var branch_ids = await get_pacs_of_branch(branch_id);
-                console.log("Branch IDs for user type B: " + branch_ids);
-                whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids})`:""; 
-                }else{
-                   whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
-                }
+       
+        if(branch_type == 'B' ){
+        var branch_ids = await get_pacs_of_branch(branch_id);
+        console.log("Branch IDs for user type B: " + branch_ids);
+        whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids},${branch_id})`:""; 
         }else{
-            whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : "";
+            whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
         }
-        
     
         try {
                 var user_data = await db_Select(select,table_name,whr,order);
