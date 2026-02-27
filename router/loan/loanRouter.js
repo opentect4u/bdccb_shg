@@ -405,7 +405,7 @@ try{
 loanRouter.post("/fetch_member_name", async (req, res) => {
 try{
  const {group_code, branch_code, tenant_id} = req.body;
-//  console.log(req.body,'member name');
+ console.log(req.body,'member name');
 
  var select = "member_code member_id,member_name,member_account_no sb_acc_no",
  table_name = "bdccb.md_member",
@@ -586,17 +586,12 @@ loanRouter.post("/save_disbursement", async (req, res) => {
 // FETCH PACS DETAILS FOR APPROVE
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 try{
-const { branch_id, tenant_id, approval_status } = req.body;
+const { branch_id, tenant_id } = req.body;
 
-var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding",
-table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code AND a.branch_shg_id = b.branch_code",
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' 
-      AND a.loan_id IN (
-        SELECT loan_id
-        FROM bdccb.td_loan_member_trans
-        WHERE approval_status = '${approval_status}'
-        )
-      GROUP BY a.group_code,b.group_name`,
+var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
+table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
+      GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
@@ -626,58 +621,41 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
 // FETCH UNAPPROVE DISBURSEMENT GROUP DETAILS WITH MEMBER
 loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
   try {
-    const {group_code,branch_code,tenant_id} = req.body;
+    const {group_code,branch_code,tenant_id, approval_status, loan_to, ccb_loan_id} = req.body;
 
-    var select = "a.group_code,a.group_name,a.branch_code,i.branch_name,a.phone1,a.sahayika_id,b.sahayika_name,a.group_addr,a.dist_id,c.dist_name,a.block_id,d.block_name,a.ps_id,e.ps_name,a.po_id,f.post_name,a.gp_id,g.gp_name,a.village_id,h.vill_name,a.pin_no",
-      table_name = "bdccb.md_group a LEFT JOIN bdccb.md_sahayika b ON a.sahayika_id = b.sahayika_id LEFT JOIN public.md_district c ON a.dist_id = c.dist_code LEFT JOIN public.md_block d ON a.block_id = d.block_id LEFT JOIN md_police_station e ON a.ps_id = e.ps_id LEFT JOIN md_postoffice f ON a.po_id = f.po_id LEFT JOIN md_gp g ON a.gp_id = g.gp_id LEFT JOIN md_village h ON a.village_id = h.vill_id LEFT JOIN public.md_branch i ON a.branch_code = i.branch_id",
-      whr = `a.group_code = '${group_code}' AND a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N'`,
-      order = null;
-    var fetch_data_disburse = await db_Select(select, table_name, whr, order);
-
-    if(fetch_data_disburse.suc > 0 && fetch_data_disburse.msg.length > 0){
-       var select = "a.loan_id,c.trans_id,a.member_code,b.member_name,b.member_account_no AS sb_acc_no,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,c.approval_status",
-      table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.member_code = b.member_code AND a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id",
-      whr = `a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'`,
-      order = null;
-    var grp_mem_dtls = await db_Select(select, table_name, whr, order);
-
-    //outstanding details
-    var select = `SUM(disb_amt) AS total_outstanding`,
-      table_name = "bdccb.td_loan_member",
-      whr = `group_code = '${group_code}'`,
-      order = null;
-    var total_outstanding_result = await db_Select(
-      select,
-      table_name,
-      whr,
-      order
-    );
-
-    var select = "a.ccb_loan_id AS loan_id,a.loan_acc_no,a.branch_shg_id,b.branch_name pacs_shg_name,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.sanction_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.tot_grp,c.approval_status",
-    table_name = "bdccb.td_loan_member a LEFT JOIN public.md_branch b ON a.branch_shg_id = b.branch_id LEFT JOIN bdccb.td_loan_member_trans c ON a.ccb_loan_id = c.ccb_loan_id",
-    whr = `a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND a.group_code = '${group_code}'
-    GROUP BY a.ccb_loan_id,a.loan_acc_no,a.branch_shg_id,b.branch_name,a.sanction_dt,a.sanction_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.tot_grp,c.approval_status`,
+    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status",
+    table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
+    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status`,
     order = null;
-    disburse_details = await db_Select(select, table_name, whr, order);
+    var loan_disb_dtls = await db_Select(select, table_name, whr, order);
 
-    fetch_data_disburse.msg[0]["memb_dt"] = grp_mem_dtls.suc > 0 && grp_mem_dtls.msg.length > 0 ? grp_mem_dtls.msg : [];
-    fetch_data_disburse.msg[0]["total_outstanding"] = total_outstanding_result.suc > 0 && total_outstanding_result.msg.length > 0 ? total_outstanding_result.msg[0]["total_outstanding"] : 0;
-     fetch_data_disburse.msg[0]["disb_details"] = disburse_details.suc > 0 && disburse_details.msg.length > 0 ? disburse_details.msg : [];
-    }
-
-    if (fetch_data_disburse.suc === 1 && fetch_data_disburse.msg.length > 0) {
+    if (!(loan_disb_dtls.suc === 1 && loan_disb_dtls.msg.length > 0)) {
       return res.send({
         success: true,
-        msg: "Fetch unapprove group disbursement details",
-        data: fetch_data_disburse.msg,
-      });
-    } else {
-      return res.send({
-        success: true,
-        msg: "No unapproved disbursement details are available for this group",
+        msg: `Unable to fetch ${approval_status == "A" ? "Approved" : approval_status == "U" ? "Unapproved" : "Rejected"} disbursed loan details`,
         data: [],
       });
     }
+
+   // * ---------------- MEMBER QUERY LOOP ---------------- //
+
+   let finalData_mem = [];
+
+   for (let loan of loan_disb_dtls.msg) {
+    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+      mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
+      mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
+      let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
+
+      loan.members = member_dtls.suc === 1 ? member_dtls.msg : [];
+
+      finalData_mem.push(loan);
+    }
+     return res.send({
+      success: true,
+      msg: `Fetch ${approval_status == "A" ? "Approved" : approval_status == "U" ? "Unapproved" : "Rejected"} disbursed Loan Details`,
+      data: finalData_mem,
+    });
   } catch (error) {
     console.error("Error in while fetch disbursement details:", error);
     return res.send({
@@ -689,124 +667,163 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
 });
 
 // REJECT DISBURSEMENT
-loanRouter.post("/reject_disbursement", async (req, res) => {
+loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
   try{
-  const {group_code, trans_id, loan_id, loan_acc_no, created_by, ip_address, reject_remarks} = req.body;
-  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-  /* ================= GET CURRENT PRINCIPAL (CCB LEVEL) ================= */
-  const get_prn = await db_Select(
-      "curr_prn",
-      "bdccb.td_loan_transactions",
-      `trans_id = '${trans_id}' AND loan_id = '${loan_id}'`
-    );
-
-    if (!get_prn || get_prn.suc !== 1 || get_prn.msg.length === 0) {
-      return res.send({ success: false, msg: "Loan transaction not found" });
-    }
-
-    let old_curr_prn = Number(get_prn.msg[0].curr_prn);
-
-   /* ================= GET MEMBER LOAN IDS USING ccb_loan_id ================= */
-
-   const member_loans  = await db_Select(
-      "loan_id",
-      "bdccb.td_loan_member",
-      `ccb_loan_id = '${loan_id}' AND group_code = '${group_code}'`
-    );
-
-   if (!member_loans || member_loans.msg.length === 0) {
-      return res.send({ success: false, msg: "No member loan found" });
-    }
-
-    let total_reject_amt = 0;
-
-    // ========== PROCESS EACH MEMBER LOAN ========== //
-     for (let mem of member_loans.msg) {
-      let member_loan_id = mem.loan_id;
-
-       // Get member transaction data
-      const member_trans = await db_Select(
-        "*",
-        "bdccb.td_loan_member_trans",
-        `loan_id = '${member_loan_id}'`
-      );
-
-       for (let row of member_trans.msg) {
-         total_reject_amt += Number(row.dr_amt);
-
-          // Insert into reject table
-         const cleanRow = Object.fromEntries(
-          Object.entries(row).filter(([key]) => isNaN(key))
-          );
-
-          const rejectRow = {
-          ...cleanRow,
-          rejected_by: created_by,
-          rejected_dt: datetime,
-          reject_ip: ip_address,
-          reject_remarks: reject_remarks
-          };
-
-        await saveRecord(
-          "bdccb.td_loan_member_trans_reject",
-          Object.keys(rejectRow),
-          Object.values(rejectRow)
-        );
+   const { ccb_loan_id,created_by,ip_address,reject_remarks,member_dt } = req.body;
+   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+   
+  if (member_dt && member_dt.length > 0) {
+    // Loop & update each member
+    for (let mem of member_dt) {
+       
+      const mem_table_trans = "bdccb.td_loan_member_trans";
+      const mem_columns_trans = ["approval_status","rejected_by","rejected_dt","rejected_ip_address","reject_remarks"];
+      const mem_values_trans = ["R",created_by, datetime,ip_address,reject_remarks];
+      const mem_whereColumns_trans = ["loan_id","ccb_loan_id","trans_id"];
+      const mem_whereValues_trans = [mem.loan_id,ccb_loan_id,mem.trans_id];
+      const mem_flag_trans = 1;
+      await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
       }
-       // Delete from member trans
-      await deleteRecord(
-        "bdccb.td_loan_member_trans",
-        ["loan_id"],
-        [member_loan_id]
-      );
-
-      // Delete from member
-      await deleteRecord(
-        "bdccb.td_loan_member",
-        ["loan_id","group_code"],
-        [member_loan_id,group_code]
-      );
-     }
-
-    // ================= CALCULATE NEW PRINCIPAL ================= //
-     let new_curr_prn = old_curr_prn - total_reject_amt;
-
-    if (new_curr_prn < 0) new_curr_prn = 0;
-    
-    // ========== UPDATE CCB TABLES ============ //
-      await saveRecord(
-      "bdccb.td_loan_transactions",
-      ["dr_amt","curr_prn", "modified_by", "modified_dt", "ip_address"],
-      [new_curr_prn,new_curr_prn, created_by, datetime,ip_address],
-      ["trans_id", "loan_id"],
-      [trans_id, loan_id],
-      1
-    );
-    
-     await saveRecord(
-      "bdccb.td_loan",
-      ["disb_amt","curr_prn", "modified_by", "modified_dt", "ip_address"],
-      [new_curr_prn,new_curr_prn, created_by, datetime, ip_address],
-      ["loan_id", "loan_acc_no"],
-      [loan_id, loan_acc_no],
-      1
-    );
-
-       return res.send({
-      success: true,
-      msg: "Disbursement rejected successfully",
-    });
-
-  }catch (error) {
-    console.error("Error in while reject disbursement:", error);
-    return res.send({
-      success: false,
-      msg: "Internal server error",
-      errorCode: "SERVER_ERROR",
-    });
+  return res.send({
+  success: true,
+  msg: "Disbursement rejected Successfully",
+  });
+  }else{
+   return res.send({
+   success: true,
+   msg: "Member details not found for reject",
+   data: []
+   })
   }
+  } catch (error) {
+    console.error("Error in while reject pacs disbursement:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+    }
 });
+
+// REJECT DISBURSEMENT this is not used
+// loanRouter.post("/reject_disbursement", async (req, res) => {
+//   try{
+//   const {group_code, trans_id, loan_id, loan_acc_no, created_by, ip_address, reject_remarks} = req.body;
+//   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+//   /* ================= GET CURRENT PRINCIPAL (CCB LEVEL) ================= */
+//   const get_prn = await db_Select(
+//       "curr_prn",
+//       "bdccb.td_loan_transactions",
+//       `trans_id = '${trans_id}' AND loan_id = '${loan_id}'`
+//     );
+
+//     if (!get_prn || get_prn.suc !== 1 || get_prn.msg.length === 0) {
+//       return res.send({ success: false, msg: "Loan transaction not found" });
+//     }
+
+//     let old_curr_prn = Number(get_prn.msg[0].curr_prn);
+
+//    /* ================= GET MEMBER LOAN IDS USING ccb_loan_id ================= */
+
+//    const member_loans  = await db_Select(
+//       "loan_id",
+//       "bdccb.td_loan_member",
+//       `ccb_loan_id = '${loan_id}' AND group_code = '${group_code}'`
+//     );
+
+//    if (!member_loans || member_loans.msg.length === 0) {
+//       return res.send({ success: false, msg: "No member loan found" });
+//     }
+
+//     let total_reject_amt = 0;
+
+//     // ========== PROCESS EACH MEMBER LOAN ========== //
+//      for (let mem of member_loans.msg) {
+//       let member_loan_id = mem.loan_id;
+
+//        // Get member transaction data
+//       const member_trans = await db_Select(
+//         "*",
+//         "bdccb.td_loan_member_trans",
+//         `loan_id = '${member_loan_id}'`
+//       );
+
+//        for (let row of member_trans.msg) {
+//          total_reject_amt += Number(row.dr_amt);
+
+//           // Insert into reject table
+//          const cleanRow = Object.fromEntries(
+//           Object.entries(row).filter(([key]) => isNaN(key))
+//           );
+
+//           const rejectRow = {
+//           ...cleanRow,
+//           rejected_by: created_by,
+//           rejected_dt: datetime,
+//           reject_ip: ip_address,
+//           reject_remarks: reject_remarks
+//           };
+
+//         await saveRecord(
+//           "bdccb.td_loan_member_trans_reject",
+//           Object.keys(rejectRow),
+//           Object.values(rejectRow)
+//         );
+//       }
+//        // Delete from member trans
+//       await deleteRecord(
+//         "bdccb.td_loan_member_trans",
+//         ["loan_id"],
+//         [member_loan_id]
+//       );
+
+//       // Delete from member
+//       await deleteRecord(
+//         "bdccb.td_loan_member",
+//         ["loan_id","group_code"],
+//         [member_loan_id,group_code]
+//       );
+//      }
+
+//     // ================= CALCULATE NEW PRINCIPAL ================= //
+//      let new_curr_prn = old_curr_prn - total_reject_amt;
+
+//     if (new_curr_prn < 0) new_curr_prn = 0;
+    
+//     // ========== UPDATE CCB TABLES ============ //
+//       await saveRecord(
+//       "bdccb.td_loan_transactions",
+//       ["dr_amt","curr_prn", "modified_by", "modified_dt", "ip_address"],
+//       [new_curr_prn,new_curr_prn, created_by, datetime,ip_address],
+//       ["trans_id", "loan_id"],
+//       [trans_id, loan_id],
+//       1
+//     );
+    
+//      await saveRecord(
+//       "bdccb.td_loan",
+//       ["disb_amt","curr_prn", "modified_by", "modified_dt", "ip_address"],
+//       [new_curr_prn,new_curr_prn, created_by, datetime, ip_address],
+//       ["loan_id", "loan_acc_no"],
+//       [loan_id, loan_acc_no],
+//       1
+//     );
+
+//        return res.send({
+//       success: true,
+//       msg: "Disbursement rejected successfully",
+//     });
+
+//   }catch (error) {
+//     console.error("Error in while reject disbursement:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
 
 // FETCH TRANSACTION DETAILS
 // loanRouter.post("/fetch_trans_dtls", async (req, res) => {
@@ -1030,12 +1047,12 @@ loanRouter.post("/show_loan_status", async (req, res) => {
 
     var select =
         loan_to == "P"
-          ? `a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`
+          ? `a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks`
           
           : `a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`,
       table_name =
         "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id",
-      whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by,e.user_name,b.approved_dt,a.ip_address`,
+      whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by,e.user_name,b.approved_dt,a.ip_address,b.reject_remarks`,
       order = `a.ccb_loan_id`;
     var show_loan_dtls = await db_Select(select, table_name, whr, order);
 

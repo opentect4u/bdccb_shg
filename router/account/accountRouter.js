@@ -56,7 +56,7 @@ accountRouter = express.Router();
   accountRouter.post("/save_loan_voucher", async (req, res) => {
        try {
         var voucher_ids = 0;
-         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,loan_id,pacs_shg_id,dr_amt,cr_amt,disb_amt,loan_acc_no,member_ids,created_by,ip_address } = req.body;
+         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,pacs_shg_id,dr_amt,cr_amt,member_ids,society_acc_no,created_by,ip_address } = req.body;
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let date = new Date().toISOString().slice(0, 10);
 
@@ -135,8 +135,8 @@ accountRouter = express.Router();
           for (let mem of member_ids) {
 
           const mem_table = "bdccb.td_loan_member";
-          const mem_columns = ["prn_amt","modified_by","modified_at"];
-          const mem_values = [mem.disb_amt,created_by, datetime];
+          const mem_columns = ["prn_amt","society_acc_no","modified_by","modified_at"];
+          const mem_values = [mem.disb_amt,society_acc_no,created_by, datetime];
           const mem_whereColumns = ["loan_id","member_code"];
           const mem_whereValues = [mem.loan_id,mem.member_code];
           const mem_flag = 1;
