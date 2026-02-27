@@ -471,14 +471,28 @@ groupRouter.get("/checkaddhar", async (req, res) => {
   // FETCH PACS NAME BASED ON BRANCH
   groupRouter.post("/fetch_society_name", async (req, res) => {
     try{
-     const {tenant_id, branch_id} = req.body;
+     const {tenant_id, branch_id, user_type} = req.body;
     //  console.log(req.body);
      
      var select = "branch_id,branch_name",
      table_name = "public.md_branch",
-     whr = `tenant_id = '${tenant_id}' AND branch_type = 'P' AND branch_status = 'O'
-     AND branch_jurisdiction_id = '${branch_id}'`,
+     whr = "",
      order = null;
+    if (user_type === 'B') {
+      whr = `
+        tenant_id = '${tenant_id}'
+        AND branch_type = 'P'
+        AND branch_status = 'O'
+        AND branch_jurisdiction_id = '${branch_id}'
+      `;
+    } else {
+      whr = `
+        tenant_id = '${tenant_id}'
+        AND branch_type = 'P'
+        AND branch_status = 'O'
+        AND branch_id = '${branch_id}'
+      `;
+    }
      var fetch_pacs_name = await db_Select(select,table_name,whr,order);
 
      if(fetch_pacs_name.suc === 1 && fetch_pacs_name.msg.length > 0){
