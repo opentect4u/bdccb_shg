@@ -501,11 +501,33 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     let mem_trans_id = await member_transaction_id();
 
      // Generate 2-digit sequence (01, 02, 03...)
-    let seq = String(counter).padStart(2, "0");
+    // let seq = String(counter).padStart(2, "0");
 
-     let loanMemberId = `${mem.member_id}${seq}`;
+    //  let loanMemberId = `${mem.member_id}${seq}`;
 
-     counter++;
+    //  counter++;
+
+    //  Get last loan_id for this member from DB
+      let lastLoan = await db_Select(
+      "MAX(loan_id) as max_id",
+      "bdccb.td_loan_member",
+      `member_code='${mem.member_id}'`,
+      null
+      );
+
+      let nextSeq = 1;
+
+      if (lastLoan.suc === 1 && lastLoan.msg[0].max_id) {
+      let lastId = lastLoan.msg[0].max_id.toString();
+
+      // extract last 2 digits
+      let lastSeq = parseInt(lastId.slice(-2));
+
+      nextSeq = lastSeq + 1;
+      }
+
+      let seq = String(nextSeq).padStart(2, "0");
+      let loanMemberId = `${mem.member_id}${seq}`;
   
     total_disb_amt += Number(mem.disburse_amt || 0);
   
