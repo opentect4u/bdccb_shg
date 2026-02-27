@@ -43,7 +43,20 @@ userRouter = express.Router();
         }else{
             whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
         }
-       console.log("WHERE clause after applying branch type B filter: " + whr);
+        var user_data_brnach_shg = {};
+        if(branch_type == 'B' ){
+            //   This code will only fetch branch SHG group 
+            var select_branch = "a.user_id,b.branch_name as branch_society_name,a.tenant_id,a.brn_code,a.user_type,a.user_name,a.phone_mobile,a.active_flag,a.designation",
+            table_name_brach = "bdccb.md_user a ,public.md_branch b",
+            whr_brach = `a.tenant_id = ${tenant_id} AND a.brn_code = b.branch_id  AND a.user_type = 'S' AND a.brn_code = ${branch_id}`,
+            order_branch = null;
+            if(user_status){
+                whr_brach += ` AND a.active_flag = '${user_status}'`;
+            }
+            user_data_brnach_shg = await db_Select(select_branch,table_name_brach,whr_brach,order_branch);
+            // End of Branch SHG group fetch code
+        }
+       
         try {
                 var user_data = await db_Select(select,table_name,whr,order);
                     return res.send({
