@@ -566,7 +566,7 @@ groupRouter.post("/save_group", async (req, res) => {
 
     for(const memb of members){
 
-     let member_code = await memberCode(branch_code); 
+     let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
 
      const table1 = "bdccb.md_member";
      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"];
