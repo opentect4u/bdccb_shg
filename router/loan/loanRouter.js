@@ -642,7 +642,7 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
    let finalData_mem = [];
 
    for (let loan of loan_disb_dtls.msg) {
-    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no,b.reject_remarks",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
       mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
