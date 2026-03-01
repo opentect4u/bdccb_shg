@@ -623,7 +623,7 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
   try {
     const {group_code,branch_code,tenant_id, approval_status, loan_to, ccb_loan_id} = req.body;
 
-    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status",
+    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
     table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
     whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status`,
     order = null;
@@ -642,7 +642,7 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
    let finalData_mem = [];
 
    for (let loan of loan_disb_dtls.msg) {
-    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no,b.reject_remarks",
+    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
       mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
