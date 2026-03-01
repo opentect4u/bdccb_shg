@@ -625,7 +625,7 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
 
     var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
     table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
-    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status`,
+    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status,b.reject_remarks`,
     order = null;
     var loan_disb_dtls = await db_Select(select, table_name, whr, order);
 
