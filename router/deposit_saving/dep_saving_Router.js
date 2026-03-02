@@ -119,7 +119,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
         try{
             const {shg_id} = req.body;
             var select = "a.sb_id,a.acc_no,COALESCE(a.balance, 0) AS balance,b.member_name";
-            var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_code";
+            var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_account_no";
             var whr = `a.shg_id = '${shg_id}'`;
             var order = null;
             var fetch_data = await db_Select(select,table_name,whr,order);
