@@ -3,7 +3,6 @@ const express = require("express"),
 recovRouter = express.Router();
 
 
-
 const transaction_id = async () => {
   const timestamp = new Date().getTime();
   const newPayId = `${timestamp}`;
@@ -20,7 +19,6 @@ const balance_id = async () => {
 const interest_cal_amt = async (principal, time, rate, period_mode) => {
   try {
     const period = periodic.filter((p) => p.id == period_mode);
-
     const periodValue = period[0].tot_period;
     const interest = ((principal * rate) / 100 / periodValue) * time;
 
@@ -31,7 +29,6 @@ const interest_cal_amt = async (principal, time, rate, period_mode) => {
     throw error;
   }
 };
-
 
 
 recovRouter.post("/fetch_pacs_shg_details", async (req, res) => {
@@ -83,12 +80,10 @@ recovRouter.post("/fetch_pacs_shg_details", async (req, res) => {
 // SAVE DISBURSEMENT (BRANCH -> PACS)
 recovRouter.post("/save_recovery", async (req, res) => {
   try {
-    const { trans_id,tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,recov_dt,recov_amt,created_by,ip_address,loan_id,tran_id,curr_prn_recov,curr_intt_recov,curr_prn,curr_intt,members } = req.body;
+    const { trans_id,tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,recov_dt,recov_amt,created_by,ip_address,loan_id,tran_id,curr_prn_recov,curr_intt_recov,curr_prn,curr_intt,members, } = req.body;
 
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
     let transid = trans_id > 0 ? trans_id : await transaction_id();
-
-
 
       for(meb of members) {
        let member_transid = meb.memb_trans_id > 0 ? meb.memb_trans_id : await transaction_id();
@@ -96,8 +91,8 @@ recovRouter.post("/save_recovery", async (req, res) => {
         var member_current_intt = meb.memb_curr_intt - meb.memb_recov_intt;
 
         ///  ********  INSERT/UPDATE MEMBER TRANSACTION TABLE  ********
-        const member_columns = meb.memb_trans_id > 0 ? ["trans_dt","dr_amt","curr_prn","modified_by","modified_dt","ip_address"] : ["loan_id","trans_dt","trans_id","tenant_id","branch_id","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-        const member_values = meb.memb_trans_id > 0 ? [recov_dt,meb.memb_recov_amt,memb_current_prn,created_by,datetime,ip_address] : [meb.memb_loan_id,recov_dt,member_transid,tenant_id,branch_shg_id,"R",0,meb.memb_recov_prin,meb.memb_recov_prin,meb.memb_recov_intt,0,0,member_current_prn,member_current_intt,meb.memb_ovd_prn,meb.memb_ovd_intt,"U",created_by,datetime,ip_address];
+        const member_columns = meb.memb_trans_id > 0 ? ["trans_date","trans_id","loan_id","ccb_loan_id","modified_by","modified_dt","ip_address"] : ["trans_date","trans_id","loan_id","ccb_loan_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address","sb_amt","tr_mode"];
+        const member_values = meb.memb_trans_id > 0 ? [recov_dt,meb.memb_recov_amt,memb_current_prn,created_by,datetime,ip_address] : [recov_dt,transid,meb.memb_loan_id,meb.ccb_loan_id,branch_id,loan_to,branch_shg_id,loan_acc_no,"R",0,meb.memb_recov_prin,meb.memb_recov_prin,meb.memb_recov_intt,0,0,member_current_prn,member_current_intt,meb.memb_ovd_prn,meb.memb_ovd_intt,"U",created_by,datetime,ip_address,members.sb_amt,members.tr_mode];
         const member_whereColumns = meb.memb_trans_id > 0 ? ["memb_trans_id"] : [];
         const member_whereValues = meb.memb_trans_id > 0 ? [meb.memb_trans_id] : []; 
         const member_flag = meb.memb_trans_id > 0 ? 1 : 0; 
