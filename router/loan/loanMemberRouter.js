@@ -359,7 +359,7 @@ const genDate = (trans_date, period, mode) => {
 loanMemberRouter.post("/fetch_memb_details", async (req, res) => {
   try{
    const {tenant_id,loan_to,branch_shg_id} = req.body;
-   console.log(req.body,'grp');
+  //  console.log(req.body,'grp');
 
     // Fetch Loan Amount
    var select = "COALESCE(SUM(disb_amt),0) As shg_disb_amt",

@@ -305,9 +305,17 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
       whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND a.branch_jurisdiction_id = '${branch_code}'`;
       order = null;
     } else {
+      var select_1 = "direct_indirect_flag",
+      table_name_1 = "bdccb.md_group",
+      whr_1 = `group_name ILIKE '%${branch_shg_id}%' OR group_code::text ILIKE '%${branch_shg_id}%'`,
+      order_1 = null;
+      let fetch_data = await db_Select(select_1,table_name_1,whr_1,order_1);
+
+      const flag = fetch_data.msg[0].direct_indirect_flag
+
       select = "a.group_code,a.pacs_id,a.branch_code,a.group_name";
       table_name = "bdccb.md_group a";
-      whr = `a.pacs_id = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
+      whr = flag == 'I' ? `a.pacs_id = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')` : `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
       order = null;
     }
     let fetch_details = await db_Select(select, table_name, whr, order);
@@ -648,6 +656,89 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
 
       loan.members = member_dtls.suc === 1 ? member_dtls.msg : [];
+
+      finalData_mem.push(loan);
+    }
+     return res.send({
+      success: true,
+      msg: `Fetch ${approval_status == "A" ? "Approved" : approval_status == "U" ? "Unapproved" : "Rejected"} disbursed Loan Details`,
+      data: finalData_mem,
+    });
+  } catch (error) {
+    console.error("Error in while fetch disbursement details:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// FETCH SHG DETAILS FOR APPROVE
+loanRouter.post("/fetch_shg_disburse_dtls", async (req, res) => {
+try{
+const { branch_id, tenant_id } = req.body;
+
+var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
+table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
+whr = `a.branch_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND a.loan_to = 'S'
+      GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
+order = null;
+var fetch_data_shg = await db_Select(select, table_name, whr, order);
+
+if (fetch_data_shg.suc === 1 && fetch_data_shg.msg.length > 0) {
+  return res.send({
+    success: true,
+    msg: "Fetch unapprove shg disbursement details",
+    data: fetch_data_shg.msg,
+  });
+} else {
+  return res.send({
+    success: true,
+    msg: "No unapprove shg disbursement details found",
+    data: [],
+  });
+}
+}catch (error) {
+    console.error("Error in while fetch shg unapprove disbursement details:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// FETCH UNAPPROVE DISBURSEMENT shg GROUP DETAILS WITH MEMBER
+loanRouter.post("/fetch_shg_unapprove_disburse", async (req, res) => {
+  try {
+    const {group_code,branch_code,tenant_id, approval_status, loan_to, ccb_loan_id} = req.body;
+
+    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
+    table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
+    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status,b.reject_remarks`,
+    order = null;
+    var loan_shg_disb_dtls = await db_Select(select, table_name, whr, order);
+
+    if (!(loan_shg_disb_dtls.suc === 1 && loan_shg_disb_dtls.msg.length > 0)) {
+      return res.send({
+        success: true,
+        msg: `Unable to fetch ${approval_status == "A" ? "Approved" : approval_status == "U" ? "Unapproved" : "Rejected"} disbursed loan details`,
+        data: [],
+      });
+    }
+
+   // * ---------------- MEMBER QUERY LOOP ---------------- //
+
+   let finalData_mem = [];
+
+   for (let loan of loan_shg_disb_dtls.msg) {
+    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+      mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
+      mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
+      let shg_member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
+
+      loan.members = shg_member_dtls.suc === 1 ? shg_member_dtls.msg : [];
 
       finalData_mem.push(loan);
     }
