@@ -15,9 +15,9 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     // console.log(req.body);
     
 
-    var select = "group_code,group_name",
-    table_name = "bdccb.md_group",
-    whr = `phone1 = '${emp_id}'`,
+    var select = "a.group_code,a.group_name,b.loan_to",
+    table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
+    whr = `a.phone1 = '${emp_id}'`,
     order = null;
     var fetch_grp_code = await db_Select(select,table_name,whr,order);
 
@@ -31,10 +31,12 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
 
     const group_code = fetch_grp_code.msg[0].group_code;
     const group_name = fetch_grp_code.msg[0].group_name;
+    const loan_to = fetch_grp_code.msg[0].loan_to;
 
     var select_loan = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.society_acc_no,b.trans_type",
     table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id AND b.approval_status = 'A' AND b.trans_type = 'D' LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
-    whr_loan = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type`,
+    whr_loan = loan_to == 'S' ? `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'` : `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'
+  GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type`,
     order_loan = null;
     var fetch_loan_data = await db_Select(select_loan,table_name_loan,whr_loan,order_loan);
 
