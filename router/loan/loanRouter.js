@@ -631,9 +631,9 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
   try {
     const {group_code,branch_code,tenant_id, approval_status, loan_to, ccb_loan_id} = req.body;
 
-    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
+    var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
     table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
-    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status,b.reject_remarks`,
+    whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,b.approval_status,b.reject_remarks`,
     order = null;
     var loan_disb_dtls = await db_Select(select, table_name, whr, order);
 
@@ -788,6 +788,40 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
   }
   } catch (error) {
     console.error("Error in while reject pacs disbursement:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+    }
+});
+
+// FETCH LOAN DETAILS BASED ON SOCIETY LOAN ACC NO
+loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
+  try{
+   const {society_acc_no,branch_id,tenant_id} = req.body;
+
+   var select = "a.group_code,c.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,SUM(b.cr_amt) AS tot_grp_deposit",
+   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_member_trans_temp b ON a.loan_acc_no = b.loan_acc_no AND a.tenant_id = b.tenant_id AND a.loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code",
+   whr = `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND b.branch_id = '${branch_id}' AND b.approval_status = 'U' GROUP BY a.group_code,c.group_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt`,
+   order = null;
+   var fetch_soc_loan_dtls = await db_Select(select,table_name,whr,order);
+
+   if(fetch_soc_loan_dtls.suc === 1 && fetch_soc_loan_dtls.msg.length > 0){
+    return res.send({
+      success: true,
+      msg: "Fetch loan details",
+      data: fetch_soc_loan_dtls.msg
+    })
+   }else {
+    return res.send({
+    success: true,
+    msg: "loan details not found",
+    data: [],
+  });
+   }
+  }catch (error) {
+    console.error("Error in while fetch loan dtls:", error);
     return res.send({
     success: false,
     msg: "Internal server error",

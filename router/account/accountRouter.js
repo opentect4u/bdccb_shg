@@ -2,6 +2,12 @@ const { db_Select, saveRecord } = require('../../model/pgcommon');
 const express = require('express'),
 accountRouter = express.Router();
 
+const transaction_id = async () => {
+  const timestamp = new Date().getTime();
+  const newPayId = `${timestamp}`;
+  return newPayId;
+};
+
   const generateBalanceId = async () => {
       const timestamp = new Date().getTime();
       const balID = `${timestamp}`;
@@ -56,7 +62,7 @@ accountRouter = express.Router();
   accountRouter.post("/save_loan_voucher", async (req, res) => {
        try {
         var voucher_ids = 0;
-         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,loan_to,pacs_shg_id,dr_amt,cr_amt,member_ids,society_acc_no,created_by,ip_address } = req.body;
+         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,dr_amt,cr_amt,member_ids,society_acc_no,created_by,ip_address,group_code} = req.body;
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let date = new Date().toISOString().slice(0, 10);
 
@@ -123,6 +129,67 @@ accountRouter = express.Router();
           //     msg: "Transaction update failed"
           //   });
           // }
+
+          let total_disb_amt = 0;
+
+          if (member_ids && member_ids.length > 0) {
+          total_disb_amt = member_ids.reduce((sum, mem) => {
+          return sum + parseFloat(mem.disb_amt || 0);
+           }, 0);
+            }
+
+          let transac_id = await transaction_id();
+
+          // fetch data from td_loan_member
+
+          var select = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt",
+          table_name = "bdccb.td_loan_member a",
+          whr = `group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt`,
+          order = null;
+          var fetch_data = await db_Select(select,table_name,whr,order);
+
+          if(!(fetch_data.suc === 1 && fetch_data.msg.length > 0)){
+            return res.send({
+            success: true,
+            msg:"Loan data not found"
+          });
+          }
+
+          const loan_data = fetch_data.msg[0];
+
+          var table_td = "bdccb.td_loan";
+          var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
+          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,society_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code];
+          var whereColumns_td = [];
+          var whereValues_td = [];
+          var flag_td = 0;
+          var result_td = await saveRecord(table_td,columns_td,values_td,whereColumns_td,whereValues_td,flag_td);
+
+           if(result_td.suc !== 1){
+             return res.send({
+             success: true,
+             msg: "Failed to save in loan table",
+             data : []
+            });
+            }
+
+          var table_trn = "bdccb.td_loan_transactions";
+          var columns_trn = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
+          "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
+          var values_trn = [loan_data.disb_dt,transac_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,society_acc_no || null,"D",
+          loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"A",created_by,datetime,ip_address];
+          var whereColumns_trn = [];
+          var whereValues_trn = [];
+          var flag_trn = 0;
+          var trans_result = await saveRecord(table_trn,columns_trn,values_trn,whereColumns_trn,whereValues_trn,flag_trn);
+
+            if(trans_result.suc !== 1){
+            return res.send({
+            success: true,
+            msg: "Failed to save in loan transaction table",
+            data : []
+            });
+            }
           
         
           // if(trans_update.suc === 1){

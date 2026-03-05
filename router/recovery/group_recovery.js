@@ -106,7 +106,7 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
 groupRecoveryRouter.post("/save_grp_recovery", async (req, res) => {
     try{
     const {tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,members,created_by,ip_address,loan_id} = req.body;
-    console.log(req.body,'recov');
+    // console.log(req.body,'recov');
     
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
