@@ -12,6 +12,8 @@ const member_trans_id = async () => {
 groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     try{
     const {tenant_id,branch_id,emp_id} = req.body;
+    // console.log(req.body);
+    
 
     var select = "group_code,group_name",
     table_name = "bdccb.md_group",
@@ -32,7 +34,7 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
 
     var select_loan = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.society_acc_no,b.trans_type",
     table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id AND b.approval_status = 'A' AND b.trans_type = 'D' LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
-    whr_loan = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_to = 'S' AND a.group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type`,
+    whr_loan = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type`,
     order_loan = null;
     var fetch_loan_data = await db_Select(select_loan,table_name_loan,whr_loan,order_loan);
 
