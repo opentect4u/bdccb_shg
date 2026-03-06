@@ -799,11 +799,11 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
 // FETCH LOAN DETAILS BASED ON SOCIETY LOAN ACC NO
 loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
   try{
-   const {society_acc_no,branch_id,tenant_id} = req.body;
+   const {society_acc_no,branch_id,tenant_id,loan_to} = req.body;
 
-   var select = "a.group_code,c.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,SUM(b.cr_amt) AS tot_grp_deposit",
-   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_member_trans_temp b ON a.loan_acc_no = b.loan_acc_no AND a.tenant_id = b.tenant_id AND a.loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code",
-   whr = `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND b.branch_id = '${branch_id}' AND b.approval_status = 'U' GROUP BY a.group_code,c.group_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt`,
+   var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.curr_prn AS loan_outstanding",
+   table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
+   whr = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}'` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}'`,
    order = null;
    var fetch_soc_loan_dtls = await db_Select(select,table_name,whr,order);
 
