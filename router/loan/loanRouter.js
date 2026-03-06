@@ -800,7 +800,7 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
 loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
   try{
    const {society_acc_no,branch_id,tenant_id,loan_to} = req.body;
-   console.log(req.body);
+  //  console.log(req.body);
    
 
    var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.curr_prn AS loan_outstanding",
@@ -834,6 +834,60 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
    }
   }catch (error) {
     console.error("Error in while fetch loan dtls:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+    }
+});
+
+// CALCULATE PRINCIPAL AND INTEREST AMOUNT ON SOCIETY LEVEL
+loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
+  try{
+  const {curr_prn,prn_amt,intt_amt,memb_loan,created_by,ip_address} = req.body;
+  console.log(req.body,'data_prn');
+
+  let currPrincipal = Number(curr_prn);
+  let totalInterest = Number(intt_amt);
+
+  let result = [];
+
+  for(let mem of memb_loan){
+     let mem_amt = Number(mem.mem_amount);
+
+     // uniform interest calculation
+     let calc_interest = (totalInterest * mem_amt) / currPrincipal;
+
+     let mem_int = 0;
+     let mem_prn = 0;
+
+     if (calc_interest <= mem_amt) {
+        mem_int = calc_interest;
+        mem_prn = mem_amt - calc_interest;
+     } 
+     else {
+        mem_int = 0;
+        mem_prn = 0;
+     }
+    
+    result.push({
+      loan_id: mem.loan_id,
+      member_name: mem.member_name,
+      mem_amount: mem_amt,
+      // interest_amount: Number(mem_int.toFixed(2)),
+      interest_amount: Number(mem_int),
+      // principal_amount: Number(mem_prn.toFixed(2))
+      principal_amount: Number(mem_prn)
+    });
+  }
+  return res.send({
+        success:true,
+        msg:"Calculation done",
+        data:result
+  })
+  }catch (error) {
+    console.error("Error in while calculate principal and interest amount:", error);
     return res.send({
     success: false,
     msg: "Internal server error",
