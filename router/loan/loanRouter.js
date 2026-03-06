@@ -853,15 +853,15 @@ loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
   let result = [];
 
   for(let mem of memb_loan){
-     let mem_amt = Number(mem.mem_amount);
+     let mem_outstanding = Number(mem.mem_outstanding);
 
      // uniform interest calculation
-     let calc_interest = (totalInterest * mem_amt) / currPrincipal;
+     let calc_interest = (totalInterest * mem_outstanding) / currPrincipal;
 
      let mem_int = 0;
      let mem_prn = 0;
 
-     let balance = mem_amt - calc_interest;
+     let balance = mem_outstanding - calc_interest;
 
      if (balance >= 0) {
         // interest first
@@ -885,7 +885,8 @@ loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
     result.push({
       loan_id: mem.loan_id,
       member_name: mem.member_name,
-      mem_amount: mem_amt,
+      mem_amount: mem.mem_amount,
+      mem_outstanding: mem_outstanding,
       // interest_amount: Number(mem_int.toFixed(2)),
       interest_amount: Number(mem_int),
       // principal_amount: Number(mem_prn.toFixed(2))
