@@ -800,6 +800,8 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
 loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
   try{
    const {society_acc_no,branch_id,tenant_id,loan_to} = req.body;
+   console.log(req.body);
+   
 
    var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.curr_prn AS loan_outstanding",
    table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
@@ -815,18 +817,19 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
      order_mem_recov = null;
      var fetch_member_dtls = await db_Select(select_mem_recov, table_name_mem_recov, whr_mem_recov, order_mem_recov);
 
+     // attach member list under data
+     fetch_soc_loan_dtls.msg[0].member_list = fetch_member_dtls.suc === 1 && fetch_member_dtls.msg.length > 0 ? fetch_member_dtls.msg : [];
+
      return res.send({
         success: true,
         msg: "Fetch loan details",
         data: fetch_soc_loan_dtls.msg,
-        member_dtls: fetch_member_dtls.suc === 1 ? fetch_member_dtls.msg : []
      });
    }else {
     return res.send({
     success: true,
     msg: "loan details not found",
     data: [],
-    member_dtls: []
   });
    }
   }catch (error) {
