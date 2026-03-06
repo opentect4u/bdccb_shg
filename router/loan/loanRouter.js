@@ -808,16 +808,25 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
    var fetch_soc_loan_dtls = await db_Select(select,table_name,whr,order);
 
    if(fetch_soc_loan_dtls.suc === 1 && fetch_soc_loan_dtls.msg.length > 0){
-    return res.send({
-      success: true,
-      msg: "Fetch loan details",
-      data: fetch_soc_loan_dtls.msg
-    })
+     /* -------- Fetch Member recovery Details -------- */
+     var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(a.cr_amt,0) AS cr_amt",
+     table_name_mem_recov = "bdccb.td_loan_member_trans_temp a LEFT JOIN bdccb.td_loan_member b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_member c ON b.member_code = c.member_code AND b.group_code = c.group_code",
+     whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U'` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U'`,
+     order_mem_recov = null;
+     var fetch_member_dtls = await db_Select(select_mem_recov, table_name_mem_recov, whr_mem_recov, order_mem_recov);
+
+     return res.send({
+        success: true,
+        msg: "Fetch loan details",
+        data: fetch_soc_loan_dtls.msg,
+        member_dtls: fetch_member_dtls.suc === 1 ? fetch_member_dtls.msg : []
+     });
    }else {
     return res.send({
     success: true,
     msg: "loan details not found",
     data: [],
+    member_dtls: []
   });
    }
   }catch (error) {

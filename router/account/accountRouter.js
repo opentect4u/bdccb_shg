@@ -63,6 +63,8 @@ const transaction_id = async () => {
        try {
         var voucher_ids = 0;
          const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,dr_amt,cr_amt,member_ids,society_acc_no,created_by,ip_address,group_code} = req.body;
+         console.log(req.body);
+         
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
         let date = new Date().toISOString().slice(0, 10);
 
