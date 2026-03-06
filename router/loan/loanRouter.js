@@ -413,7 +413,7 @@ try{
 loanRouter.post("/fetch_member_name", async (req, res) => {
 try{
  const {group_code, branch_code, tenant_id} = req.body;
- console.log(req.body,'member name');
+//  console.log(req.body,'member name');
 
  var select = "member_code member_id,member_name,member_account_no sb_acc_no",
  table_name = "bdccb.md_member",
@@ -801,9 +801,8 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
   try{
    const {society_acc_no,branch_id,tenant_id,loan_to} = req.body;
   //  console.log(req.body);
-   
 
-   var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.curr_prn AS loan_outstanding",
+   var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding",
    table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
    whr = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}'` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}'`,
    order = null;
@@ -811,7 +810,7 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
 
    if(fetch_soc_loan_dtls.suc === 1 && fetch_soc_loan_dtls.msg.length > 0){
      /* -------- Fetch Member recovery Details -------- */
-     var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(a.cr_amt,0) AS cr_amt",
+     var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(a.cr_amt,0) AS cr_amt,(COALESCE(b.prn_amt,0) - COALESCE(a.cr_amt,0)) AS mem_outstanding",
      table_name_mem_recov = "bdccb.td_loan_member_trans_temp a LEFT JOIN bdccb.td_loan_member b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_member c ON b.member_code = c.member_code AND b.group_code = c.group_code",
      whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U'` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U'`,
      order_mem_recov = null;
@@ -846,7 +845,7 @@ loanRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) => {
 loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
   try{
   const {curr_prn,prn_amt,intt_amt,memb_loan,created_by,ip_address} = req.body;
-  console.log(req.body,'data_prn');
+  // console.log(req.body,'data_prn');
 
   let currPrincipal = Number(curr_prn);
   let totalInterest = Number(intt_amt);
@@ -862,14 +861,26 @@ loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
      let mem_int = 0;
      let mem_prn = 0;
 
-     if (calc_interest <= mem_amt) {
+     let balance = mem_amt - calc_interest;
+
+     if (balance >= 0) {
+        // interest first
         mem_int = calc_interest;
-        mem_prn = mem_amt - calc_interest;
-     } 
-     else {
-        mem_int = 0;
+        mem_prn = balance;
+      } else {
+        // all goes to interest
+        mem_int = calc_interest;
         mem_prn = 0;
-     }
+      }
+
+    //  if (calc_interest <= mem_amt) {
+    //     mem_int = calc_interest;
+    //     mem_prn = mem_amt - calc_interest;
+    //  } 
+    //  else {
+    //     mem_int = 0;
+    //     mem_prn = 0;
+    //  }
     
     result.push({
       loan_id: mem.loan_id,
@@ -894,6 +905,22 @@ loanRouter.post("/calculate_prn_intt_amt", async (req, res) => {
     errorCode: "SERVER_ERROR"
     });
     }
+});
+
+// SUBMIT RECOVERY IN SOCIETY LEVEL
+loanRouter.post("/submit_society_recovery", async (req, res) => {
+  try{
+  const {} = req.body;
+
+
+  }catch(error){
+     console.error("Error in while submit society recovery:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+  }
 });
 
 // REJECT DISBURSEMENT this is not used

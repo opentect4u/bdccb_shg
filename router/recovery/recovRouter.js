@@ -133,7 +133,7 @@ recovRouter.post("/save_recovery", async (req, res) => {
          var member_loan = await saveRecord("bdccb.td_loan_member",member_loan_columns,member_loan_values, member_loan_whereColumns,member_loan_whereValues,1);
          //  ********  UPDATE MEMBER LOAN TABLE  ********
 
-        console.log("Member Transaction Result:", member_result);
+        // console.log("Member Transaction Result:", member_result);
       }
         // if (!trans_result || trans_result.suc !== 1 || !member_result || member_result.suc !== 1) {
         //   return res.send({
@@ -286,7 +286,7 @@ recovRouter.post("/save_disburse_brn_pacs_shg", async (req, res) => {
       created_by,
       ip_address,
     } = req.body;
-    console.log(req.body, "data shg");
+    // console.log(req.body, "data shg");
 
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
