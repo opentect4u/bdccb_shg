@@ -123,32 +123,32 @@ groupRecoveryRouter.post("/save_grp_recovery", async (req, res) => {
      let mem_trans_id = await member_trans_id();
 
      const table2 = "bdccb.td_loan_member_trans_temp";
-     const columns2 = mem.mem_trn_id > 0 ? ["cr_amt","modified_by","modified_dt","ip_address","sb_amt"] : ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address","sb_amt"];
+     const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address","sb_amt"];
 
-     const values2 = mem.mem_trn_id > 0 ? [mem.cr_amt,created_by,datetime,ip_address,mem.sb_amt] : [date,mem_trans_id,mem.mem_loan_id,loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',mem.principal_amt,mem.cr_amt,0,0,0,0,0,0,0,0,'U',created_by,datetime,ip_address,mem.sb_amt];
-     const whereColumns2 = mem.mem_trn_id > 0 ? ["loan_id","ccb_loan_id","tenant_id","branch_id"] : [];
-     const whereValues2 = mem.mem_trn_id > 0 ? [mem.mem_loan_id,loan_id,tenant_id,branch_id] : [];
-     const flag2 = mem.mem_trn_id > 0 ? 1 : 0;
+     const values2 = [date,mem_trans_id,mem.mem_loan_id,loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',mem.principal_amt,mem.cr_amt,0,0,0,0,0,0,0,0,'U',created_by,datetime,ip_address,mem.sb_amt];
+     const whereColumns2 = [];
+     const whereValues2 = [];
+     const flag2 = 0;
      const member_trans_result = await saveRecord(table2,columns2,values2,whereColumns2,whereValues2,flag2);
 
       if (!member_trans_result || member_trans_result.suc !== 1) {
       return res.send({
             success: false,
-            msg: mem.mem_trn_id > 0 ? "Failed to update loan in member transaction table group recovery time" : "Failed to save loan in member transaction table group recovery time",
+            msg: "Failed to save loan in member transaction table group recovery time",
             data: []
           });
       }
 
-       if (isUpdate) {
-        isUpdated = true;
-      } else {
-        isInserted = true;
-      }
+      //  if (isUpdate) {
+      //   isUpdated = true;
+      // } else {
+      //   isInserted = true;
+      // }
     }
 
     return res.send({
       success: true,
-      msg: isUpdated > 0 ? "Recovery Updated Successfully" : "Recovery Done Successfully",
+      msg: "Recovery Done Successfully",
     });
     }catch(error){
     console.error("Error in while save group recovery data:", error);
