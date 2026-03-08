@@ -62,21 +62,21 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
       mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
       let shg_member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
 
-      let created_dt = null;
-      let approval_status = null;
+      // let created_dt = null;
+      // let approval_status = null;
 
-     if (shg_member_dtls.suc === 1 && shg_member_dtls.msg.length > 0) {
-        created_dt = shg_member_dtls.msg[0].created_dt;
-        approval_status = shg_member_dtls.msg[0].approval_status;
-     }
+    //  if (shg_member_dtls.suc === 1 && shg_member_dtls.msg.length > 0) {
+    //     created_dt = shg_member_dtls.msg[0].created_dt;
+    //     approval_status = shg_member_dtls.msg[0].approval_status;
+    //  }
 
-        let today = new Date().toISOString().split('T')[0];
+        // let today = new Date().toISOString().split('T')[0];
 
       loan.members = shg_member_dtls.suc === 1 ? shg_member_dtls.msg : [];
 
-       loan.created_dt = created_dt;
-       loan.approval_status = approval_status;
-       loan.is_editable = approval_status === 'U' && created_dt === today;
+      //  loan.created_dt = created_dt;
+      //  loan.approval_status = approval_status;
+      //  loan.is_editable = approval_status === 'U' && created_dt === today;
 
         //  loan.members = shg_member_dtls.suc === 1 ? shg_member_dtls.msg.map(m => ({
         //  ...m,
