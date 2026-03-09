@@ -359,7 +359,7 @@ const genDate = (trans_date, period, mode) => {
 loanMemberRouter.post("/fetch_memb_details", async (req, res) => {
   try{
    const {tenant_id,loan_to,branch_shg_id} = req.body;
-   console.log(req.body,'grp');
+  //  console.log(req.body,'grp');
 
     // Fetch Loan Amount
    var select = "COALESCE(SUM(disb_amt),0) As shg_disb_amt",
@@ -511,7 +511,7 @@ loanMemberRouter.post("/fetch_memb_details", async (req, res) => {
 loanMemberRouter.post("/save_shg_member_disbursement", async (req, res) => {
  try{
   const { group_code,tenant_id,branch_id,period,curr_roi,penal_roi,disb_dt,members,created_by,ip_address} = req.body;
-  console.log(req.body,'shg_save_member');
+  // console.log(req.body,'shg_save_member');
 
   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 

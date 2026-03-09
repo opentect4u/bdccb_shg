@@ -410,7 +410,7 @@ groupRouter.get("/checkaddhar", async (req, res) => {
             var res_dt = await db_Select("*", "bdccb.md_member", whr, null);
             
             if(res_dt.msg.length > 0){
-               console.log('inside logic -------------------');
+              //  console.log('inside logic -------------------');
                 return res.send({
                     success: true,
                     msg: "Account Already Exists",
@@ -522,7 +522,7 @@ groupRouter.get("/checkaddhar", async (req, res) => {
 groupRouter.post("/save_group", async (req, res) => {
     try {
       const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,members,created_by,ip_address,direct_indirect_flag,pacs_id } = req.body;
-      console.log(req.body,'datagrp');
+      // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -564,9 +564,11 @@ groupRouter.post("/save_group", async (req, res) => {
       });
     }
 
+     let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
+
     for(const memb of members){
 
-     let member_code = await memberCode(branch_code); 
+    member_code++;
 
      const table1 = "bdccb.md_member";
      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","address","aadhar_no","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"] : ["member_code","branch_id","group_code","member_name","tenant_id","address","aadhar_no","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no"];
@@ -588,7 +590,7 @@ groupRouter.post("/save_group", async (req, res) => {
    
       var acc_opening_dt = new Date().toISOString().slice(0, 10);
       var balance = 0;
-      console.log('member id ', memb.sb_acc_no);
+      // console.log('member id ', memb.sb_acc_no);
       const table2 = "bdccb.td_deposit";
       const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
       const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
@@ -632,7 +634,7 @@ groupRouter.post("/save_group", async (req, res) => {
         const whereValues3 = group_code > 0 ? [grp_code] : [];
         const flag3 = group_code > 0 ? 1 : 0;
         const result_user = await saveRecord("bdccb.md_user", columns3, values3,whereColumns3,whereValues3,flag3);
-        console.log("User creation result:", result_user);
+        // console.log("User creation result:", result_user);
       }
 
       return res.send({

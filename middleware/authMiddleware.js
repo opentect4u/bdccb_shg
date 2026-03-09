@@ -19,7 +19,7 @@ module.exports = {
           });
           resolve({suc:1, msg:"Generated", token:token})
         } else {
-          console.log(token,'not token');
+          // console.log(token,'not token');
           resolve({suc: 0, msg: 'No Object Found', token: false})
         }
       }catch(err){

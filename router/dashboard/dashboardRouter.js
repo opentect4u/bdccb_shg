@@ -5,7 +5,7 @@ dashboardRouter = express.Router();
 dashboardRouter.post("/fetch_member_loan_dtls", async (req, res) => {
 try{
  const {branch_id,tenant_id,group_code} = req.body;
- console.log(req.body,'loan_data');
+//  console.log(req.body,'loan_data');
 
  var select = "a.group_code,a.member_code,a.tenant_id,a.branch_id,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,a.loan_id,b.member_name,b.gp_leader_flag,COALESCE(SUM(a.prn_amt + a.ovd_prn_amt + a.intt_amt + a.ovd_intt_amt),0) As loan_amount,CASE WHEN COUNT(CASE WHEN c.trans_type = 'R' THEN 1 END) > 0 THEN 'Y' ELSE 'N' END AS recovery_flag,CASE WHEN a.loan_id > 0 THEN 'Y' ELSE 'N' END AS approve_member",
  table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.member_code = b.member_code AND a.tenant_id = b.tenant_id AND a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.branch_id = c.branch_id AND a.tenant_id = c.tenant_id",

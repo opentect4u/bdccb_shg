@@ -25,7 +25,7 @@ userRouter = express.Router();
         
         if (user_id.length > 0) {
             whr += ` AND a.user_id = '${user_id}'`;
-            console.log("User ID filter applied: " + user_id);
+            // console.log("User ID filter applied: " + user_id);
         }
         if(user_status){
             whr += ` AND a.active_flag = '${user_status}'`;
@@ -94,7 +94,7 @@ userRouter = express.Router();
         
         if (user_id.length > 0) {
             whr += ` AND user_id = '${user_id}'`;
-            console.log("User ID filter applied: " + user_id);
+            // console.log("User ID filter applied: " + user_id);
         }
         if(user_status){
             whr += ` AND active_flag = '${user_status}'`;

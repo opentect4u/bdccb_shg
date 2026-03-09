@@ -97,7 +97,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
          // if(first_trans_result.suc === 1 && first_trans_result.msg[0].count === '0') {
 
             const inital_balance = await db_Select('COALESCE(balance, 0) AS balance', 'bdccb.td_deposit', `sb_id = '${sb_id}'`, null);
-            console.log('Initial Balance Result:', inital_balance);
+            // console.log('Initial Balance Result:', inital_balance);
             if(inital_balance.suc === 1 && inital_balance.msg.length > 0) {
               return inital_balance.msg[0].balance; // INTEGER
             }else{
@@ -119,7 +119,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
         try{
             const {shg_id} = req.body;
             var select = "a.sb_id,a.acc_no,COALESCE(a.balance, 0) AS balance,b.member_name";
-            var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_code";
+            var table_name = "bdccb.td_deposit a JOIN bdccb.md_member b ON a.acc_no = b.member_account_no";
             var whr = `a.shg_id = '${shg_id}'`;
             var order = null;
             var fetch_data = await db_Select(select,table_name,whr,order);
@@ -208,7 +208,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
                     if (dep_with_flag === 'W') {
 
                         if (balance < amount) {
-                            console.log("teste---------",balance,amount)
+                            // console.log("teste---------",balance,amount)
                             return res.send({
                               success: false,
                               msg: "Insufficient balance",
