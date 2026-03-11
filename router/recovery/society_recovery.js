@@ -217,9 +217,9 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       });
     }
 
-  
+  }
 
-   const select = "SUM(prn_amt) as total_prn,SUM(intt_amt) as total_intt";
+   const select = "COALESCE(SUM(prn_amt),0) as total_prn, COALESCE(SUM(intt_amt),0) as total_intt";
    const table = "bdccb.td_loan_member";
    const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
    const order = null;  
@@ -232,6 +232,8 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   total_curr_prn = loanSum[0].total_prn || 0;
   total_curr_intt = loanSum[0].total_intt || 0;
     }
+    console.log(total_curr_prn,total_curr_intt);
+    
 
    const table5 = "bdccb.td_loan_transactions";
    const columns5 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
@@ -262,7 +264,6 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     msg:"Failed to update td_loan table"
   });
   }
-}
    return res.send({
     success: true,
     msg: "Recovery done successfully" 
