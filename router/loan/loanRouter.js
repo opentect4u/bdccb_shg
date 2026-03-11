@@ -305,17 +305,20 @@ loanRouter.post("/fetch_pacs_shg_details", async (req, res) => {
       whr = `a.tenant_id = '${tenant_id}' AND a.branch_status = 'O' AND a.branch_type = 'P' AND (a.branch_name ILIKE '%${branch_shg_id}%' OR a.branch_id::text ILIKE '%${branch_shg_id}%') AND a.branch_jurisdiction_id = '${branch_code}'`;
       order = null;
     } else {
-      var select_1 = "direct_indirect_flag",
-      table_name_1 = "bdccb.md_group",
-      whr_1 = `group_name ILIKE '%${branch_shg_id}%' OR group_code::text ILIKE '%${branch_shg_id}%'`,
-      order_1 = null;
-      let fetch_data = await db_Select(select_1,table_name_1,whr_1,order_1);
+      // var select_1 = "direct_indirect_flag",
+      // table_name_1 = "bdccb.md_group",
+      // whr_1 = `group_name ILIKE '%${branch_shg_id}%' OR group_code::text ILIKE '%${branch_shg_id}%'`,
+      // order_1 = null;
+      // let fetch_data = await db_Select(select_1,table_name_1,whr_1,order_1);
 
-      const flag = fetch_data.msg[0].direct_indirect_flag
+      // const flag = fetch_data.msg[0].direct_indirect_flag
 
       select = "a.group_code,a.pacs_id,a.branch_code,a.group_name";
       table_name = "bdccb.md_group a";
-      whr = flag == 'I' ? `a.pacs_id = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')` : `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
+      // whr = flag == 'I' ? `a.pacs_id = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')` : `a.branch_code = '${branch_code}' AND a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%')`;
+       whr = `a.open_close_flag = 'O' AND a.delete_flag = 'N' AND (a.group_name ILIKE '%${branch_shg_id}%' OR a.group_code::text ILIKE '%${branch_shg_id}%') AND ( 
+          (a.direct_indirect_flag = 'D' AND a.branch_code = '${branch_code}') 
+       OR (a.direct_indirect_flag = 'I' AND a.pacs_id = '${branch_code}'))`;
       order = null;
     }
     let fetch_details = await db_Select(select, table_name, whr, order);
