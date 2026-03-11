@@ -216,6 +216,45 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       data: []
       });
     }
+
+   const select = "SUM(prn_amt) as total_prn,SUM(intt_amt) as total_intt";
+   const table = "bdccb.td_loan_member";
+   const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
+   const order = null;  
+   const loanSum = await db_Select(select, table, where, order);
+
+   let total_curr_prn = loanSum[0].total_prn || 0;
+   let total_curr_intt = loanSum[0].total_intt || 0;
+
+   const table5 = "bdccb.td_loan_transactions";
+   const columns5 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+   const values5 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
+   const whereColumns5 = ["loan_id","tenant_id"];
+   const whereValues5 = [ccb_loan_id,tenant_id];
+   const flag5 = 1;
+   const updateLoans = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5);
+
+   if (!updateLoans || updateLoans.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update transaction table"
+  });
+  }
+
+   const table6 = "bdccb.td_loan";
+   const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+   const values6 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
+   const whereColumns6 = ["loan_id","tenant_id"];
+   const whereValues6 = [ccb_loan_id,tenant_id];
+   const flag6 = 1;
+   const updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
+
+   if (!updateLoan || updateLoan.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update td_loan table"
+  });
+  }
 }
    return res.send({
     success: true,
