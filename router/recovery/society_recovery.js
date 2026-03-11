@@ -224,14 +224,15 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
    const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
    const order = null;  
    const loanSum = await db_Select(select, table, where, order);
+   console.log("loanSum result:", loanSum);
 
      let total_curr_prn = 0;
     let total_curr_intt = 0;
 
-   if (loanSum && loanSum.length > 0) {
-  total_curr_prn = loanSum[0].total_prn || 0;
-  total_curr_intt = loanSum[0].total_intt || 0;
-    }
+   if (loanSum && loanSum.msg && loanSum.msg.length > 0) {
+  total_curr_prn = Number(loanSum.msg[0].total_prn) || 0;
+  total_curr_intt = Number(loanSum.msg[0].total_intt) || 0;
+}
     console.log(total_curr_prn,total_curr_intt);
     
 
