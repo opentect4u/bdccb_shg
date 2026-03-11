@@ -217,14 +217,21 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       });
     }
 
+  
+
    const select = "SUM(prn_amt) as total_prn,SUM(intt_amt) as total_intt";
    const table = "bdccb.td_loan_member";
    const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
    const order = null;  
    const loanSum = await db_Select(select, table, where, order);
 
-   let total_curr_prn = loanSum[0].total_prn || 0;
-   let total_curr_intt = loanSum[0].total_intt || 0;
+     let total_curr_prn = 0;
+    let total_curr_intt = 0;
+
+   if (loanSum && loanSum.length > 0) {
+  total_curr_prn = loanSum[0].total_prn || 0;
+  total_curr_intt = loanSum[0].total_intt || 0;
+    }
 
    const table5 = "bdccb.td_loan_transactions";
    const columns5 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
