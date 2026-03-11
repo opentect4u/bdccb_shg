@@ -46,17 +46,14 @@ const groupCode = async (branch_code) => {
 
 const memberCode = async (branch_id) => {
 
-  const select = `
-    COALESCE(MAX(SUBSTR(member_code::TEXT, 4)::INTEGER), 0) + 1 AS member_no
-  `;
-
+  // const select = `
+  //   COALESCE(MAX(SUBSTR(member_code::TEXT, 4)::INTEGER), 0) + 1 AS member_no
+  // `;
+  const select =   `COALESCE(MAX(RIGHT(member_code::TEXT,5)::INTEGER),0) + 1 AS member_no`;
   const table = "bdccb.md_member";
   const res = await db_Select(select, table, null, null);
-
   const member_no = res.msg[0].member_no;
-
-  const member_code = `${branch_id}${String(member_no).padStart(4, "0")}`;
-
+  const member_code = `${branch_id}${String(member_no).padStart(5, "0")}`;
   return member_code;
 };
  
@@ -567,7 +564,7 @@ groupRouter.post("/save_group", async (req, res) => {
      let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
 
     for(const memb of members){
-
+      
     member_code++;
 
      const table1 = "bdccb.md_member";
@@ -576,7 +573,7 @@ groupRouter.post("/save_group", async (req, res) => {
      const whereColumns1 = memb.member_id > 0 ? ["member_code","branch_id","group_code","tenant_id"] : [];
      const whereValues1 = memb.member_id > 0 ? [memb.member_id,branch_code,group_code,tenant_id] : [];
      const flag1 = memb.member_id > 0 ? 1 : 0;
-       
+    
      const result_member = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);  
        
   if (!result_member || result_member.suc !== 1) {
