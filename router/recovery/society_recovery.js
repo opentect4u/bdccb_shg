@@ -23,9 +23,9 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
 
    if(fetch_soc_loan_dtls.suc === 1 && fetch_soc_loan_dtls.msg.length > 0){
      /* -------- Fetch Member recovery Details -------- */
-     var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(a.cr_amt,0) AS cr_amt,(COALESCE(b.prn_amt,0)) AS mem_outstanding",
+     var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(SUM(a.cr_amt),0) AS cr_amt,(COALESCE(b.prn_amt,0)) AS mem_outstanding",
      table_name_mem_recov = "bdccb.td_loan_member_trans_temp a LEFT JOIN bdccb.td_loan_member b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_member c ON b.member_code = c.member_code AND b.group_code = c.group_code",
-     whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U'` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U'`,
+     whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.prn_amt` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.prn_amt`,
      order_mem_recov = null;
      var fetch_member_dtls = await db_Select(select_mem_recov, table_name_mem_recov, whr_mem_recov, order_mem_recov);
 
@@ -216,7 +216,55 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       data: []
       });
     }
+
+  }
+
+   const select = "COALESCE(SUM(prn_amt),0) as total_prn, COALESCE(SUM(intt_amt),0) as total_intt";
+   const table = "bdccb.td_loan_member";
+   const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
+   const order = null;  
+   const loanSum = await db_Select(select, table, where, order);
+  //  console.log("loanSum result:", loanSum);
+
+     let total_curr_prn = 0;
+    let total_curr_intt = 0;
+
+   if (loanSum && loanSum.msg && loanSum.msg.length > 0) {
+  total_curr_prn = Number(loanSum.msg[0].total_prn) || 0;
+  total_curr_intt = Number(loanSum.msg[0].total_intt) || 0;
 }
+    // console.log(total_curr_prn,total_curr_intt);
+    
+
+   const table5 = "bdccb.td_loan_transactions";
+   const columns5 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+   const values5 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
+   const whereColumns5 = ["loan_id","tenant_id"];
+   const whereValues5 = [ccb_loan_id,tenant_id];
+   const flag5 = 1;
+   const updateLoans = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5);
+
+   if (!updateLoans || updateLoans.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update transaction table"
+  });
+  }
+
+   const table6 = "bdccb.td_loan";
+   const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+   const values6 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
+   const whereColumns6 = ["loan_id","tenant_id"];
+   const whereValues6 = [ccb_loan_id,tenant_id];
+   const flag6 = 1;
+   const updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
+
+   if (!updateLoan || updateLoan.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update td_loan table"
+  });
+  }
    return res.send({
     success: true,
     msg: "Recovery done successfully" 
