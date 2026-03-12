@@ -148,4 +148,107 @@ try{
 //     }
 // });
 
+// FETCH DASHBOARD LOAN AMOUNT DETAILS
+dashboardRouter.post("/dashboard_grp_loan_bal", async (req, res) => {
+  try{
+    const {emp_id,tenant_id} = req.body;
+
+    var select = "a.group_code,a.group_name,b.loan_to",
+    table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
+    whr = `a.phone1 = '${emp_id}'`,
+    order = null;
+    var fetch_grp_code = await db_Select(select,table_name,whr,order);
+
+    if (!(fetch_grp_code.suc === 1 && fetch_grp_code.msg.length > 0)) {
+    return res.send({
+      success: true,
+      msg: "No group found for this employee",
+      data: []
+    });
+    }
+
+    const group_code = fetch_grp_code.msg[0].group_code;
+    const group_name = fetch_grp_code.msg[0].group_name;
+
+    var select1 = "COALESCE(SUM(curr_prn + curr_intt),0) As loan_balance,group_code",
+    table_name1 = "bdccb.td_loan",
+    whr1 = `tenant_id = '${tenant_id}' AND group_code = '${group_code}' GROUP BY group_code`,
+    order1 = null;
+    var fetch_loan_amount = await db_Select(select1,table_name1,whr1,order1);
+
+    if(fetch_loan_amount.suc === 1 && fetch_loan_amount.msg.length > 0){
+      return res.send({
+      success: true,
+      msg: `Fetch loan balance of ${group_name} group`,
+      data: fetch_loan_amount.msg,
+      })
+    }else{
+      return res.send({
+      success: true,
+      msg: "Unable to fetch loan amount of particular group",
+      data: []
+      })
+    }
+
+  }catch(error){
+  console.error("Error in while fetch group loan details in dashboard:", error);
+  return res.send({
+  success: false,
+  msg: "Internal server error",
+  errorCode: "SERVER_ERROR"
+  });
+    }
+});
+
+dashboardRouter.post("/fetch_member_outstanding_dtls", async (req, res) => {
+  try{
+   const {tenant_id,group_code,loan_to} = req.body;
+
+   const roi_column = loan_to == 'S' ? "a.curr_roi" : "a.society_roi";
+   const penal_roi_column = loan_to == 'S' ? "a.penal_roi" : "a.society_penal_roi";
+
+   var select = `a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.period,${roi_column} AS curr_roi,${penal_roi_column} AS penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt`,
+   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id",
+   whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.period,a.curr_roi,a.society_roi,a.penal_roi,a.society_penal_roi,a.disb_dt`,
+   order = null;
+   var fetch_loan_dtls = await db_Select(select,table_name,whr,order);
+
+   if (!(fetch_loan_dtls.suc === 1 && fetch_loan_dtls.msg.length > 0)) {
+      return res.send({
+        success: true,
+        msg: `Unable to fetch group disbursed loan details`,
+        data: [],
+      });
+    }
+
+    // * ---------------- MEMBER QUERY LOOP ---------------- //
+   let loan_finalData_member = [];
+
+   for (let loans of fetch_loan_dtls.msg) {
+    let mem_select = "a.loan_id AS mem_loan_id,a.group_code,a.member_code AS member_id,d.member_name,COALESCE(a.prn_amt,0) AS principal_amt,COALESCE(a.intt_amt,0) AS interest_amt,COALESCE(SUM(a.prn_amt + a.intt_amt),0) AS outstanding,TO_CHAR(MAX(CASE WHEN b.trans_type = 'I' THEN b.trans_date END),'YYYY-MM-DD') AS interest_calculated_date",
+    mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
+    mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loans.loan_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.group_code,a.member_code,d.member_name,a.prn_amt,a.intt_amt,b.trans_type`;
+    let shg_member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
+
+    loans.members = shg_member_dtls.suc === 1 ? shg_member_dtls.msg : [];
+
+    loan_finalData_member.push(loans);
+   }
+
+    return res.send({
+      success: true,
+      msg: `Fetch group disbursed Loan Details`,
+      data: loan_finalData_member,
+    });
+
+  }catch(error){
+  console.error("Error in while fetch member loan details in app:", error);
+  return res.send({
+  success: false,
+  msg: "Internal server error",
+  errorCode: "SERVER_ERROR"
+  });
+  }
+})
+
 module.exports = {dashboardRouter}
