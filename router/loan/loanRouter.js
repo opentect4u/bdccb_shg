@@ -601,7 +601,7 @@ const { branch_id, tenant_id } = req.body;
 
 var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
 table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'
       GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
