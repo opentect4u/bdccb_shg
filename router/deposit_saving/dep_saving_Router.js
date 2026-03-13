@@ -8,7 +8,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
         const tenant_id = parseInt(req.query.tenant_id || 0);
         const branch_id = parseInt(req.query.branch_id || 0);
         const shg_id = parseInt(req.query.shg_id || 0);
-            // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
+            // TENANT ID  IS MANDATORY
                 if (!tenant_id || tenant_id <= 0) {
                     return res.send({
                         success: false,
@@ -51,7 +51,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
     }
 });
 
-    // save / edit group
+    // save / SAVING ACCOUNT 
     depsavingRouter.post("/save_sbacc", async (req, res) => {
         try {
           const {sb_id,trans_no,tenant_id,shg_id,branch_id,acc_no,acc_opening_dt,balance,created_by,created_ip } = req.body;
