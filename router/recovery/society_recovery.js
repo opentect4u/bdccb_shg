@@ -199,7 +199,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 }
 
     let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
-    let current_intt_amt = Number(dt.aqmount) - Number(dt.calculated_interest);
+    let current_intt_amt = Number(dt.amount) - Number(dt.calculated_interest);
 
     const table4 = "bdccb.td_loan_member";
     const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
