@@ -179,7 +179,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     let soc_trans_ids = await members_trans_id();
 
     let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov);
-    let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
+    let current_intt_prn = Number(dt.amount) - Number(dt.calculated_interest);
 
     const table3 = "bdccb.td_loan_member_trans";
     const columns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
@@ -199,7 +199,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 }
 
     let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
-    let current_intt_amt = Number(dt.calculated_interest) - Number(dt.intt_recov);
+    let current_intt_amt = Number(dt.aqmount) - Number(dt.calculated_interest);
 
     const table4 = "bdccb.td_loan_member";
     const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
