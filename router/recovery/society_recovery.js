@@ -217,13 +217,15 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       });
     }
 
-    let soc_td_trans_ids = await members_trans_id();
+  }
 
-    let tot_curr_prn_amt = dt.reduce((sum, item) => sum + Number(item.curr_prn), 0);
-    let tot_cal_intt_amt = dt.reduce((sum, item) => sum + Number(item.calculated_interest), 0);
-    let tot_coll_recov_amt = dt.reduce((sum, item) => sum + Number(item.amount), 0);
-    let tot_curr_prn_recov = dt.reduce((sum, item) => sum + Number(item.prn_recov), 0);
-    let tot_curr_intt_recov = dt.reduce((sum, item) => sum + Number(item.intt_recov), 0);
+  let soc_td_trans_ids = await members_trans_id();
+
+    let tot_curr_prn_amt = society_recov.reduce((sum, item) => sum + Number(item.curr_prn), 0);
+    let tot_cal_intt_amt = society_recov.reduce((sum, item) => sum + Number(item.calculated_interest), 0);
+    let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
+    let tot_curr_prn_recov = society_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
+    let tot_curr_intt_recov = society_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
     let tot_current_prn = Number(tot_curr_prn_amt) - Number(tot_curr_prn_recov);
     let tot_current_intt = Number(tot_cal_intt_amt) - Number(tot_curr_intt_recov);
 
@@ -259,8 +261,6 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       data: []
       });
     }
-
-  }
 
    const select = "COALESCE(SUM(prn_amt),0) as total_prn, COALESCE(SUM(intt_amt),0) as total_intt";
    const table = "bdccb.td_loan_member";
