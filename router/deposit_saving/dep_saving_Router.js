@@ -103,16 +103,6 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
             }else{
               return 0;
             }
-          // No transactions found, return 0 balance
-        // }else{
-        //       const select = `balance`;
-        //       const table_name = "bdccb.td_deposit_trans";
-        //       const whr = `sb_id = '${sb_id}' order by trans_no desc limit 1 `;
-        //       const order = null; 
-        //       const res_dt = await db_Select(select, table_name, whr, order);
-        //       const balance = res_dt.msg[0].balance;
-        //       return balance; // INTEGER
-        // }
     }
    depsavingRouter.post("/get_meb_acc_dtls", async (req, res) => {
 
