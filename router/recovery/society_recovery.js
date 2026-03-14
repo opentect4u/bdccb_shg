@@ -417,8 +417,8 @@ let values = columns.map(c => r[c]);
    let curr_intt = 0;
 
    if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
-   curr_prn =   fetch_current_data.msg[0].curr_prn ;
-   curr_intt =  fetch_current_data.msg[0].curr_intt  ;
+   curr_prn =   fetch_current_data.msg[0].curr_prn;
+   curr_intt =  fetch_current_data.msg[0].curr_intt;
    }
 
     // Update td_loan_member loan balance
@@ -441,7 +441,7 @@ let values = columns.map(c => r[c]);
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
 
     // if(interest_row.msg.length > 0){
-   let interest_trans_id = interest_row.msg?.[0]?.trans_id || null;
+   let interest_trans_id = interest_row.msg[0].trans_id || null;
 // }
 
     // delete from td_loan_transactions table recovery row
