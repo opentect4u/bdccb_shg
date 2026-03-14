@@ -384,8 +384,13 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
     let r = data.msg[0];
 
     // PREPARE COLUMNS AND VALUES
-    let columns = Object.keys(r);
-    let values = Object.values(r);
+    // let columns = Object.keys(r);
+    // let values = Object.values(r);
+    let columns = Object.keys(r).filter(c => 
+  !["rejected_by","rejected_dt","rejected_ip_address","reject_remarks"].includes(c)
+);
+
+let values = columns.map(c => r[c]);
 
      // add reject fields
       columns.push("rejected_by","rejected_dt","rejected_ip_address","reject_remarks");
@@ -408,8 +413,8 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
    order = null;
    var fetch_current_data = await db_Select(select,table_name,whr,order);
 
-    let curr_prn =  fetch_current_data.msg[0].curr_prn ;
-    let curr_intt =  fetch_current_data.msg[0].curr_intt ;
+    let curr_prn =  fetch_current_data.msg.length ? fetch_current_data.msg[0].curr_prn : 0;
+    let curr_intt = fetch_current_data.msg.length ? fetch_current_data.msg[0].curr_intt : 0 ;
 
     // Update td_loan_member loan balance
     let table2 = "bdccb.td_loan_member";
@@ -424,13 +429,13 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
     let select_t = "trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
-           AND trans_date = '${trans_dt}'
+           AND trans_dt = '${trans_dt}'
            AND trans_type = 'I'`;
     let order_t = null;
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
 
     // if(interest_row.msg.length > 0){
-   let interest_trans_id = interest_row.msg[0].trans_id;
+   let interest_trans_id = interest_row.msg.length ? interest_row.msg[0].trans_id : null;
 // }
 
     // delete from td_loan_transactions table recovery row
@@ -452,12 +457,12 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
    order1 = null;
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
 
-    let current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
-    let current_curr_intt =  fetch_current_data1.msg[0].td_curr_intt ;
+    let current_curr_prn =  fetch_current_data1.msg.length ? fetch_current_data1.msg[0].td_curr_prn : 0;
+    let current_curr_intt = fetch_current_data1.msg.length ? fetch_current_data1.msg[0].td_curr_intt : 0;
 
     // Update td_loan loan balance
     let table3 = "bdccb.td_loan";
-    let columns3 = ["curr_prn","curr_intt","modified_by","modified_at","ip_address"];
+    let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
     let values3 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
     let whereColumns3 = ["loan_id","tenant_id","group_code"];
     let whereValues3 = [loan_id,tenant_id,group_code];
@@ -478,6 +483,6 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
       error: []
     });
   }
-})
+});
 
 module.exports = {society_recovRouter}
