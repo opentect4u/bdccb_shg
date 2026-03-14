@@ -306,4 +306,39 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   }
 });
 
+// FETCH SOCIETY RECOVERY DETAILS
+society_recovRouter.post("/fetch_society_recov_dtls", async (req, res) => {
+try{
+const { tenant_id, branch_id, from_dt, to_dt} = req.body;
+console.log(req.body);
+
+var select = "a.group_code,b.group_name,a.disb_amt,c.trans_dt,c.trans_id,(COALESCE(c.cr_amt,0)) AS credit amount",
+table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id",
+whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND c.approval_status = 'U' AND c.trans_type = 'R' AND c.trans_dt BETWEEN '${from_dt}' AND ${to_dt}`,
+order = null;
+var fetch_society_recovery_data = await db_Select(select, table_name, whr, order);
+
+if (fetch_society_recovery_data.suc === 1 && fetch_society_recovery_data.msg.length > 0) {
+  return res.send({
+    success: true,
+    msg: "Fetch society recovery details",
+    data: fetch_society_recovery_data.msg,
+  });
+} else {
+  return res.send({
+    success: true,
+    msg: "No Recovery details found",
+    data: [],
+  });
+}
+}catch (error) {
+    console.error("Error in while fetch unapprove disbursement details:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
 module.exports = {society_recovRouter}
