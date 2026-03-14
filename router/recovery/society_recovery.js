@@ -431,12 +431,13 @@ let values = columns.map(c => r[c]);
     // Update td_loan_member loan balance
     let table2 = "bdccb.td_loan_member";
     let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
-    let values2 = [curr_prn,curr_intt,created_by,datetime,ip_address];
+    let values2 = [Number(curr_prn), Number(curr_intt),created_by,datetime,ip_address];
     let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
     let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
     let flag2 = 1; // update flag
     const update_td_loan = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
     console.log(update_td_loan,'ki');
+    console.log(whereValues2,'whereValues2');
     
    }
 
@@ -493,11 +494,12 @@ let values = columns.map(c => r[c]);
     // Update td_loan loan balance
     let table3 = "bdccb.td_loan";
     let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
-    let values3 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
+    let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
     let whereColumns3 = ["loan_id","tenant_id","group_code"];
     let whereValues3 = [loan_id,tenant_id,group_code];
     let flag3 = 1; // update flag
     await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
+    console.log(whereValues3,'whereValues3');
 
     return res.send({
       success: true,
