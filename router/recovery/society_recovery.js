@@ -409,7 +409,7 @@ let values = columns.map(c => r[c]);
    // FETCH CURRENT DATA FROM td_loan_member_trans table
    var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
    table_name = "bdccb.td_loan_member_trans a",
-   whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_type = 'R'`,
+   whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
    order = "ORDER BY a.trans_date DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data = await db_Select(select,table_name,whr,order);
 
@@ -461,7 +461,7 @@ let values = columns.map(c => r[c]);
       // FETCH CURRENT PRINCIPAL AND OINTEREST FROM TD_LOAN_TRANSCATIONS TABLE
   var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
    table_name1 = "bdccb.td_loan_transactions a",
-   whr1 = `a.loan_id = '${loan_id}' AND a.trans_type = 'R'`,
+   whr1 = `a.loan_id = '${loan_id}'`,
    order1 = "ORDER BY a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
 
