@@ -413,8 +413,13 @@ let values = columns.map(c => r[c]);
    order = "ORDER BY a.trans_date DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data = await db_Select(select,table_name,whr,order);
 
-    let curr_prn =   fetch_current_data.msg[0].curr_prn ;
-    let curr_intt =  fetch_current_data.msg[0].curr_intt  ;
+   let curr_prn = 0;
+   let curr_intt = 0;
+
+   if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
+   curr_prn =   fetch_current_data.msg[0].curr_prn ;
+   curr_intt =  fetch_current_data.msg[0].curr_intt  ;
+   }
 
     // Update td_loan_member loan balance
     let table2 = "bdccb.td_loan_member";
@@ -460,8 +465,13 @@ let values = columns.map(c => r[c]);
    order1 = "ORDER BY a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
 
-    let current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
-    let current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
+   let current_curr_prn = 0;
+   let current_curr_intt = 0;
+
+   if(fetch_current_data1.msg && fetch_current_data1.msg.length > 0){
+    current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
+    current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
+   }
 
     // Update td_loan loan balance
     let table3 = "bdccb.td_loan";
