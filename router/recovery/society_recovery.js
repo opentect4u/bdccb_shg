@@ -369,13 +369,13 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
 
    for(let row of members){
 
-    let select1 = "*";
+    let select_fetch = "*";
     let table_fetch = "bdccb.td_loan_member_trans";
     let whr_fetch = `trans_date = '${row.trans_date}'
                  AND trans_id = '${row.trans_id}'
                  AND loan_id = '${row.loan_id}'`;
 
-    let data = await db_Select(select1, table_fetch, whr_fetch, null);
+    let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
 
      if(!data.msg.length){
         continue;
