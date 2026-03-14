@@ -404,7 +404,9 @@ let values = columns.map(c => r[c]);
    await saveRecord(table, columns, values, whereColumns, whereValues, flag);
 
    // Delete from original table
-   await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id"],[row.trans_date, row.trans_id, row.loan_id]);
+   const delete_record = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id"],[row.trans_date, row.trans_id, row.loan_id]);
+   console.log(delete_record,'dedede');
+   
 
    // FETCH CURRENT DATA FROM td_loan_member_trans table
    var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
@@ -413,12 +415,17 @@ let values = columns.map(c => r[c]);
    order = "ORDER BY a.trans_date DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data = await db_Select(select,table_name,whr,order);
 
+   console.log(fetch_current_data,'curr');
+   
+
    let curr_prn = 0;
    let curr_intt = 0;
 
    if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
    curr_prn =   fetch_current_data.msg[0].curr_prn;
    curr_intt =  fetch_current_data.msg[0].curr_intt;
+   console.log(curr_intt,curr_prn,'hyhyhy');
+   
    }
 
     // Update td_loan_member loan balance
@@ -428,7 +435,9 @@ let values = columns.map(c => r[c]);
     let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
     let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
     let flag2 = 1; // update flag
-    await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+    const update_td_loan = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+    console.log(update_td_loan,'ki');
+    
    }
 
    // FETCH INTEREST ROW TRANS_ID 
@@ -439,9 +448,13 @@ let values = columns.map(c => r[c]);
            AND trans_type = 'I'`;
     let order_t = null;
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
+    console.log(interest_row);
+    
 
     // if(interest_row.msg.length > 0){
    let interest_trans_id = interest_row.msg[0].trans_id || null;
+   console.log(interest_trans_id);
+   
 // }
 
     // delete from td_loan_transactions table recovery row
