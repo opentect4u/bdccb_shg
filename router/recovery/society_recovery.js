@@ -361,7 +361,7 @@ return res.send({
 // REJECT SOCIETY RECOVERY
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
   try{
-   const {tenant_id, loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
+   const {loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
    console.log(req.body,'rrrr');
 
    let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
@@ -409,7 +409,7 @@ let values = columns.map(c => r[c]);
    
 
    // FETCH CURRENT DATA FROM td_loan_member_trans table
-   var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+   var select = "tenant_id,(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
    table_name = "bdccb.td_loan_member_trans a",
    whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
    order = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
@@ -425,8 +425,9 @@ let values = columns.map(c => r[c]);
    curr_prn =   fetch_current_data.msg[0].curr_prn;
    curr_intt =  fetch_current_data.msg[0].curr_intt;
    console.log(curr_intt,curr_prn,'hyhyhy');
-   
    }
+
+   tenant_id = fetch_current_data.msg[0].tenant_id;
 
     // Update td_loan_member loan balance
     let table2 = "bdccb.td_loan_member";
@@ -442,7 +443,7 @@ let values = columns.map(c => r[c]);
    }
 
    // FETCH INTEREST ROW TRANS_ID 
-    let select_t = "trans_id";
+    let select_t = "tenant_id,trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
            AND trans_dt = '${trans_dt}'
@@ -454,6 +455,7 @@ let values = columns.map(c => r[c]);
 
     // if(interest_row.msg.length > 0){
    let interest_trans_id = interest_row.msg[0].trans_id || null;
+   let tenant = interest_row.msg[0].tenant_id || 0;
    console.log(interest_trans_id,'po');
    
 // }
@@ -496,7 +498,7 @@ let values = columns.map(c => r[c]);
     let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
     let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
     let whereColumns3 = ["loan_id","tenant_id","group_code"];
-    let whereValues3 = [loan_id,tenant_id,group_code];
+    let whereValues3 = [loan_id,tenant,group_code];
     let flag3 = 1; // update flag
     await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
     console.log(whereValues3,'whereValues3');
