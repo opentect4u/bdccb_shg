@@ -369,13 +369,30 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
 
    for(let row of members){
 
+    let select1 = "*";
+    let table_fetch = "bdccb.td_loan_member_trans";
+    let whr_fetch = `trans_date = '${row.trans_date}'
+                 AND trans_id = '${row.trans_id}'
+                 AND loan_id = '${row.loan_id}'`;
+
+    let data = await db_Select(select1, table_fetch, whr_fetch, null);
+
+     if(!data.msg.length){
+        continue;
+      }
+
+    let r = data.msg[0];
+
+    // PREPARE COLUMNS AND VALUES
+    let columns = Object.keys(r);
+    let values = Object.values(r);
+
+     // add reject fields
+      columns.push("rejected_by","rejected_dt","rejected_ip_address","reject_remarks");
+      values.push(created_by, datetime, ip_address, reject_remarks);
+
     // Insert into td_loan_member_trans_temp table
    let table = "bdccb.td_loan_member_trans_reject";
-   let columns = "*,'"+created_by+"' as rejected_by,'"+datetime+"' as rejected_at,'"+reject_remarks+"' as reject_remarks";
-   let values = `SELECT ${columns} FROM td_loan_member_trans
-                  WHERE trans_date = '${row.trans_date}'
-                  AND trans_id = '${row.trans_id}'
-                  AND loan_id = '${row.loan_id}'`;
    let whereColumns = null;
    let whereValues = null;
    let flag = 0;
