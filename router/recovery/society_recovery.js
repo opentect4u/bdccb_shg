@@ -312,25 +312,36 @@ try{
 const { tenant_id, branch_id, from_dt, to_dt} = req.body;
 console.log(req.body);
 
-var select = "a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id,(COALESCE(c.cr_amt,0)) AS credit_amount",
+var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id,(COALESCE(c.cr_amt,0)) AS credit_amount",
 table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
 whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}'  AND c.approval_status = 'U' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`,
 order = null;
 var fetch_society_recovery_data = await db_Select(select, table_name, whr, order);
 
 if (fetch_society_recovery_data.suc === 1 && fetch_society_recovery_data.msg.length > 0) {
-  return res.send({
+
+  const ccb_loan_id = fetch_society_recovery_data.msg[0].loan_id;
+
+var select_mem_trans = "TO_CHAR(a.trans_date, 'YYYY-MM-DD') AS trans_date,a.trans_id,a.loan_id,(COALESCE(a.dr_amt,0)) AS debit_amount,(COALESCE(a.cr_amt,0)) AS credit_amount,(COALESCE(a.curr_prn_recov,0)) AS curr_prn_recov,(COALESCE(a.curr_intt_recov,0)) AS curr_intt_recov",
+table_mem_trans = "bdccb.td_loan_member_trans a",
+whr_mem_trans = `a.ccb_loan_id = '${ccb_loan_id}' AND a.tenant_id = '${tenant_id}' AND a.trans_type IN ('I,'R')`,
+order_mem_trans = null;
+var fetch_society_mem_recov_dtls = await db_Select(select_mem_trans,table_mem_trans,whr_mem_trans,order_mem_trans);
+
+fetch_society_recovery_data.msg[0].members = fetch_society_mem_recov_dtls.msg || [];
+
+return res.send({
     success: true,
     msg: "Fetch society recovery details",
     data: fetch_society_recovery_data.msg,
   });
-} else {
-  return res.send({
-    success: true,
-    msg: "No Recovery details found",
-    data: [],
-  });
 }
+
+return res.send({
+  success: true,
+  msg: "No Recovery details found",
+  data: [],
+});
 }catch (error) {
     console.error("Error in while fetch unapprove disbursement details:", error);
     return res.send({
