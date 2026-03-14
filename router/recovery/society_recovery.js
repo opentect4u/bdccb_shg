@@ -361,23 +361,8 @@ return res.send({
 // REJECT SOCIETY RECOVERY
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
   try{
-  //  const {tenant_id, loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
-  //  console.log(req.body,'rrrr');
-   
-  const { tenant_id, created_by, ip_address, reject_remarks } = req.body;
-const data = req.body.data[0];
-console.log(data,'juju');
-
-
-const loan_id = data.loan_id;
-const group_code = data.group_code;
-const group_name = data.group_name;
-const disb_amt = data.disb_amt;
-const trans_dt = data.trans_dt;
-const trans_id = data.trans_id;
-const credit_amount = data.credit_amount;
-const members = data.members;
-console.log("members:", members);
+   const {tenant_id, loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
+   console.log(req.body,'rrrr');
 
    let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
 
