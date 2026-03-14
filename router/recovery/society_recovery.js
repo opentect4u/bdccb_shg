@@ -448,12 +448,12 @@ let values = columns.map(c => r[c]);
            AND trans_type = 'I'`;
     let order_t = null;
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
-    console.log(interest_row);
+    console.log(interest_row,'kiyt');
     
 
     // if(interest_row.msg.length > 0){
    let interest_trans_id = interest_row.msg[0].trans_id || null;
-   console.log(interest_trans_id);
+   console.log(interest_trans_id,'po');
    
 // }
 
@@ -477,6 +477,8 @@ let values = columns.map(c => r[c]);
    whr1 = `a.loan_id = '${loan_id}'`,
    order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
+   console.log(fetch_current_data1,'hyfr');
+   
 
    let current_curr_prn = 0;
    let current_curr_intt = 0;
@@ -484,6 +486,8 @@ let values = columns.map(c => r[c]);
    if(fetch_current_data1.msg && fetch_current_data1.msg.length > 0){
     current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
     current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
+    console.log(current_curr_intt,current_curr_prn,'kiujh');
+    
    }
 
     // Update td_loan loan balance
