@@ -455,7 +455,7 @@ let values = columns.map(c => r[c]);
 
     // if(interest_row.msg.length > 0){
    let interest_trans_id = interest_row.msg[0].trans_id || null;
-   let tenant = interest_row.msg[0].tenant_id || 0;
+  //  let tenant = interest_row.msg[0].tenant_id || 0;
    console.log(interest_trans_id,'po');
    
 // }
