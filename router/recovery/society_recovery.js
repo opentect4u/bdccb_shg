@@ -424,8 +424,9 @@ let values = columns.map(c => r[c]);
     let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
     let flag2 = 1; // update flag
     await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+   }
 
-    // FETCH INTEREST ROW TRANS_ID 
+   // FETCH INTEREST ROW TRANS_ID 
     let select_t = "trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
@@ -435,7 +436,7 @@ let values = columns.map(c => r[c]);
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
 
     // if(interest_row.msg.length > 0){
-   let interest_trans_id = interest_row.msg[0].trans_id ;
+   let interest_trans_id = interest_row.msg?.[0]?.trans_id || null;
 // }
 
     // delete from td_loan_transactions table recovery row
@@ -445,10 +446,12 @@ let values = columns.map(c => r[c]);
       [trans_dt, trans_id, loan_id, "R"]);
 
         // delete from td_loan_transactions table interest row
+        if(interest_trans_id){
      await deleteRecord(
       "bdccb.td_loan_transactions",
       ["trans_dt", "trans_id", "loan_id", "trans_type"],
       [trans_dt, interest_trans_id, loan_id, "I"]);
+     }
 
       // FETCH CURRENT PRINCIPAL AND OINTEREST FROM TD_LOAN_TRANSCATIONS TABLE
   var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
@@ -468,8 +471,6 @@ let values = columns.map(c => r[c]);
     let whereValues3 = [loan_id,tenant_id,group_code];
     let flag3 = 1; // update flag
     await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
-
-   }
 
     return res.send({
       success: true,
