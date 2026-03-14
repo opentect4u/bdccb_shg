@@ -362,6 +362,8 @@ return res.send({
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
   try{
    const {tenant_id, loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
+   console.log(req.body,'rrrr');
+   
 
    let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
 
