@@ -357,4 +357,108 @@ return res.send({
   }
 });
 
+
+// REJECT SOCIETY RECOVERY
+society_recovRouter.post("/reject_society_recov", async (req, res) => {
+  try{
+   const {tenant_id, loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
+
+   let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
+
+   for(let row of members){
+
+    // Insert into td_loan_member_trans_temp table
+   let table = "bdccb.td_loan_member_trans_reject";
+   let columns = "*,'"+created_by+"' as rejected_by,'"+datetime+"' as rejected_at,'"+reject_remarks+"' as reject_remarks";
+   let values = `SELECT ${columns} FROM td_loan_member_trans
+                  WHERE trans_date = '${row.trans_date}'
+                  AND trans_id = '${row.trans_id}'
+                  AND loan_id = '${row.loan_id}'`;
+   let whereColumns = null;
+   let whereValues = null;
+   let flag = 0;
+   await saveRecord(table, columns, values, whereColumns, whereValues, flag);
+
+   // Delete from original table
+   await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id"],[row.trans_date, row.trans_id, row.loan_id]);
+
+   // FETCH CURRENT DATA FROM td_loan_member_trans table
+   var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+   table_name = "bdccb.td_loan_member_trans a",
+   whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_type = 'R'`,
+   order = null;
+   var fetch_current_data = await db_Select(select,table_name,whr,order);
+
+    let curr_prn =  fetch_current_data.msg[0].curr_prn ;
+    let curr_intt =  fetch_current_data.msg[0].curr_intt ;
+
+    // Update td_loan_member loan balance
+    let table2 = "bdccb.td_loan_member";
+    let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+    let values2 = [curr_prn,curr_intt,created_by,datetime,ip_address];
+    let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
+    let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
+    let flag2 = 1; // update flag
+    await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+
+    // FETCH INTEREST ROW TRANS_ID 
+    let select_t = "trans_id";
+    let table_t = "bdccb.td_loan_transactions";
+    let whr_t = `loan_id = '${loan_id}'
+           AND trans_date = '${trans_dt}'
+           AND trans_type = 'I'`;
+    let order_t = null;
+    let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
+
+    // if(interest_row.msg.length > 0){
+   let interest_trans_id = interest_row.msg[0].trans_id;
+// }
+
+    // delete from td_loan_transactions table recovery row
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "trans_type"],
+      [trans_dt, trans_id, loan_id, "R"]);
+
+        // delete from td_loan_transactions table interest row
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "trans_type"],
+      [trans_dt, interest_trans_id, loan_id, "I"]);
+
+      // FETCH CURRENT PRINCIPAL AND OINTEREST FROM TD_LOAN_TRANSCATIONS TABLE
+  var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
+   table_name1 = "bdccb.td_loan_transactions a",
+   whr1 = `a.loan_id = '${loan_id}' AND a.trans_type = 'R'`,
+   order1 = null;
+   var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
+
+    let current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
+    let current_curr_intt =  fetch_current_data1.msg[0].td_curr_intt ;
+
+    // Update td_loan loan balance
+    let table3 = "bdccb.td_loan";
+    let columns3 = ["curr_prn","curr_intt","modified_by","modified_at","ip_address"];
+    let values3 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
+    let whereColumns3 = ["loan_id","tenant_id","group_code"];
+    let whereValues3 = [loan_id,tenant_id,group_code];
+    let flag3 = 1; // update flag
+    await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
+
+   }
+
+    return res.send({
+      success: true,
+      msg: "Society recovery rejected successfully"
+   });
+   }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while rejecting society recovery",
+      error:error
+    });
+  }
+})
+
 module.exports = {society_recovRouter}
