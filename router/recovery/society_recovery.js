@@ -409,7 +409,7 @@ let values = columns.map(c => r[c]);
    
 
    // FETCH CURRENT DATA FROM td_loan_member_trans table
-   var select = "tenant_id,(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+   var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
    table_name = "bdccb.td_loan_member_trans a",
    whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
    order = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
@@ -427,14 +427,14 @@ let values = columns.map(c => r[c]);
    console.log(curr_intt,curr_prn,'hyhyhy');
    }
 
-   tenant_id = fetch_current_data.msg[0].tenant_id;
+  //  tenant_id = fetch_current_data.msg[0].tenant_id;
 
     // Update td_loan_member loan balance
     let table2 = "bdccb.td_loan_member";
     let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
     let values2 = [Number(curr_prn), Number(curr_intt),created_by,datetime,ip_address];
-    let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
-    let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
+    let whereColumns2 = ["loan_id","ccb_loan_id","group_code"];
+    let whereValues2 = [row.loan_id,loan_id,group_code];
     let flag2 = 1; // update flag
     const update_td_loan = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
     console.log(update_td_loan,'ki');
@@ -443,7 +443,7 @@ let values = columns.map(c => r[c]);
    }
 
    // FETCH INTEREST ROW TRANS_ID 
-    let select_t = "tenant_id,trans_id";
+    let select_t = "trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
            AND trans_dt = '${trans_dt}'
@@ -497,8 +497,8 @@ let values = columns.map(c => r[c]);
     let table3 = "bdccb.td_loan";
     let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
     let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
-    let whereColumns3 = ["loan_id","tenant_id","group_code"];
-    let whereValues3 = [loan_id,tenant,group_code];
+    let whereColumns3 = ["loan_id","group_code"];
+    let whereValues3 = [loan_id,group_code];
     let flag3 = 1; // update flag
     await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
     console.log(whereValues3,'whereValues3');
