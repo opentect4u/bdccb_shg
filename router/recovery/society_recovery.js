@@ -456,7 +456,7 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
     return res.send({
       success:false,
       msg:"Error occurred while rejecting society recovery",
-      error:error
+      error: []
     });
   }
 })
