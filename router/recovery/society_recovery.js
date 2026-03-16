@@ -367,7 +367,7 @@ society_recovRouter.post("/check_date_id_before_reject", async (req, res) => {
     }
 
     for(let dt of reject_data){
-        const trans_dt = dateFormat(dt.trans_dt, 'yyyy-mm-dd');
+        const trans_dt = new Date(dt.trans_dt).toISOString().slice(0,10);
         const trans_id = dt.trans_id;
         const loan_id = dt.loan_id;
 
