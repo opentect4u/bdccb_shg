@@ -315,7 +315,7 @@ console.log(req.body);
 var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id,(COALESCE(c.cr_amt,0)) AS credit_amount",
 table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
 whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}'  AND c.approval_status = 'U' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`,
-order = null;
+order = `c.trans_id,c.trans_dt`;
 var fetch_society_recovery_data = await db_Select(select, table_name, whr, order);
 
 if (fetch_society_recovery_data.suc === 1 && fetch_society_recovery_data.msg.length > 0) {
