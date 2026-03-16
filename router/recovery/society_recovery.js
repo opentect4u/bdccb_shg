@@ -306,4 +306,215 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   }
 });
 
+// FETCH SOCIETY RECOVERY DETAILS
+society_recovRouter.post("/fetch_society_recov_dtls", async (req, res) => {
+try{
+const { tenant_id, branch_id, from_dt, to_dt} = req.body;
+console.log(req.body);
+
+var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id,(COALESCE(c.cr_amt,0)) AS credit_amount",
+table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
+whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}'  AND c.approval_status = 'U' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`,
+order = null;
+var fetch_society_recovery_data = await db_Select(select, table_name, whr, order);
+
+if (fetch_society_recovery_data.suc === 1 && fetch_society_recovery_data.msg.length > 0) {
+
+  const ccb_loan_id = fetch_society_recovery_data.msg[0].loan_id;
+
+var select_mem_trans = "TO_CHAR(a.trans_date, 'YYYY-MM-DD') AS trans_date,a.trans_id,a.loan_id,(COALESCE(a.dr_amt,0)) AS debit_amount,(COALESCE(a.cr_amt,0)) AS credit_amount,(COALESCE(a.curr_prn_recov,0)) AS curr_prn_recov,(COALESCE(a.curr_intt_recov,0)) AS curr_intt_recov",
+table_mem_trans = "bdccb.td_loan_member_trans a",
+whr_mem_trans = `a.ccb_loan_id = '${ccb_loan_id}' AND a.tenant_id = '${tenant_id}' 
+AND a.trans_type IN ('I','R') AND a.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'`,
+order_mem_trans = null;
+var fetch_society_mem_recov_dtls = await db_Select(select_mem_trans,table_mem_trans,whr_mem_trans,order_mem_trans);
+
+fetch_society_recovery_data.msg.forEach(row => {
+  row.members = fetch_society_mem_recov_dtls.suc === 1
+    ? fetch_society_mem_recov_dtls.msg
+    : [];
+});
+
+return res.send({
+    success: true,
+    msg: "Fetch society recovery details",
+    data: fetch_society_recovery_data.msg,
+  });
+}
+
+return res.send({
+  success: true,
+  msg: "No Recovery details found",
+  data: [],
+});
+}catch (error) {
+    console.error("Error in while fetch unapprove disbursement details:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+
+// REJECT SOCIETY RECOVERY
+society_recovRouter.post("/reject_society_recov", async (req, res) => {
+  try{
+   const {loan_id, group_code, group_name, disb_amt, trans_dt, trans_id, credit_amount, members, created_by, ip_address, reject_remarks} = req.body;
+   console.log(req.body,'rrrr');
+
+   let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
+
+   for(let row of members){
+     console.log(row); 
+
+    let select_fetch = "*";
+    let table_fetch = "bdccb.td_loan_member_trans";
+    let whr_fetch = `trans_date = '${row.trans_date}'
+                 AND trans_id = '${row.trans_id}'
+                 AND loan_id = '${row.loan_id}'`;
+
+    let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
+
+     if(!data.msg.length){
+        continue;
+      }
+
+    let r = data.msg[0];
+
+    // PREPARE COLUMNS AND VALUES
+    // let columns = Object.keys(r);
+    // let values = Object.values(r);
+    let columns = Object.keys(r).filter(c => 
+  !["rejected_by","rejected_dt","rejected_ip_address","reject_remarks"].includes(c)
+);
+
+let values = columns.map(c => r[c]);
+
+     // add reject fields
+      columns.push("rejected_by","rejected_dt","rejected_ip_address","reject_remarks");
+      values.push(created_by, datetime, ip_address, reject_remarks);
+
+    // Insert into td_loan_member_trans_temp table
+   let table = "bdccb.td_loan_member_trans_reject";
+   let whereColumns = null;
+   let whereValues = null;
+   let flag = 0;
+   await saveRecord(table, columns, values, whereColumns, whereValues, flag);
+
+   // Delete from original table
+   const delete_record = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id"],[row.trans_date, row.trans_id, row.loan_id]);
+   console.log(delete_record,'dedede');
+   
+
+   // FETCH CURRENT DATA FROM td_loan_member_trans table
+   var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+   table_name = "bdccb.td_loan_member_trans a",
+   whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
+   order = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
+   var fetch_current_data = await db_Select(select,table_name,whr,order);
+
+   console.log(fetch_current_data,'curr');
+   
+
+   let curr_prn = 0;
+   let curr_intt = 0;
+
+   if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
+   curr_prn =   fetch_current_data.msg[0].curr_prn;
+   curr_intt =  fetch_current_data.msg[0].curr_intt;
+   console.log(curr_intt,curr_prn,'hyhyhy');
+   }
+
+  //  tenant_id = fetch_current_data.msg[0].tenant_id;
+
+    // Update td_loan_member loan balance
+    let table2 = "bdccb.td_loan_member";
+    let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+    let values2 = [Number(curr_prn), Number(curr_intt),created_by,datetime,ip_address];
+    let whereColumns2 = ["loan_id","ccb_loan_id","group_code"];
+    let whereValues2 = [row.loan_id,loan_id,group_code];
+    let flag2 = 1; // update flag
+    const update_td_loan = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+    console.log(update_td_loan,'ki');
+    console.log(whereValues2,'whereValues2');
+    
+   }
+
+   // FETCH INTEREST ROW TRANS_ID 
+    let select_t = "trans_id";
+    let table_t = "bdccb.td_loan_transactions";
+    let whr_t = `loan_id = '${loan_id}'
+           AND trans_dt = '${trans_dt}'
+           AND trans_type = 'I'`;
+    let order_t = null;
+    let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
+    console.log(interest_row,'kiyt');
+    
+
+    // if(interest_row.msg.length > 0){
+   let interest_trans_id = interest_row.msg[0].trans_id || null;
+  //  let tenant = interest_row.msg[0].tenant_id || 0;
+   console.log(interest_trans_id,'po');
+   
+// }
+
+    // delete from td_loan_transactions table recovery row
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "trans_type"],
+      [trans_dt, trans_id, loan_id, "R"]);
+
+        // delete from td_loan_transactions table interest row
+        if(interest_trans_id){
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "trans_type"],
+      [trans_dt, interest_trans_id, loan_id, "I"]);
+     }
+
+      // FETCH CURRENT PRINCIPAL AND OINTEREST FROM TD_LOAN_TRANSCATIONS TABLE
+  var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
+   table_name1 = "bdccb.td_loan_transactions a",
+   whr1 = `a.loan_id = '${loan_id}'`,
+   order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
+   var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
+   console.log(fetch_current_data1,'hyfr');
+   
+
+   let current_curr_prn = 0;
+   let current_curr_intt = 0;
+
+   if(fetch_current_data1.msg && fetch_current_data1.msg.length > 0){
+    current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
+    current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
+    console.log(current_curr_intt,current_curr_prn,'kiujh');
+    
+   }
+
+    // Update td_loan loan balance
+    let table3 = "bdccb.td_loan";
+    let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+    let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
+    let whereColumns3 = ["loan_id","group_code"];
+    let whereValues3 = [loan_id,group_code];
+    let flag3 = 1; // update flag
+    await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
+    console.log(whereValues3,'whereValues3');
+
+    return res.send({
+      success: true,
+      msg: "Society recovery rejected successfully"
+   });
+   }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while rejecting society recovery",
+      error: []
+    });
+  }
+});
+
 module.exports = {society_recovRouter}
