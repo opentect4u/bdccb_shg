@@ -150,7 +150,7 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
 // SUBMIT RECOVERY IN SOCIETY LEVEL
 society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   try{
-  const {ccb_loan_id,tenant_id,branch_id,loan_acc_no,loan_to,society_recov,created_by,ip_address} = req.body;
+  const {ccb_loan_id,tenant_id,branch_id,loan_acc_no,loan_to,prn_amt,intt_amt,society_recov,created_by,ip_address} = req.body;
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
   let date = new Date().toISOString().slice(0, 10);
@@ -198,24 +198,24 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     }
 }
 
-    let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
-    let current_intt_amt = Number(dt.calculated_interest) - Number(dt.intt_recov);
+    // let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
+    // let current_intt_amt = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
-    const table4 = "bdccb.td_loan_member";
-    const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
-    const values4 = [current_prn_amt,current_intt_amt,created_by,datetime,ip_address];
-    const whereColumns4 = ["loan_id","ccb_loan_id","tenant_id"];
-    const whereValues4 = [dt.loan_id,ccb_loan_id,tenant_id];
-    const flag4 = 1;
-    const soc_trans_result4 = await saveRecord(table4,columns4,values4,whereColumns4,whereValues4,flag4);
+    // const table4 = "bdccb.td_loan_member";
+    // const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+    // const values4 = [current_prn_amt,current_intt_amt,created_by,datetime,ip_address];
+    // const whereColumns4 = ["loan_id","ccb_loan_id","tenant_id"];
+    // const whereValues4 = [dt.loan_id,ccb_loan_id,tenant_id];
+    // const flag4 = 1;
+    // const soc_trans_result4 = await saveRecord(table4,columns4,values4,whereColumns4,whereValues4,flag4);
 
-    if (!soc_trans_result4 || soc_trans_result4.suc !== 1) {
-    return res.send({
-      success: false,
-      msg: "Failed to update loan details",
-      data: []
-      });
-    }
+    // if (!soc_trans_result4 || soc_trans_result4.suc !== 1) {
+    // return res.send({
+    //   success: false,
+    //   msg: "Failed to update loan details",
+    //   data: []
+    //   });
+    // }
 
   }
 
@@ -223,11 +223,12 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     let tot_curr_prn_amt = society_recov.reduce((sum, item) => sum + Number(item.curr_prn), 0);
     let tot_cal_intt_amt = society_recov.reduce((sum, item) => sum + Number(item.calculated_interest), 0);
-    let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
+    // let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     let tot_curr_prn_recov = society_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     let tot_curr_intt_recov = society_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(tot_curr_prn_amt) - Number(tot_curr_prn_recov);
-    let tot_current_intt = Number(tot_cal_intt_amt) - Number(tot_curr_intt_recov);
+    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt);
+    let tot_current_intt = Number(tot_cal_intt_amt) - Number(intt_amt);
+    let tot_coll_recov_amt = Number(prn_amt) - Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
@@ -248,7 +249,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,tot_curr_prn_recov,tot_curr_intt_recov,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
+    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;
@@ -262,36 +263,36 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
       });
     }
 
-   const select = "COALESCE(SUM(prn_amt),0) as total_prn, COALESCE(SUM(intt_amt),0) as total_intt";
-   const table = "bdccb.td_loan_member";
-   const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
-   const order = null;  
-   const loanSum = await db_Select(select, table, where, order);
+  //  const select = "COALESCE(SUM(prn_amt),0) as total_prn, COALESCE(SUM(intt_amt),0) as total_intt";
+  //  const table = "bdccb.td_loan_member";
+  //  const where = `ccb_loan_id='${ccb_loan_id}' AND tenant_id='${tenant_id}'`;
+  //  const order = null;  
+  //  const loanSum = await db_Select(select, table, where, order);
   //  console.log("loanSum result:", loanSum);
 
-     let total_curr_prn = 0;
-    let total_curr_intt = 0;
+    //  let total_curr_prn = 0;
+    // let total_curr_intt = 0;
 
-   if (loanSum && loanSum.msg && loanSum.msg.length > 0) {
-  total_curr_prn = Number(loanSum.msg[0].total_prn) || 0;
-  total_curr_intt = Number(loanSum.msg[0].total_intt) || 0;
-}
+//    if (loanSum && loanSum.msg && loanSum.msg.length > 0) {
+//   total_curr_prn = Number(loanSum.msg[0].total_prn) || 0;
+//   total_curr_intt = Number(loanSum.msg[0].total_intt) || 0;
+// }
     // console.log(total_curr_prn,total_curr_intt);
 
-   const table6 = "bdccb.td_loan";
-   const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
-   const values6 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
-   const whereColumns6 = ["loan_id","tenant_id"];
-   const whereValues6 = [ccb_loan_id,tenant_id];
-   const flag6 = 1;
-   const updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
+  //  const table6 = "bdccb.td_loan";
+  //  const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+  //  const values6 = [total_curr_prn,total_curr_intt,created_by,datetime,ip_address];
+  //  const whereColumns6 = ["loan_id","tenant_id"];
+  //  const whereValues6 = [ccb_loan_id,tenant_id];
+  //  const flag6 = 1;
+  //  const updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
 
-   if (!updateLoan || updateLoan.suc !== 1) {
-    return res.send({
-    success: true,
-    msg:"Failed to update td_loan table"
-  });
-  }
+  //  if (!updateLoan || updateLoan.suc !== 1) {
+  //   return res.send({
+  //   success: true,
+  //   msg:"Failed to update td_loan table"
+  // });
+  // }
    return res.send({
     success: true,
     msg: "Recovery done successfully" 
