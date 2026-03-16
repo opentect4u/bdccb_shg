@@ -357,6 +357,51 @@ return res.send({
   }
 });
 
+// CHECK DATE AND ID BEFORE REJECT
+society_recovRouter.post("/check_date_id_before_reject", async (req, res) => {
+  try{
+   const { reject_data } = req.body;
+
+    if (!reject_data || reject_data.length === 0) {
+      return res.send({ success : false, msg: 'No data received' });
+    }
+
+    for(let dt of reject_data){
+        const trans_dt = dateFormat(dt.trans_dt, 'yyyy-mm-dd');
+        const trans_id = dt.trans_id;
+        const loan_id = dt.loan_id;
+
+    var select = "COUNT(*) tot_data",
+    table_name = "bdccb.td_loan_transactions",
+    whr = `trans_dt = '${trans_dt}'
+           AND trans_id > ${trans_id}
+           AND loan_id = ${loan_id}`
+    order = null;
+    var fetch_loans_data = await db_Select(select,table_name,whr,order);
+    console.log(fetch_loans_data,'fetch_loans');
+
+    // If any record found, return message "no delete"
+    if (fetch_loans_data.suc > 0 && fetch_loans_data.msg.length > 0 && Number(fetch_loans_data.msg[0].tot_data) > 0) {
+      return res.send({ 
+        success: true, 
+        msg: 'Delete not possible' 
+      });
+    }
+  }
+  return res.send({ 
+    success: true, 
+    msg: 'Now delete' 
+  });
+  }catch(error){
+    console.error("Error in while check date and id before reject:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+})
+
 
 // REJECT SOCIETY RECOVERY
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
