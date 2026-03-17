@@ -1151,14 +1151,14 @@ loanRouter.post("/show_loan_status", async (req, res) => {
     var select =
         loan_to == "P"
           ? `
-a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks`
+a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id, a.group_code) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks`
           
           : `
-a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks`,
+a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name,a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id,a.group_code) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks`,
       table_name =
         "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id AND a.branch_id = b.branch_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id LEFT JOIN bdccb.md_group f ON a.group_code = f.group_code",
       whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D'`,
-      order = `a.ccb_loan_id, a.disb_dt DESC`;
+      order = `a.disb_dt DESC`;
     var show_loan_dtls = await db_Select(select, table_name, whr, order);
 
     if (!(show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0)) {
@@ -1177,7 +1177,7 @@ a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name,a.loan_
       // Member select
       let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
-      mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}'`;
+      mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'`;
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
 
       loan.members = member_dtls.suc === 1 ? member_dtls.msg : [];
