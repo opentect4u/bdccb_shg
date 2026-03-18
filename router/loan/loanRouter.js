@@ -456,7 +456,7 @@ loanRouter.post("/save_disbursement", async (req, res) => {
 
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-    // let loan_code = await loanCode(branch_id);
+    let loan_code = await loanCode(branch_id);
     // let intt_cal_amt = await interest_cal_amt(disb_amt,period,curr_roi,pay_mode);
 
     var pay_mode = "Monthly";
@@ -471,135 +471,166 @@ loanRouter.post("/save_disbursement", async (req, res) => {
 
     let total_disb_amt = 0;
 
-    for (const mem of members) {
-      total_disb_amt += Number(mem.disburse_amt || 0);
-    }
+    // for (const mem of members) {
+    //   total_disb_amt += Number(mem.disburse_amt || 0);
+    // }
 
-    for (const mem of members) {  
-    let mem_trans_id = await member_transaction_id();
+    let groupMap = {};
 
-    let loan_code = await loanCode(branch_id);
-
-
-    if(loan_to == 'S'){
-      console.log(loan_to,'loan_to');
-      
-    var table = "bdccb.td_loan";
-    var columns = loan_id > 0 ? ["loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
-    var values = loan_id > 0 ? [loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,total_disb_amt,
-    startDate,endDate,tot_grp,sanction_no,sanction_dt,created_by,datetime,ip_address] : [loan_code,tenant_id,branch_id,loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,total_disb_amt,pay_mode,startDate,endDate,total_disb_amt,0,0,0,tot_grp,sanction_no,sanction_dt,created_by,datetime,ip_address,mem.group_code];
-    var whereColumns = loan_id > 0 ? ["loan_id", "tenant_id", "branch_id"] : [];
-    var whereValues = loan_id > 0 ? [loan_id, tenant_id, branch_id] : [];
-    var flag = loan_id > 0 ? 1 : 0;
-    var result = await saveRecord(table,columns,values,whereColumns,whereValues,flag,);
-    console.log(result,'result');
-    
-
-    if (!result || result.suc !== 1) {
-      return res.send({
-        success: true,
-        msg: loan_id > 0 ? "Loan edit failed" : "Loan save failed",
-        data: [],
-      });
-    }
+for (const mem of members) {
+  if (!groupMap[mem.group_code]) {
+    groupMap[mem.group_code] = {
+      total: 0,
+      members: []
+    };
   }
 
-    let trans_id = await transaction_id();
+  groupMap[mem.group_code].total += Number(mem.disburse_amt || 0);
+  groupMap[mem.group_code].members.push(mem);
+}
 
-    
-    var table_trn = "bdccb.td_loan_transactions";
-    var columns_trn = loan_id > 0 ? ["trans_dt","loan_to","branch_shg_id","loan_ac_no","modified_by","modified_dt","ip_address"] : [ "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
-    "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    var values_trn = loan_id > 0 ? [disb_dt,loan_to,branch_shg_id,loan_acc_no || null,created_by,datetime,ip_address] : [disb_dt,trans_id,tenant_id,loan_to,branch_shg_id,loan_code,loan_acc_no || null,"D",
-    total_disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"U",created_by,datetime,ip_address];
-    var whereColumns_trn = loan_id > 0 ? ["trans_id", "tenant_id", "loan_id"] : [];
-    var whereValues_trn = loan_id > 0 ? [tran_id, tenant_id, loan_id] : [];
-    var flag_trn = loan_id > 0 ? 1 : 0;
-    var trans_result = await saveRecord(table_trn,columns_trn,values_trn,whereColumns_trn,whereValues_trn,flag_trn);
-    console.log(trans_result,'trans_result');
-    
 
-    if (!trans_result || trans_result.suc !== 1) {
-      return res.send({
-        success: true,
-        msg: trans_result.msg || (loan_id > 0 ? "Failed to edit loan in transaction table"  : "Failed to save loan in transaction table"),
-        data: [],
-      });
-    }
+for (const group_code in groupMap) {
 
-     // Generate 2-digit sequence (01, 02, 03...)
-    // let seq = String(counter).padStart(2, "0");
+  let groupData = groupMap[group_code];
+  let total_disb_amt = groupData.total;
 
-    //  let loanMemberId = `${mem.member_id}${seq}`;
+  let loan_code = await loanCode(branch_id);
+  let trans_id = await transaction_id();
 
-    //  counter++;
+  // ================== td_loan ==================
+  var table = "bdccb.td_loan";
 
-    //  Get last loan_id for this member from DB
-      let lastLoan = await db_Select(
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
+
+  var values = [
+    loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
+    period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
+    startDate, endDate, total_disb_amt, 0, 0, 0,
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code
+  ];
+
+  let result = await saveRecord(table, columns, values, [], [], 0);
+
+  if (!result || result.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Loan save failed for group " + group_code
+    });
+  }
+
+  // ================== td_loan_transactions ==================
+  var table_trn = "bdccb.td_loan_transactions";
+
+  var columns_trn = [
+    "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
+    "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+    "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
+    "approval_status","created_by","created_dt","ip_address"
+  ];
+
+  var values_trn = [
+    disb_dt, trans_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
+    "D", total_disb_amt, 0,
+    0,0,0,0,
+    total_disb_amt,0,0,0,
+    "A", created_by, datetime, ip_address
+  ];
+
+  let trans_result = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+
+  if (!trans_result || trans_result.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Transaction save failed for group " + group_code
+    });
+  }
+
+  // 👉 store loan_code for member use
+  groupMap[group_code].loan_code = loan_code;
+}
+
+    for (const group_code in groupMap) {
+
+  let groupData = groupMap[group_code];
+  let loan_code = groupData.loan_code;
+
+  for (const mem of groupData.members) {
+
+    let mem_trans_id = await member_transaction_id();
+
+    // ✅ loanMemberId logic (same as yours)
+    let lastLoan = await db_Select(
       "MAX(loan_id) as max_id",
       "bdccb.td_loan_member",
       `member_code='${mem.member_id}'`,
       null
-      );
+    );
 
-      let nextSeq = 1;
+    let nextSeq = 1;
 
-      if (lastLoan.suc === 1 && lastLoan.msg[0].max_id) {
+    if (lastLoan.suc === 1 && lastLoan.msg[0].max_id) {
       let lastId = lastLoan.msg[0].max_id.toString();
-
-      // extract last 2 digits
       let lastSeq = parseInt(lastId.slice(-2));
-
       nextSeq = lastSeq + 1;
-      }
+    }
 
-      let seq = String(nextSeq).padStart(2, "0");
-      let loanMemberId = `${mem.member_id}${seq}`;
-  
-    // total_disb_amt += Number(mem.disburse_amt || 0);
-  
-    // insert member loan row //
-  
+    let seq = String(nextSeq).padStart(2, "0");
+    let loanMemberId = `${mem.member_id}${seq}`;
+
+    // ================== td_loan_member ==================
     const table1 = "bdccb.td_loan_member";
-    const columns1 = mem.mem_loan_id > 0 ? ["loan_acc_no","period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_at","ip_address","society_roi","society_penal_roi"] : ["loan_id","ccb_loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","group_code","member_code","period","curr_roi","penal_roi","disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt","prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt","tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address","society_roi","society_penal_roi"];
-  
-    const values1 = mem.mem_loan_id > 0 ? [loan_acc_no,period,curr_roi,penal_roi,disb_dt,mem.disburse_amt,startDate,endDate,tot_grp,sanction_no,sanction_dt,created_by,datetime,ip_address,loan_to == 'P' ? curr_roi : '0',loan_to == 'P' ? penal_roi : '0'] : [loanMemberId,loan_code,tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,mem.group_code,mem.member_id,period,curr_roi,penal_roi,disb_dt,mem.disburse_amt,pay_mode,startDate,endDate,loan_to == 'P' ? 0 : mem.disburse_amt,0,0,0,tot_grp,sanction_no,sanction_dt,created_by,datetime,ip_address,loan_to == 'P' ? curr_roi : '0',loan_to == 'P' ? penal_roi : '0'];
-    const whereColumns1 = mem.mem_loan_id > 0 ? ["loan_id","tenant_id","group_code","member_code"] : [];
-    const whereValues1 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,tenant_id,mem.group_code,mem.member_id] : [];
-    const flag1 = mem.mem_loan_id > 0 ? 1 : 0;
-    const result_shg_disburse = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);
-    console.log(result_shg_disburse,'result_shg_disburse');
-    
-  
-    if (!result_shg_disburse || result_shg_disburse.suc !== 1) {
-       return res.send({
-       success: false,
-       msg: mem.mem_loan_id > 0 ? "Failed to edit loan in loan member table" : "Failed to save loan in loan member table",
-       data: []
-       });
-     }
-  
-    // insert member loan transaction row //
-  
-      const table2 = "bdccb.td_loan_member_trans";
-      const columns2 = mem.mem_loan_id > 0 ? ["trans_date","loan_acc_no","dr_amt","modified_by","modified_dt","ip_address"] : ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
 
-      const values2 = mem.mem_loan_id > 0 ? [disb_dt,loan_acc_no,mem.disburse_amt,created_by,datetime,ip_address] : [disb_dt,mem_trans_id,loanMemberId,loan_code,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'D',mem.disburse_amt,0,0,0,0,0,loan_to == 'P' ? 0 : mem.disburse_amt,0,0,0,loan_to == 'P' ? 'U' : 'A',created_by,datetime,ip_address];
-      const whereColumns2 = mem.mem_loan_id > 0 ? ["loan_id","tenant_id"] : [];
-      const whereValues2 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,tenant_id] : [];
-      const flag2 = mem.mem_loan_id > 0 ? 1 : 0;
-      const member_trans_result = await saveRecord(table2,columns2,values2,whereColumns2,whereValues2,flag2);
-    console.log(member_trans_result,'member_trans_result');
+    const columns1 = [
+      "loan_id","ccb_loan_id","tenant_id","branch_id","loan_acc_no","loan_to",
+      "branch_shg_id","group_code","member_code","period","curr_roi","penal_roi",
+      "disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt",
+      "prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt",
+      "tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address",
+      "society_roi","society_penal_roi"
+    ];
 
-      
-      if (!member_trans_result || member_trans_result.suc !== 1) {
-      return res.send({
-            success: false,
-            msg: member_trans_result.msg || (mem.mem_loan_id > 0 ? "Failed to edit loan in member transaction table" : "Failed to save loan in member transaction table"),
-            data: []
-          });
-      }
-     }
+    const values1 = [
+      loanMemberId, loan_code, tenant_id, branch_id, loan_acc_no, loan_to,
+      branch_shg_id, mem.group_code, mem.member_id,
+      period, curr_roi, penal_roi, disb_dt, mem.disburse_amt,
+      pay_mode, startDate, endDate,
+      loan_to == 'P' ? 0 : mem.disburse_amt,
+      0,0,0,
+      tot_grp, sanction_no, sanction_dt,
+      created_by, datetime, ip_address,
+      loan_to == 'P' ? curr_roi : '0',
+      loan_to == 'P' ? penal_roi : '0'
+    ];
+
+    await saveRecord(table1, columns1, values1, [], [], 0);
+
+    // ================== td_loan_member_trans ==================
+    const table2 = "bdccb.td_loan_member_trans";
+
+    const columns2 = [
+      "trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id",
+      "loan_to","branch_shg_id","loan_acc_no","trans_type",
+      "dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+      "ovd_prn_recov","ovd_intt_recov",
+      "curr_prn","curr_intt","ovd_prn","ovd_intt",
+      "approval_status","created_by","created_dt","ip_address"
+    ];
+
+    const values2 = [
+      disb_dt, mem_trans_id, loanMemberId, loan_code, tenant_id, branch_id,
+      loan_to, branch_shg_id, loan_acc_no,
+      'D', mem.disburse_amt, 0,
+      0,0,0,0,
+      loan_to == 'P' ? 0 : mem.disburse_amt,
+      0,0,0,
+      loan_to == 'P' ? 'U' : 'A',
+      created_by, datetime, ip_address
+    ];
+
+    await saveRecord(table2, columns2, values2, [], [], 0);
+  }
+}
     return res.send({
       success: true,
       msg: loan_id > 0 ? "Disbursement edit Done Successfully"  : "Disbursement Done Successfully",
