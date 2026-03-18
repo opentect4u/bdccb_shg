@@ -33,7 +33,7 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     const group_name = fetch_grp_code.msg[0].group_name;
     const loan_to = fetch_grp_code.msg[0].loan_to;
     const direct_indirect_flag = fetch_grp_code.msg[0].direct_indirect_flag;
-    console.log(group_code,loan_to,direct_indirect_flag,'juyt');
+    // console.log(group_code,loan_to,direct_indirect_flag,'juyt');
     
 
     const roi_column = loan_to == 'S' ? "a.curr_roi" : "a.society_roi";
@@ -110,7 +110,7 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
 groupRecoveryRouter.post("/save_grp_recovery", async (req, res) => {
     try{
     const {tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,members,created_by,ip_address,loan_id} = req.body;
-    console.log(req.body,'recov');
+    // console.log(req.body,'recov');
     
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 

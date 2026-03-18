@@ -385,7 +385,7 @@ try{
 
  var select = "group_code,branch_code,group_name",
  table_name = "bdccb.md_group",
- whr = `branch_code = '${branch_code}' AND direct_indirect_flag = 'D'`,
+ whr = `branch_code = '${branch_code}'`,
  order = null;
  var fetch_dhg_data_direct_loan = await db_Select(select,table_name,whr,order);
 

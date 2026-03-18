@@ -20,7 +20,7 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
    whr1 = `loan_acc_no = '${society_acc_no}' AND tenant_id = '${tenant_id}' ${loan_to == 'S' ? `AND branch_id = '${branch_id}'`  : `AND branch_shg_id = '${branch_id}'`} AND approval_status = 'U'`,
    order1 = null;
    var fetch_unapprove_data = await db_Select(select1,table1,whr1,order1);
-   console.log(fetch_unapprove_data);
+  //  console.log(fetch_unapprove_data);
    
    let unapprove_count = Number(fetch_unapprove_data.msg[0].cnt || 0);
 
@@ -412,7 +412,7 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
 society_recovRouter.post("/accept_society_recovery", async (req, res) => {
   try{
   const { loan_id,tenant_id,trans_dt,transaction_id,group_code,accept_recovery,created_by,ip_address } = req.body;
-  console.log(req.body,'accept');
+  // console.log(req.body,'accept');
   
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
@@ -494,7 +494,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
     whr1 = `a.loan_id = '${dt.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_date = '${dt.trans_date}' AND a.trans_id = '${dt.trans_id}' AND a.trans_type = 'R'`,
     order1 = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
     var fetch_current_data = await db_Select(select1,table_name1,whr1,order1);
-    console.log(fetch_current_data,'1');
+    // console.log(fetch_current_data,'1');
    
     let current_curr_prn = 0;
     let current_curr_intt = 0;
@@ -502,7 +502,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
    if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
     current_curr_prn =  fetch_current_data.msg[0].curr_prn ;
     current_curr_intt = fetch_current_data.msg[0].curr_intt ;
-    console.log(current_curr_intt,current_curr_prn,'2');
+    // console.log(current_curr_intt,current_curr_prn,'2');
    }
     
   // Update td_loan_member table
@@ -578,7 +578,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
     whr1 = `a.loan_id = '${loan_id}' AND a.trans_dt = '${trans_dt}' AND a.trans_id = '${transaction_id}' AND a.trans_type = 'R'`,
     order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
     var fetch_current_data = await db_Select(select1,table_name1,whr1,order1);
-    console.log(fetch_current_data,'1');
+    // console.log(fetch_current_data,'1');
    
     let current_curr_prn = 0;
     let current_curr_intt = 0;
@@ -586,7 +586,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
    if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
     current_curr_prn =  fetch_current_data.msg[0].td_curr_prn ;
     current_curr_intt = fetch_current_data.msg[0].td_curr_intt ;
-    console.log(current_curr_intt,current_curr_prn,'2');
+    // console.log(current_curr_intt,current_curr_prn,'2');
    }
 
   // Update td_loan table
@@ -668,7 +668,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
   try{
    const {loan_id,tenant_id,trans_dt,transaction_id,group_code,reject_recovery,created_by,ip_address,reject_remarks} = req.body;
-   console.log(req.body,'reject');
+  //  console.log(req.body,'reject');
 
    let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
 
@@ -749,11 +749,11 @@ let values = columns.map(c => r[c]);
 
     // delete td_loan_member_trans table interest row
   const delete_record_interest = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id","ccb_loan_id","trans_type"],[row.trans_date, interest_tran_id, row.loan_id, loan_id, 'I']);
-   console.log(delete_record_interest,'delete');
+  //  console.log(delete_record_interest,'delete');
 
    // Delete from td_loan_member_trans table recovery row
    const delete_record = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id", "ccb_loan_id","trans_type"],[row.trans_date, row.trans_id, row.loan_id, loan_id, 'R']);
-   console.log(delete_record,'dedede');
+  //  console.log(delete_record,'dedede');
    
 
    // FETCH CURRENT DATA FROM td_loan_member_trans table
@@ -763,7 +763,7 @@ let values = columns.map(c => r[c]);
    order = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data = await db_Select(select,table_name,whr,order);
 
-   console.log(fetch_current_data,'curr');
+  //  console.log(fetch_current_data,'curr');
    
 
    let curr_prn = 0;
@@ -772,7 +772,7 @@ let values = columns.map(c => r[c]);
    if(fetch_current_data.msg && fetch_current_data.msg.length > 0){
    curr_prn =   fetch_current_data.msg[0].curr_prn;
    curr_intt =  fetch_current_data.msg[0].curr_intt;
-   console.log(curr_intt,curr_prn,'hyhyhy');
+  //  console.log(curr_intt,curr_prn,'hyhyhy');
    }
 
   //  tenant_id = fetch_current_data.msg[0].tenant_id;
@@ -785,8 +785,8 @@ let values = columns.map(c => r[c]);
     let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
     let flag2 = 1; // update flag
     const update_td_loan = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
-    console.log(update_td_loan,'ki');
-    console.log(whereValues2,'whereValues2');
+    // console.log(update_td_loan,'ki');
+    // console.log(whereValues2,'whereValues2');
     
    }
 
@@ -798,13 +798,13 @@ let values = columns.map(c => r[c]);
            AND trans_type = 'I'`;
     let order_t = null;
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
-    console.log(interest_row,'kiyt');
+    // console.log(interest_row,'kiyt');
     
 
     // if(interest_row.msg.length > 0){
    let interest_trans_id = interest_row.msg[0].trans_id || null;
   //  let tenant = interest_row.msg[0].tenant_id || 0;
-   console.log(interest_trans_id,'po');
+  //  console.log(interest_trans_id,'po');
    
 // }
 
@@ -828,7 +828,7 @@ let values = columns.map(c => r[c]);
    whr1 = `a.loan_id = '${loan_id}'`,
    order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
-   console.log(fetch_current_data1,'hyfr');
+  //  console.log(fetch_current_data1,'hyfr');
    
 
    let current_curr_prn = 0;
@@ -837,7 +837,7 @@ let values = columns.map(c => r[c]);
    if(fetch_current_data1.msg && fetch_current_data1.msg.length > 0){
     current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
     current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
-    console.log(current_curr_intt,current_curr_prn,'kiujh');
+    // console.log(current_curr_intt,current_curr_prn,'kiujh');
     
    }
 
@@ -849,7 +849,7 @@ let values = columns.map(c => r[c]);
     let whereValues3 = [loan_id,group_code];
     let flag3 = 1; // update flag
     await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
-    console.log(whereValues3,'whereValues3');
+    // console.log(whereValues3,'whereValues3');
 
     return res.send({
       success: true,
