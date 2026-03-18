@@ -32,6 +32,8 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     const group_code = fetch_grp_code.msg[0].group_code;
     const group_name = fetch_grp_code.msg[0].group_name;
     const loan_to = fetch_grp_code.msg[0].loan_to;
+    console.log(group_code,loan_to,'juyt');
+    
 
     const roi_column = loan_to == 'S' ? "a.curr_roi" : "a.society_roi";
     const penal_roi_column = loan_to == 'S' ? "a.penal_roi" : "a.society_penal_roi";
