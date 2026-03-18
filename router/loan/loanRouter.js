@@ -476,6 +476,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     }
 
     if(loan_to == 'S'){
+      console.log(loan_to,'loan_to');
+      
     var table = "bdccb.td_loan";
     var columns = loan_id > 0 ? ["loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address"];
     var values = loan_id > 0 ? [loan_acc_no || null,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,total_disb_amt,
@@ -484,6 +486,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     var whereValues = loan_id > 0 ? [loan_id, tenant_id, branch_id] : [];
     var flag = loan_id > 0 ? 1 : 0;
     var result = await saveRecord(table,columns,values,whereColumns,whereValues,flag,);
+    console.log(result,'result');
+    
 
     if (!result || result.suc !== 1) {
       return res.send({
@@ -506,6 +510,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     var whereValues_trn = loan_id > 0 ? [tran_id, tenant_id, loan_id] : [];
     var flag_trn = loan_id > 0 ? 1 : 0;
     var trans_result = await saveRecord(table_trn,columns_trn,values_trn,whereColumns_trn,whereValues_trn,flag_trn);
+    console.log(trans_result,'trans_result');
+    
 
     if (!trans_result || trans_result.suc !== 1) {
       return res.send({
@@ -560,6 +566,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     const whereValues1 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,tenant_id,mem.group_code,mem.member_id] : [];
     const flag1 = mem.mem_loan_id > 0 ? 1 : 0;
     const result_shg_disburse = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);
+    console.log(result_shg_disburse,'result_shg_disburse');
+    
   
     if (!result_shg_disburse || result_shg_disburse.suc !== 1) {
        return res.send({
@@ -579,6 +587,8 @@ loanRouter.post("/save_disbursement", async (req, res) => {
       const whereValues2 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,tenant_id] : [];
       const flag2 = mem.mem_loan_id > 0 ? 1 : 0;
       const member_trans_result = await saveRecord(table2,columns2,values2,whereColumns2,whereValues2,flag2);
+    console.log(member_trans_result,'member_trans_result');
+
       
       if (!member_trans_result || member_trans_result.suc !== 1) {
       return res.send({
