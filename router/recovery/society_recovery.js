@@ -86,7 +86,7 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
      let mem_outstanding = Number(mem.mem_outstanding);
 
      // uniform interest calculation
-     let calc_interest = (totalInterest * mem_outstanding) / currPrincipal;
+     let calc_interest = Math.round((totalInterest * mem_outstanding) / currPrincipal);
     
     result.push({
       loan_id: mem.loan_id,
@@ -94,7 +94,7 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
       mem_amount: mem.mem_amount,
       mem_outstanding: mem_outstanding,
       // calculated_interest: Number(calc_interest.toFixed(2)),
-      calculated_interest: Math.round(calc_interest),
+      calculated_interest: calc_interest,
     });
   }
   return res.send({

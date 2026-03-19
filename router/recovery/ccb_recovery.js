@@ -303,13 +303,13 @@ ccb_recovRouter.post("/fetch_ccb_mem_recov_dtls", async (req, res) => {
 
   if(fetch_ccb_loan_dtls.suc === 1 && fetch_ccb_loan_dtls.msg.length > 0){
      /* -------- Fetch CCB Member recovery Details -------- */
-     var select_member = "a.loan_id,a.member_code,b.member_name,TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,d.trans_id AS trans_id,(COALESCE(d.cr_amt,0)) AS credit_amount,COALESCE(SUM(d.curr_prn + d.curr_intt),0) AS loan_outstanding,(COALESCE(i.dr_amt,0)) AS calculated_interest,(COALESCE(d.curr_prn_recov,0)) AS principal_recovery,(COALESCE(d.curr_intt_recov,0)) AS interest_recovery";
+     var select_member = "a.loan_id,a.member_code,b.member_name,TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,d.trans_id AS trans_id,(COALESCE(d.cr_amt,0)) AS credit_amount,COALESCE(SUM(i.curr_prn + i.curr_intt),0) AS loan_outstanding,(COALESCE(i.dr_amt,0)) AS calculated_interest,(COALESCE(d.curr_prn_recov,0)) AS principal_recovery,(COALESCE(d.curr_intt_recov,0)) AS interest_recovery";
      table_member = `bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.member_code = b.member_code AND a.group_code = b.group_code 
      /* Recovery row */
    LEFT JOIN bdccb.td_loan_member_trans d ON a.loan_id = d.loan_id AND a.ccb_loan_id = d.ccb_loan_id AND d.trans_date = '${trans_dt}' AND d.trans_type = 'R' AND d.approval_status = '${approval_status}'
    
    /* Interest row */
-   LEFT JOIN bdccb.td_loan_member_trans i ON a.loan_id = i.loan_id AND a.ccb_loan_id = i.ccb_loan_id AND i.trans_date = '${trans_dt}' AND i.trans_type = 'I' AND d.approval_status = '${approval_status}'`;
+   LEFT JOIN bdccb.td_loan_member_trans i ON a.loan_id = i.loan_id AND a.ccb_loan_id = i.ccb_loan_id AND i.trans_date = '${trans_dt}' AND i.trans_type = 'I' AND i.approval_status = '${approval_status}'`;
    whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.member_code,b.member_name,d.trans_date,d.trans_id,d.cr_amt,i.dr_amt,d.curr_prn_recov,d.curr_intt_recov`;
    order_member = null ;
    var fetch_member_dtls_trans = await db_Select(select_member,table_member,whr_member,order_member);
