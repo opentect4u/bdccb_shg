@@ -98,12 +98,12 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table2 = "bdccb.td_loan_member_trans";
     const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values2 = [date,ccb_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn),Number(dt.calculated_interest),0,0,'A',created_by,datetime,ip_address];
+    const values2 = [date,ccb_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn),Number(dt.calculated_interest),0,0,'U',created_by,datetime,ip_address];
     const whereColumns2 = [];
     const whereValues2 = [];
     const flag2 = 0;
     const ccb_trans_result = await saveRecord(table2,columns2,values2,whereColumns2,whereValues2,flag2);
-  console.log(ccb_trans_result,'ccb_trans_result');
+    // console.log(ccb_trans_result,'ccb_trans_result');
 
 
     if (!ccb_trans_result || ccb_trans_result.suc !== 1) {
@@ -123,12 +123,12 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table3 = "bdccb.td_loan_member_trans";
     const columns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values3 = [date,ccb_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov),Number(dt.intt_recov),0,0,current_prn,current_intt_prn,0,0,'A',created_by,datetime,ip_address];
+    const values3 = [date,ccb_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov),Number(dt.intt_recov),0,0,current_prn,current_intt_prn,0,0,'U',created_by,datetime,ip_address];
     const whereColumns3 = [];
     const whereValues3 = [];
     const flag3 = 0;
     const ccb_trans_result3 = await saveRecord(table3,columns3,values3,whereColumns3,whereValues3,flag3);
-  console.log(ccb_trans_result3,'ccb_trans_result3');
+    // console.log(ccb_trans_result3,'ccb_trans_result3');
 
 
     if (!ccb_trans_result3 || ccb_trans_result3.suc !== 1) {
@@ -140,26 +140,26 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
     }
 }
 
-    let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
-    let current_intt_amt = Number(dt.calculated_interest) - Number(dt.intt_recov);
+  //   let current_prn_amt = Number(dt.curr_prn) - Number(dt.prn_recov);
+  //   let current_intt_amt = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
-    const table4 = "bdccb.td_loan_member";
-    const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
-    const values4 = [current_prn_amt,current_intt_amt,created_by,datetime,ip_address];
-    const whereColumns4 = ["loan_id","ccb_loan_id","tenant_id","loan_acc_no"];
-    const whereValues4 = [dt.loan_id,ccb_loan_id,tenant_id,loan_acc_no];
-    const flag4 = 1;
-    const ccb_trans_result4 = await saveRecord(table4,columns4,values4,whereColumns4,whereValues4,flag4);
-  console.log(ccb_trans_result4,'ccb_trans_result4');
+  //   const table4 = "bdccb.td_loan_member";
+  //   const columns4 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+  //   const values4 = [current_prn_amt,current_intt_amt,created_by,datetime,ip_address];
+  //   const whereColumns4 = ["loan_id","ccb_loan_id","tenant_id","loan_acc_no"];
+  //   const whereValues4 = [dt.loan_id,ccb_loan_id,tenant_id,loan_acc_no];
+  //   const flag4 = 1;
+  //   const ccb_trans_result4 = await saveRecord(table4,columns4,values4,whereColumns4,whereValues4,flag4);
+  // console.log(ccb_trans_result4,'ccb_trans_result4');
 
 
-    if (!ccb_trans_result4 || ccb_trans_result4.suc !== 1) {
-    return res.send({
-      success: false,
-      msg: "Failed to update loan details",
-      data: []
-      });
-    }
+  //   if (!ccb_trans_result4 || ccb_trans_result4.suc !== 1) {
+  //   return res.send({
+  //     success: false,
+  //     msg: "Failed to update loan details",
+  //     data: []
+  //     });
+  //   }
   }
 
     let soc_td_trans_ids = await ccb_tran_id();
@@ -175,12 +175,12 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',tot_cal_intt_amt,0,0,0,0,0,Number(loan_outstanding),tot_cal_intt_amt,0,0,'A',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',tot_cal_intt_amt,0,0,0,0,0,Number(loan_outstanding),tot_cal_intt_amt,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
     const ccb_insertLoans = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5);
-    console.log(ccb_insertLoans,'ccb_insertLoans')
+    // console.log(ccb_insertLoans,'ccb_insertLoans')
 
    if (!ccb_insertLoans || ccb_insertLoans.suc !== 1) {
     return res.send({
@@ -193,12 +193,12 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,ccb_td_tran_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'A',created_by,datetime,ip_address];
+    const values7 = [date,ccb_td_tran_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;
     const ccb_trans_result7 = await saveRecord(table7,columns7,values7,whereColumns7,whereValues7,flag7);
-    console.log(ccb_trans_result7,'ccb_trans_result7')
+    // console.log(ccb_trans_result7,'ccb_trans_result7')
 
 
     if (!ccb_trans_result7 || ccb_trans_result7.suc !== 1) {
@@ -209,22 +209,22 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
       });
     }
 
-   const table6 = "bdccb.td_loan";
-   const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
-   const values6 = [tot_current_prn,tot_current_intt,created_by,datetime,ip_address];
-   const whereColumns6 = ["loan_id","tenant_id","loan_acc_no"];
-   const whereValues6 = [ccb_loan_id,tenant_id,loan_acc_no];
-   const flag6 = 1;
-   const ccb_updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
-    console.log(ccb_updateLoan,'ccb_updateLoan')
+  //  const table6 = "bdccb.td_loan";
+  //  const columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+  //  const values6 = [tot_current_prn,tot_current_intt,created_by,datetime,ip_address];
+  //  const whereColumns6 = ["loan_id","tenant_id","loan_acc_no"];
+  //  const whereValues6 = [ccb_loan_id,tenant_id,loan_acc_no];
+  //  const flag6 = 1;
+  //  const ccb_updateLoan = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6);
+  //   console.log(ccb_updateLoan,'ccb_updateLoan')
 
 
-   if (!ccb_updateLoan || ccb_updateLoan.suc !== 1) {
-    return res.send({
-    success: true,
-    msg:"Failed to update td_loan table"
-  });
-  }
+  //  if (!ccb_updateLoan || ccb_updateLoan.suc !== 1) {
+  //   return res.send({
+  //   success: true,
+  //   msg:"Failed to update td_loan table"
+  // });
+  // }
    return res.send({
     success: true,
     msg: "CCB Recovery done successfully" 
@@ -238,5 +238,7 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
     });
   }
 });
+
+// FETCH CCB RECOVERY DETAILS
 
 module.exports = {ccb_recovRouter}

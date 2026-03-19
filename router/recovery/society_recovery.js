@@ -93,7 +93,8 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
       member_name: mem.member_name,
       mem_amount: mem.mem_amount,
       mem_outstanding: mem_outstanding,
-      calculated_interest: Number(calc_interest.toFixed(2)),
+      // calculated_interest: Number(calc_interest.toFixed(2)),
+      calculated_interest: Math.round(calc_interest),
     });
   }
   return res.send({
@@ -145,9 +146,9 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
       mem_amount: memb.mem_amount,
       mem_outstanding: memb.mem_outstanding,
       calculated_interest: memb.calculated_interest,
-      prn_recov: prn_recov,
-      intt_recov: intt_recov,
-      remaining_interest: remaining_interest
+      prn_recov: Math.round(prn_recov),
+      intt_recov: Math.round(intt_recov),
+      remaining_interest: Math.round(remaining_interest)
     });
   }
   return res.send({
