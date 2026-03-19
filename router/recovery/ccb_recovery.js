@@ -43,6 +43,23 @@ ccb_recovRouter.post("/fetch_loan_dtls_based_ccbacc_no", async (req, res) => {
   try{
    const {ccb_acc_no,branch_id,tenant_id,ccb_loan_id} = req.body;
   //  console.log(req.body);
+
+  var select1 = "COUNT(*) AS cnt",
+   table1 = "bdccb.td_loan_member_trans",
+   whr1 = `loan_acc_no = '${ccb_acc_no}' AND tenant_id = '${tenant_id}' AND branch_id = '${branch_id}'AND approval_status = 'U'`,
+   order1 = null;
+   var fetch_unapprove_data = await db_Select(select1,table1,whr1,order1);
+  //  console.log(fetch_unapprove_data);
+   
+   let unapprove_count = Number(fetch_unapprove_data.msg[0].cnt || 0);
+
+   if (unapprove_count > 0) {
+   return res.send({
+    success: true,
+    msg: "Unapproved transactions are pending for this loan account no",
+    data: [],
+   });
+   }
  
    var select = "a.group_code,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding",
    table_name = "bdccb.td_loan a",
@@ -87,7 +104,7 @@ ccb_recovRouter.post("/fetch_loan_dtls_based_ccbacc_no", async (req, res) => {
 ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
   try{
   const {ccb_loan_id,tenant_id,branch_id,branch_shg_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,ccb_recov,created_by,ip_address} = req.body;
-  console.log(req.body,'ccb_recov');
+  // console.log(req.body,'ccb_recov');
   
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -240,5 +257,534 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 });
 
 // FETCH CCB RECOVERY DETAILS
+ccb_recovRouter.post("/fetch_ccb_recov_dtls", async (req, res) => {
+  try{
+  const { tenant_id, branch_id, from_dt, to_dt, approval_status } = req.body;
+
+  var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}' AND c.approval_status = '${approval_status}'`,
+  order = `c.trans_id desc,c.trans_dt desc`;
+  var fetch_ccb_recovery_data = await db_Select(select, table_name, whr, order);
+
+  if (fetch_ccb_recovery_data.suc === 1 && fetch_ccb_recovery_data.msg.length > 0) {
+  return res.send({
+  success: true,
+  msg: "Fetch CCB recovery details",
+  data: fetch_ccb_recovery_data.msg,
+  });
+  }else {
+  return res.send({
+  success: true,
+  msg: "No CCB Recovery details found",
+  data: [],
+  });
+  }
+  }catch(error){
+    console.error("Error in while fetch ccb recov dtls:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// FETCH CCB RECOVERY MEMBER DETAILS
+ccb_recovRouter.post("/fetch_ccb_mem_recov_dtls", async (req, res) => {
+  try{
+  const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
+
+  var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
+  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  order = null;
+  var fetch_ccb_loan_dtls = await db_Select(select,table_name,whr,order);
+
+  if(fetch_ccb_loan_dtls.suc === 1 && fetch_ccb_loan_dtls.msg.length > 0){
+     /* -------- Fetch CCB Member recovery Details -------- */
+     var select_member = "a.loan_id,a.member_code,b.member_name,TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,d.trans_id AS trans_id,(COALESCE(d.cr_amt,0)) AS credit_amount,COALESCE(SUM(d.curr_prn + d.curr_intt),0) AS loan_outstanding,(COALESCE(i.dr_amt,0)) AS calculated_interest,(COALESCE(d.curr_prn_recov,0)) AS principal_recovery,(COALESCE(d.curr_intt_recov,0)) AS interest_recovery";
+     table_member = `bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.member_code = b.member_code AND a.group_code = b.group_code 
+     /* Recovery row */
+   LEFT JOIN bdccb.td_loan_member_trans d ON a.loan_id = d.loan_id AND a.ccb_loan_id = d.ccb_loan_id AND d.trans_date = '${trans_dt}' AND d.trans_type = 'R' AND d.approval_status = '${approval_status}'
+   
+   /* Interest row */
+   LEFT JOIN bdccb.td_loan_member_trans i ON a.loan_id = i.loan_id AND a.ccb_loan_id = i.ccb_loan_id AND i.trans_date = '${trans_dt}' AND i.trans_type = 'I' AND d.approval_status = '${approval_status}'`;
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.member_code,b.member_name,d.trans_date,d.trans_id,d.cr_amt,i.dr_amt,d.curr_prn_recov,d.curr_intt_recov`;
+   order_member = null ;
+   var fetch_member_dtls_trans = await db_Select(select_member,table_member,whr_member,order_member);
+   // attach member list under data
+   fetch_ccb_loan_dtls.msg[0].member_list = fetch_member_dtls_trans.suc === 1 && fetch_member_dtls_trans.msg.length > 0 ? fetch_member_dtls_trans.msg : [];
+   return res.send({
+        success: true,
+        msg: "Fetch CCB member details",
+        data: fetch_ccb_loan_dtls.msg
+     });
+  }else{
+    return res.send({
+    success: true,
+    msg: "CCB member loan details not found",
+    data: []
+  });
+  }   
+  }catch(error){
+    console.error("Error in while fetch ccb member  recov dtls:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// ACCEPT CCB RECOVERY
+ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
+  try{
+  const { loan_id,tenant_id,trans_dt,transaction_id,group_code,accept_ccb_recovery,created_by,ip_address } = req.body;
+  console.log(req.body,'accept_ccb');
+  
+  let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+  if (!accept_ccb_recovery || accept_ccb_recovery.length === 0) {
+      return res.send({ success : false, msg: 'No data received' });
+  }
+   
+  for(let dt of accept_ccb_recovery){
+  // Update td_loan_member_trans_temp table
+    let table = "bdccb.td_loan_member_trans_temp";
+    let columns = ["approval_status","approved_by","approved_dt","ip_address"];
+    let values = ['A',created_by,datetime,ip_address];
+    let whereColumns = ["loan_id","ccb_loan_id","tenant_id","cr_amt"];
+    let whereValues = [dt.loan_id,loan_id,tenant_id,dt.credit_amount];
+    let flag = 1; // update flag
+    const update_td_loan_member_trans_temp_ccb = await saveRecord(table,columns,values,whereColumns,whereValues,flag);  
+
+    if (!update_td_loan_member_trans_temp_ccb || update_td_loan_member_trans_temp_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update status in CCB level"
+    });
+    }
+
+
+   // Fetch Interest trans_id
+    var select_int = "trans_id",
+    table_name_int = "bdccb.td_loan_member_trans",
+    whr_int = `loan_id = '${dt.loan_id}' 
+           AND ccb_loan_id = '${loan_id}'
+           AND trans_date = '${dt.trans_date}'
+           AND trans_type = 'I'
+           AND tenant_id = '${tenant_id}'`;
+    const interest_row_trans = await db_Select(select_int,table_name_int,whr_int);
+
+    let interest_tran_id = null;
+
+    if(interest_row_trans.msg && interest_row_trans.msg.length > 0){
+      interest_tran_id = interest_row_trans.msg[0].trans_id;
+    }
+
+  // Update td_loan_transactions table interest row
+    if(interest_tran_id){
+    let table3 = "bdccb.td_loan_member_trans";
+    let columns3 = ["approval_status","approved_by","approved_dt","ip_address"];
+    let values3 = ['A',created_by,datetime,ip_address];
+    let whereColumns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","trans_type"];
+    let whereValues3 = [dt.trans_date,interest_tran_id,dt.loan_id,loan_id,tenant_id,'I'];
+    let flag3 = 1; // update flag
+    const update_td_loan_member_trans_interest_ccb = await saveRecord(table3,columns3,values3,whereColumns3,whereValues3,flag3);
+
+    if (!update_td_loan_member_trans_interest_ccb || update_td_loan_member_trans_interest_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update interest row status in CCB transaction level"
+    });
+    }
+  }  
+
+  // Update td_loan_member_trans table recovery row
+    let table1 = "bdccb.td_loan_member_trans";
+    let columns1 = ["approval_status","approved_by","approved_dt","ip_address"];
+    let values1 = ['A',created_by,datetime,ip_address];
+    let whereColumns1 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","trans_type"];
+    let whereValues1 = [dt.trans_date,dt.trans_id,dt.loan_id,loan_id,tenant_id,'R'];
+    let flag1 = 1; // update flag
+    const update_td_loan_member_trans_ccb = await saveRecord(table1,columns1,values1,whereColumns1,whereValues1,flag1);
+
+    if (!update_td_loan_member_trans_ccb || update_td_loan_member_trans_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update recovery row status in CCB transaction level"
+    });
+    }
+
+    // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_MEMBER_TRANS TABLE
+    var select1 = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+    table_name1 = "bdccb.td_loan_member_trans a",
+    whr1 = `a.loan_id = '${dt.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_date = '${dt.trans_date}' AND a.trans_id = '${dt.trans_id}' AND a.trans_type = 'R'`,
+    order1 = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
+    var fetch_current_data_ccb = await db_Select(select1,table_name1,whr1,order1);
+    // console.log(fetch_current_data,'1');
+   
+    let current_curr_prn = 0;
+    let current_curr_intt = 0;
+
+   if(fetch_current_data_ccb.msg && fetch_current_data_ccb.msg.length > 0){
+    current_curr_prn =  fetch_current_data_ccb.msg[0].curr_prn ;
+    current_curr_intt = fetch_current_data_ccb.msg[0].curr_intt ;
+    // console.log(current_curr_intt,current_curr_prn,'2');
+   }
+    
+  // Update td_loan_member table
+    let table2 = "bdccb.td_loan_member";
+    let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+    let values2 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
+    let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
+    let whereValues2 = [dt.loan_id,loan_id,tenant_id,group_code];
+    let flag2 = 1; // update flag
+    const update_td_loan_member_ccb = await saveRecord(table2,columns2,values2,whereColumns2,whereValues2,flag2); 
+    
+    if (!update_td_loan_member_ccb || update_td_loan_member_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update ccb level data"
+    });
+    }
+    
+  }
+
+  // Fetch Interest trans_id
+    var select_int = "trans_id",
+    table_name_int = "bdccb.td_loan_transactions",
+    whr_int = `loan_id = '${loan_id}' 
+           AND trans_dt = '${trans_dt}'
+           AND trans_type = 'I'
+           AND tenant_id = '${tenant_id}'`;
+    const interest_row_ccb = await db_Select(select_int,table_name_int,whr_int);
+
+    let interest_trans_id = null;
+
+    if(interest_row_ccb.msg && interest_row_ccb.msg.length > 0){
+      interest_trans_id = interest_row_ccb.msg[0].trans_id;
+    }
+
+  // Update td_loan_transactions table interest row
+    if(interest_trans_id){
+    let table3 = "bdccb.td_loan_transactions";
+    let columns3 = ["approval_status","approved_by","approved_dt","ip_address"];
+    let values3 = ['A',created_by,datetime,ip_address];
+    let whereColumns3 = ["trans_dt","trans_id","loan_id","tenant_id","trans_type"];
+    let whereValues3 = [trans_dt,interest_trans_id,loan_id,tenant_id,'I'];
+    let flag3 = 1; // update flag
+    const update_td_loan_transactions_interest_ccb = await saveRecord(table3,columns3,values3,whereColumns3,whereValues3,flag3);
+
+    if (!update_td_loan_transactions_interest_ccb || update_td_loan_transactions_interest_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update interest row status in main transaction table"
+    });
+    }
+  }
+
+  // Update td_loan_transactions table recovery row
+    let table4 = "bdccb.td_loan_transactions";
+    let columns4 = ["approval_status","approved_by","approved_dt","ip_address"];
+    let values4 = ['A',created_by,datetime,ip_address];
+    let whereColumns4 = ["trans_dt","trans_id","loan_id","tenant_id","trans_type"];
+    let whereValues4 = [trans_dt,transaction_id,loan_id,tenant_id,'R'];
+    let flag4 = 1; // update flag
+    const update_td_loan_transactions_ccb = await saveRecord(table4,columns4,values4,whereColumns4,whereValues4,flag4);
+
+    if (!update_td_loan_transactions_ccb || update_td_loan_transactions_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update recovery row status in main transaction table"
+    });
+    }
+
+    // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_TRANSCATIONS TABLE
+    var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
+    table_name1 = "bdccb.td_loan_transactions a",
+    whr1 = `a.loan_id = '${loan_id}' AND a.trans_dt = '${trans_dt}' AND a.trans_id = '${transaction_id}' AND a.trans_type = 'R'`,
+    order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
+    var fetch_current_data_ccb = await db_Select(select1,table_name1,whr1,order1);
+    // console.log(fetch_current_data,'1');
+   
+    let current_curr_prn = 0;
+    let current_curr_intt = 0;
+
+   if(fetch_current_data_ccb.msg && fetch_current_data_ccb.msg.length > 0){
+    current_curr_prn =  fetch_current_data_ccb.msg[0].td_curr_prn ;
+    current_curr_intt = fetch_current_data_ccb.msg[0].td_curr_intt ;
+    // console.log(current_curr_intt,current_curr_prn,'2');
+   }
+
+  // Update td_loan table
+    let table5 = "bdccb.td_loan";
+    let columns5 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+    let values5 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
+    let whereColumns5 = ["loan_id","tenant_id","group_code"];
+    let whereValues5 = [loan_id,tenant_id,group_code];
+    let flag5 = 1; // update flag
+    const update_td_loan_ccb = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5); 
+    
+    if (!update_td_loan_ccb || update_td_loan_ccb.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update balance in main table"
+    });
+    }
+   return res.send({
+    success: true,
+    msg: "CCB Recovery accepted successfully" 
+    });
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while accept CCB recovery",
+      error: []
+    })
+  }
+});
+
+// REJECT CCB RECOVERY
+ccb_recovRouter.post("/reject_ccb_recov", async (req, res) => {
+  try{
+   const {loan_id,tenant_id,trans_dt,transaction_id,group_code,reject_ccb_recovery,created_by,ip_address,reject_remarks} = req.body;
+   console.log(req.body,'reject_ccb');
+
+   let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
+
+   for(let row of reject_ccb_recovery){
+
+     if (row.trans_date && row.trans_id) {
+    let select_fetch = "*";
+    let table_fetch = "bdccb.td_loan_member_trans";
+    let whr_fetch = `trans_date = '${row.trans_date}'
+                 AND trans_id = '${row.trans_id}'
+                 AND loan_id = '${row.loan_id}'`;
+
+    let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
+
+     if(!data.msg.length){
+        continue;
+      }
+
+    let r = data.msg[0];
+
+    // PREPARE COLUMNS AND VALUES
+    // let columns = Object.keys(r);
+    // let values = Object.values(r);
+    let columns = Object.keys(r).filter(c => 
+  !["rejected_by","rejected_dt","rejected_ip_address","reject_remarks"].includes(c)
+);
+
+let values = columns.map(c => r[c]);
+
+     // add reject fields
+      columns.push("rejected_by","rejected_dt","rejected_ip_address","reject_remarks");
+      values.push(created_by, datetime, ip_address, reject_remarks);
+
+    // Insert into td_loan_member_trans_temp table
+   let table = "bdccb.td_loan_member_trans_reject";
+   let whereColumns = null;
+   let whereValues = null;
+   let flag = 0;
+   await saveRecord(table, columns, values, whereColumns, whereValues, flag);
+
+   // FETCH INTEREST ROW (I) FULL DATA
+
+   let int_data = await db_Select(
+        "*",
+        "bdccb.td_loan_member_trans",
+        `loan_id = '${row.loan_id}'
+         AND ccb_loan_id = '${loan_id}'
+         AND trans_date = '${row.trans_date}'
+         AND trans_type = 'I'
+         AND tenant_id = '${tenant_id}'`,
+        null
+      );
+
+      let interest_tran_id = null;
+
+      if (int_data.msg && int_data.msg.length > 0) {
+        let r_int = int_data.msg[0];
+        interest_tran_id = r_int.trans_id;
+
+   // INSERT INTEREST ROW INTO REJECT TABLE
+     let int_columns = Object.keys(r_int).filter(c =>
+          !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
+        );
+
+        let int_values = int_columns.map(c => r_int[c]);
+
+        int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
+        int_values.push(created_by, datetime, ip_address, reject_remarks);
+
+        await saveRecord(
+          "bdccb.td_loan_member_trans_reject",
+          int_columns,
+          int_values,
+          null,
+          null,
+          0
+        );
+      }     
+
+    // delete td_loan_member_trans table interest row
+    if (interest_tran_id) {
+  const delete_record_interest_ccb = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id","ccb_loan_id","trans_type"],[row.trans_date, interest_tran_id, row.loan_id, loan_id, 'I']);
+    }
+  //  console.log(delete_record_interest,'delete');
+
+   // Delete from td_loan_member_trans table recovery row
+   const delete_record_ccb = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id", "ccb_loan_id","trans_type"],[row.trans_date, row.trans_id, row.loan_id, loan_id, 'R']);
+  }
+  //  console.log(delete_record,'dedede');
+   else{
+     console.log("No recovery, deleting only interest:", row.loan_id);
+     let int_data = await db_Select(
+          "*",
+          "bdccb.td_loan_member_trans",
+          `loan_id = '${row.loan_id}'
+           AND ccb_loan_id = '${loan_id}'
+           AND trans_type = 'I'
+           AND tenant_id = '${tenant_id}'`,
+          "trans_date DESC, trans_id DESC LIMIT 1"
+        );
+
+        if (int_data.msg && int_data.msg.length > 0) {
+          let r_int = int_data.msg[0];
+
+          let interest_tran_id = r_int.trans_id;
+          let interest_date = r_int.trans_date;
+
+          let int_columns = Object.keys(r_int).filter(c =>
+            !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
+          );
+
+          let int_values = int_columns.map(c => r_int[c] ?? null);
+
+          int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
+          int_values.push(created_by, datetime, ip_address, reject_remarks);
+
+          await saveRecord("bdccb.td_loan_member_trans_reject", int_columns, int_values, null, null, 0);
+
+          await deleteRecord(
+            "bdccb.td_loan_member_trans",
+            ["trans_date", "trans_id", "loan_id", "ccb_loan_id", "trans_type"],
+            [interest_date, interest_tran_id, row.loan_id, loan_id, "I"]
+          );
+        }
+   }
+
+   // FETCH CURRENT DATA FROM td_loan_member_trans table
+   var select = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
+   table_name = "bdccb.td_loan_member_trans a",
+   whr = `a.loan_id = '${row.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
+   order = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
+   var fetch_current_data_ccb = await db_Select(select,table_name,whr,order);
+
+  //  console.log(fetch_current_data,'curr');
+   
+
+   let curr_prn = 0;
+   let curr_intt = 0;
+
+   if(fetch_current_data_ccb.msg && fetch_current_data_ccb.msg.length > 0){
+   curr_prn =   fetch_current_data_ccb.msg[0].curr_prn;
+   curr_intt =  fetch_current_data_ccb.msg[0].curr_intt;
+  //  console.log(curr_intt,curr_prn,'hyhyhy');
+   }
+
+  //  tenant_id = fetch_current_data.msg[0].tenant_id;
+
+    // Update td_loan_member loan balance
+    let table2 = "bdccb.td_loan_member";
+    let columns2 = ["prn_amt","intt_amt","modified_by","modified_at","ip_address"];
+    let values2 = [Number(curr_prn), Number(curr_intt),created_by,datetime,ip_address];
+    let whereColumns2 = ["loan_id","ccb_loan_id","tenant_id","group_code"];
+    let whereValues2 = [row.loan_id,loan_id,tenant_id,group_code];
+    let flag2 = 1; // update flag
+    const update_td_loan_ccb = await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+    // console.log(update_td_loan,'ki');
+    // console.log(whereValues2,'whereValues2');
+    
+   }
+
+   // FETCH INTEREST ROW TRANS_ID 
+    let select_t = "trans_id";
+    let table_t = "bdccb.td_loan_transactions";
+    let whr_t = `loan_id = '${loan_id}'
+           AND trans_dt = '${trans_dt}'
+           AND trans_type = 'I'`;
+    let order_t = null;
+    let interest_row_ccb = await db_Select(select_t, table_t, whr_t, order_t);
+    // console.log(interest_row,'kiyt');
+    
+
+    // if(interest_row.msg.length > 0){
+   let interest_trans_id = interest_row_ccb.msg[0].trans_id || null;
+  //  let tenant = interest_row.msg[0].tenant_id || 0;
+  //  console.log(interest_trans_id,'po');
+   
+// }
+
+    // delete from td_loan_transactions table recovery row
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "tenant_id", "trans_type"],
+      [trans_dt, transaction_id, loan_id, tenant_id, "R"]);
+
+        // delete from td_loan_transactions table interest row
+        if(interest_trans_id){
+     await deleteRecord(
+      "bdccb.td_loan_transactions",
+      ["trans_dt", "trans_id", "loan_id", "tenant_id", "trans_type"],
+      [trans_dt, interest_trans_id, loan_id, tenant_id, "I"]);
+     }
+
+      // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_TRANSCATIONS TABLE
+  var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
+   table_name1 = "bdccb.td_loan_transactions a",
+   whr1 = `a.loan_id = '${loan_id}'`,
+   order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
+   var fetch_current_data1_ccb = await db_Select(select1,table_name1,whr1,order1);
+  //  console.log(fetch_current_data1,'hyfr');
+   
+
+   let current_curr_prn = 0;
+   let current_curr_intt = 0;
+
+   if(fetch_current_data1_ccb.msg && fetch_current_data1_ccb.msg.length > 0){
+    current_curr_prn =  fetch_current_data1_ccb.msg[0].td_curr_prn ;
+    current_curr_intt = fetch_current_data1_ccb.msg[0].td_curr_intt ;
+    // console.log(current_curr_intt,current_curr_prn,'kiujh');
+    
+   }
+
+    // Update td_loan loan balance
+    let table3 = "bdccb.td_loan";
+    let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+    let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
+    let whereColumns3 = ["loan_id","group_code"];
+    let whereValues3 = [loan_id,group_code];
+    let flag3 = 1; // update flag
+    await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
+    // console.log(whereValues3,'whereValues3');
+
+    return res.send({
+      success: true,
+      msg: "CCB recovery rejected successfully"
+   });
+   }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while rejecting CCB recovery",
+      error: []
+    });
+  }
+});
 
 module.exports = {ccb_recovRouter}
