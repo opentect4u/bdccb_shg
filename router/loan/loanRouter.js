@@ -1220,40 +1220,25 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-  // Calculate total disbursement amount
-    // let total_disb_amt = member_disburse.reduce((sum, memb) => {
-    //  return sum + Number(memb.disb_amt || 0);
-    // }, 0);
-   
+   let memberIds = member_disburse.map(m => m.member_id).join(",");
 
-    let loanWiseTotal = {};
+   let loanMapRes = await db_Select(
+      "member_code, loan_id",
+      "bdccb.td_loan_member",
+      `member_code IN (${memberIds})`
+    );
 
-    for (let memb of member_disburse) {
+       if (loanMapRes.suc !== 1) {
+      return res.send({
+        success: false,
+        msg: "Error fetching member mapping"
+      });
+    }
 
-  // get SHG loan id from DB
-  let result = await db.query(`
-    SELECT loan_id as shg_loan_id
-    FROM bdccb.td_loan_member
-    WHERE member_code = $1
-  `, [memb.member_id]);
-
-  let shgLoanId = result.rows[0].shg_loan_id;
-
-  if (!shgLoanId) continue;
-
-  if (!loanWiseTotal[shgLoanId]) {
-    loanWiseTotal[shgLoanId] = 0;
-  }
-
-  loanWiseTotal[shgLoanId] += Number(memb.disb_amt || 0);
-}
-
-    // for (let memb of member_disburse) {
-    //   if (!loanWiseTotal[memb.loan_id]) {
-    //     loanWiseTotal[memb.loan_id] = 0;
-    //   }
-    //   loanWiseTotal[memb.loan_id] += Number(memb.disb_amt || 0);
-    // }
+     let memberToLoanMap = {};
+    loanMapRes.msg.forEach(row => {
+      memberToLoanMap[row.member_code] = row.loan_id;
+    });
    
    for (let memb of member_disburse) {
 
@@ -1272,6 +1257,21 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
           const mem_whereValues = [memb.loan_id,memb.member_id];
           const mem_flag = 1;
           await saveRecord(mem_table,mem_columns,mem_values,mem_whereColumns,mem_whereValues,mem_flag);  
+    }
+
+     let loanWiseTotal = {};
+
+    for (let memb of member_disburse) {
+
+      let shgLoanId = memberToLoanMap[memb.member_id];
+
+      if (!shgLoanId) continue;
+
+      if (!loanWiseTotal[shgLoanId]) {
+        loanWiseTotal[shgLoanId] = 0;
+      }
+
+      loanWiseTotal[shgLoanId] += Number(memb.disb_amt || 0);
     }
 
     for (let i = 0; i < loan_ids.length; i++) {
