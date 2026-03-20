@@ -79,6 +79,8 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
 
   let currPrincipal = Number(curr_prn);
   let totalInterest = Number(intt_amt);
+  console.log(currPrincipal,totalInterest);
+  
 
   let result = [];
 
@@ -86,14 +88,22 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
      let mem_outstanding = Number(mem.mem_outstanding);
 
      // uniform interest calculation
-     let calc_interest = (totalInterest * mem_outstanding) / currPrincipal;
+    //  let calc_interest = Math.round((totalInterest * mem_outstanding) / currPrincipal);
+    //  let calc_interest = Math.round((totalInterest / currPrincipal) * mem_outstanding);
+    let ratio = Number((totalInterest / currPrincipal).toFixed(3));
+    console.log(ratio,'ratio');
+    
+    let calc_interest = Math.round(ratio * mem_outstanding);
+    console.log(calc_interest,'calc_interest');
+    
     
     result.push({
       loan_id: mem.loan_id,
       member_name: mem.member_name,
       mem_amount: mem.mem_amount,
       mem_outstanding: mem_outstanding,
-      calculated_interest: Number(calc_interest.toFixed(2)),
+      // calculated_interest: Number(calc_interest.toFixed(2)),
+      calculated_interest: calc_interest,
     });
   }
   return res.send({
@@ -145,9 +155,9 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
       mem_amount: memb.mem_amount,
       mem_outstanding: memb.mem_outstanding,
       calculated_interest: memb.calculated_interest,
-      prn_recov: prn_recov,
-      intt_recov: intt_recov,
-      remaining_interest: remaining_interest
+      prn_recov: Math.round(prn_recov),
+      intt_recov: Math.round(intt_recov),
+      remaining_interest: Math.round(remaining_interest)
     });
   }
   return res.send({

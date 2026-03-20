@@ -15,11 +15,13 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     // console.log(req.body);
     
 
-    var select = "a.group_code,a.group_name,a.direct_indirect_flag,b.loan_to",
+    var select = "DISTINCT a.group_code,a.group_name,b.loan_to",
     table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
     whr = `a.phone1 = '${emp_id}'`,
     order = null;
     var fetch_grp_code = await db_Select(select,table_name,whr,order);
+    // console.log(fetch_grp_code,'fetch_grp_code');
+    
 
     if (!(fetch_grp_code.suc === 1 && fetch_grp_code.msg.length > 0)) {
     return res.send({
@@ -32,15 +34,14 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     const group_code = fetch_grp_code.msg[0].group_code;
     const group_name = fetch_grp_code.msg[0].group_name;
     const loan_to = fetch_grp_code.msg[0].loan_to;
-    const direct_indirect_flag = fetch_grp_code.msg[0].direct_indirect_flag;
     // console.log(group_code,loan_to,direct_indirect_flag,'juyt');
     
 
     const roi_column = loan_to == 'S' ? "a.curr_roi" : "a.society_roi";
     const penal_roi_column = loan_to == 'S' ? "a.penal_roi" : "a.society_penal_roi";
-    const society_acc_no = direct_indirect_flag == 'D' ? "a.loan_acc_no" : "a.society_acc_no";
+    const society_acc_no = loan_to == 'S' ? "a.loan_acc_no" : "a.society_acc_no";
 
-    var select_loan = `a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,${roi_column} AS curr_roi,${penal_roi_column} AS penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,${society_acc_no} AS society_acc_no,b.trans_type`,
+    var select_loan = `a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,${roi_column} AS curr_roi,${penal_roi_column} AS penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,${society_acc_no} society_acc_no,b.trans_type`,
     table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id AND b.approval_status = 'A' AND b.trans_type = 'D' LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
     whr_loan = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,a.society_roi,a.society_penal_roi`,
     // whr_loan = loan_to == 'S' ? `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'` : `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`
@@ -110,7 +111,7 @@ groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
 groupRecoveryRouter.post("/save_grp_recovery", async (req, res) => {
     try{
     const {tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,members,created_by,ip_address,loan_id} = req.body;
-    // console.log(req.body,'recov');
+    console.log(req.body,'recov');
     
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
@@ -129,7 +130,7 @@ groupRecoveryRouter.post("/save_grp_recovery", async (req, res) => {
      const table2 = "bdccb.td_loan_member_trans_temp";
      const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address","sb_amt"];
 
-     const values2 = [date,mem_trans_id,mem.mem_loan_id,loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',mem.principal_amt,mem.cr_amt,0,0,0,0,0,0,0,0,'U',created_by,datetime,ip_address,mem.sb_amt];
+     const values2 = [date,mem_trans_id,mem.mem_loan_id,loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',0,mem.cr_amt,0,0,0,0,0,0,0,0,'U',created_by,datetime,ip_address,mem.sb_amt];
      const whereColumns2 = [];
      const whereValues2 = [];
      const flag2 = 0;
