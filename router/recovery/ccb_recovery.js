@@ -511,8 +511,10 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     let table = "bdccb.td_loan_member_trans_temp";
     let columns = ["approval_status","approved_by","approved_dt","ip_address"];
     let values = ['A',created_by,datetime,ip_address];
-    let whereColumns = ["loan_id","ccb_loan_id","tenant_id","cr_amt"];
-    let whereValues = [dt.loan_id,loan_id,tenant_id,dt.credit_amount];
+    // let whereColumns = ["loan_id","ccb_loan_id","tenant_id","cr_amt"];
+    let whereColumns = ["loan_id","ccb_loan_id","tenant_id",];
+    let whereValues = [dt.loan_id,loan_id,tenant_id];
+    // let whereValues = [dt.loan_id,loan_id,tenant_id,dt.credit_amount];
     let flag = 1; // update flag
     const update_td_loan_member_trans_temp_ccb = await saveRecord(table,columns,values,whereColumns,whereValues,flag);  
 
