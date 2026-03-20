@@ -1228,6 +1228,16 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
     let loanWiseTotal = {};
 
+     for (let memb of member_disburse) {
+      let loanId = String(memb.loan_id);
+
+      if (!loanWiseTotal[loanId]) {
+        loanWiseTotal[loanId] = 0;
+      }
+
+      loanWiseTotal[loanId] += Number(memb.disb_amt || 0);
+    }
+
     // for (let memb of member_disburse) {
     //   if (!loanWiseTotal[memb.loan_id]) {
     //     loanWiseTotal[memb.loan_id] = 0;
@@ -1256,19 +1266,26 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
     for (let i = 0; i < loan_ids.length; i++) {
       // let total = loanWiseTotal[loan_ids[i]] || 0;
+      let loanId = String(loan_ids[i]);
+      let transId = trans_ids[i];
+      let groupCode = group_codes[i];
+
+      let total = loanWiseTotal[loanId] || 0;
+      console.log("Loan:", loanId, "Total:", total);
+
           const mem_table_tran = "bdccb.td_loan_transactions";
           const mem_columns_tran = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt","ip_address"];
-          const mem_values_tran = [total_disb_amt ,"A",created_by, datetime,created_by, datetime,ip_address];
+          const mem_values_tran = [total ,"A",created_by, datetime,created_by, datetime,ip_address];
           const mem_whereColumns_tran = ["loan_id","trans_id"];
-          const mem_whereValues_tran = [loan_ids[i], trans_ids[i]];
+          const mem_whereValues_tran = [loanId, transId];
           const mem_flag_tran = 1;
           await saveRecord(mem_table_tran,mem_columns_tran,mem_values_tran,mem_whereColumns_tran,mem_whereValues_tran,mem_flag_tran);
 
           const mem_tables = "bdccb.td_loan";
           const mem_columnss = ["curr_prn","modified_by","modified_dt","ip_address"];
-          const mem_valuess = [total_disb_amt ,created_by, datetime,ip_address];
+          const mem_valuess = [total ,created_by, datetime,ip_address];
           const mem_whereColumnss = ["loan_id","group_code"];
-          const mem_whereValuess = [loan_ids[i], group_codes[i]];
+          const mem_whereValuess = [loanId, groupCode];
           const mem_flags = 1;
           await saveRecord(mem_tables,mem_columnss,mem_valuess,mem_whereColumnss,mem_whereValuess,mem_flags); 
     }
