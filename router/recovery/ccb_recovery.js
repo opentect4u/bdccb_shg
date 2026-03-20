@@ -192,7 +192,7 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',tot_cal_intt_amt,0,0,0,0,0,Number(loan_outstanding),tot_cal_intt_amt,0,0,'U',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding),intt_amt,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
@@ -259,11 +259,11 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 // AFTER SUBMIT FETCH CCB DETAILS JUST FOR VIEW
 ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
   try{
-  const { tenant_id, branch_id, from_dt, to_dt } = req.body;
+  const { tenant_id, branch_id, from_dt, to_dt, approval_status } = req.body;
 
   var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}' AND c.approval_status = '${approval_status}'`,
   order = `c.trans_id desc,c.trans_dt desc`;
   var fetch_ccb_recovery_data1 = await db_Select(select, table_name, whr, order);
 
@@ -299,7 +299,7 @@ ccb_recovRouter.post("/fetch_ccb_mem_dtls", async (req, res) => {
 
   var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
   order = null;
   var fetch_ccb_loan_dtls1 = await db_Select(select,table_name,whr,order);
 
@@ -341,7 +341,8 @@ LEFT JOIN bdccb.md_member b
 LEFT JOIN bdccb.td_loan_member_trans d 
   ON a.loan_id = d.loan_id 
   AND a.ccb_loan_id = d.ccb_loan_id
-  AND DATE(d.trans_date) = '${trans_dt}'`;
+  AND DATE(d.trans_date) = '${trans_dt}'
+  AND d.approval_status = '${approval_status}'`;
    whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'  AND d.trans_type IN ('R','I')`;
    order_member = null ;
    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
