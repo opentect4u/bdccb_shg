@@ -1223,11 +1223,12 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
    let memberIds = member_disburse.map(m => m.member_id).join(",");
 
    let loanMapRes = await db_Select(
-      "member_code, loan_id",
+      "member_code, ccb_loan_id",
       "bdccb.td_loan_member",
       `member_code IN (${memberIds})`
     );
-
+    console.log(loanMapRes);
+    
        if (loanMapRes.suc !== 1) {
       return res.send({
         success: false,
@@ -1237,7 +1238,9 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
      let memberToLoanMap = {};
     loanMapRes.msg.forEach(row => {
-      memberToLoanMap[row.member_code] = row.loan_id;
+      memberToLoanMap[row.member_code] = row.ccb_loan_id;
+      console.log(row.ccb_loan_id);
+      
     });
    
    for (let memb of member_disburse) {
