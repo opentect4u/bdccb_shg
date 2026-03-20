@@ -1221,12 +1221,32 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
   // Calculate total disbursement amount
-    let total_disb_amt = member_disburse.reduce((sum, memb) => {
-     return sum + Number(memb.disb_amt || 0);
-    }, 0);
+    // let total_disb_amt = member_disburse.reduce((sum, memb) => {
+    //  return sum + Number(memb.disb_amt || 0);
+    // }, 0);
    
 
     let loanWiseTotal = {};
+
+    for (let memb of member_disburse) {
+
+  // get SHG loan id from DB
+  let result = await db.query(`
+    SELECT loan_id as shg_loan_id
+    FROM bdccb.td_loan_member
+    WHERE member_code = $1
+  `, [memb.member_id]);
+
+  let shgLoanId = result.rows[0].shg_loan_id;
+
+  if (!shgLoanId) continue;
+
+  if (!loanWiseTotal[shgLoanId]) {
+    loanWiseTotal[shgLoanId] = 0;
+  }
+
+  loanWiseTotal[shgLoanId] += Number(memb.disb_amt || 0);
+}
 
     // for (let memb of member_disburse) {
     //   if (!loanWiseTotal[memb.loan_id]) {
@@ -1261,8 +1281,8 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
       // let groupCode = group_codes[i];
 
       let loanId = loan_ids[i];
-  let transId = trans_ids[i];
-  let groupCode = group_codes[i];
+      let transId = trans_ids[i];
+      let groupCode = group_codes[i];
 
 
       let total = loanWiseTotal[loanId] || 0;
@@ -1270,7 +1290,7 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
           const mem_table_tran = "bdccb.td_loan_transactions";
           const mem_columns_tran = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt","ip_address"];
-          const mem_values_tran = [total_disb_amt ,"A",created_by, datetime,created_by, datetime,ip_address];
+          const mem_values_tran = [total ,"A",created_by, datetime,created_by, datetime,ip_address];
           const mem_whereColumns_tran = ["loan_id","trans_id"];
           const mem_whereValues_tran = [loanId, transId];
           const mem_flag_tran = 1;
@@ -1278,7 +1298,7 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 
           const mem_tables = "bdccb.td_loan";
           const mem_columnss = ["curr_prn","modified_by","modified_dt","ip_address"];
-          const mem_valuess = [total_disb_amt ,created_by, datetime,ip_address];
+          const mem_valuess = [total ,created_by, datetime,ip_address];
           const mem_whereColumnss = ["loan_id","group_code"];
           const mem_whereValuess = [loanId, groupCode];
           const mem_flags = 1;
