@@ -46,7 +46,7 @@ ccb_recovRouter.post("/fetch_loan_dtls_based_ccbacc_no", async (req, res) => {
 
   var select1 = "COUNT(*) AS cnt",
    table1 = "bdccb.td_loan_member_trans",
-   whr1 = `loan_acc_no = '${ccb_acc_no}' AND tenant_id = '${tenant_id}' AND branch_id = '${branch_id}'AND approval_status = 'U'`,
+   whr1 = `loan_acc_no = '${ccb_acc_no}' AND ccb_loan_id = '${ccb_loan_id}' AND tenant_id = '${tenant_id}' AND branch_id = '${branch_id}'AND approval_status = 'U'`,
    order1 = null;
    var fetch_unapprove_data = await db_Select(select1,table1,whr1,order1);
    console.log(fetch_unapprove_data);
@@ -104,7 +104,7 @@ ccb_recovRouter.post("/fetch_loan_dtls_based_ccbacc_no", async (req, res) => {
 ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
   try{
   const {ccb_loan_id,tenant_id,branch_id,branch_shg_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,ccb_recov,created_by,ip_address} = req.body;
-  // console.log(req.body,'ccb_recov');
+  console.log(req.body,'ccb_recov');
   
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
