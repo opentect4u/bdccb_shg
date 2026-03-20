@@ -187,7 +187,7 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
     // let tot_curr_prn_recov = ccb_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     // let tot_curr_intt_recov = ccb_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
     let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt);
-    let tot_current_intt = Number(tot_cal_intt_amt) - Number(intt_amt);
+    let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
