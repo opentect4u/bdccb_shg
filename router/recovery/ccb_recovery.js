@@ -295,7 +295,7 @@ ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
 // FETCH CCB RECOVERY MEMBER DETAILS
 ccb_recovRouter.post("/fetch_ccb_mem_dtls", async (req, res) => {
   try{
-  const { tenant_id,branch_id,group_code,trans_dt,transaction_id } = req.body;
+  const { tenant_id,branch_id,group_code,trans_dt,transaction_id, approval_status } = req.body;
 
   var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
