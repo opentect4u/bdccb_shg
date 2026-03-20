@@ -581,10 +581,12 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_MEMBER_TRANS TABLE
     var select1 = "(COALESCE(a.curr_prn,0)) AS curr_prn,(COALESCE(a.curr_intt,0)) AS curr_intt",
     table_name1 = "bdccb.td_loan_member_trans a",
-    whr1 = `a.loan_id = '${dt.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_date = '${dt.trans_date}' AND a.trans_id = '${dt.trans_id}'`,
-    order1 = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
+    // whr1 = `a.loan_id = '${dt.loan_id}' AND a.ccb_loan_id = '${loan_id}' AND a.trans_date = '${dt.trans_date}' AND a.trans_id = '${dt.trans_id}'`,
+    whr1 = `a.loan_id = '${dt.loan_id}' AND a.ccb_loan_id = '${loan_id}'`,
+    // order1 = "a.trans_date DESC, a.trans_id DESC LIMIT 1";
+    order1 = `CASE WHEN a.trans_type = 'R' THEN 1 ELSE 2 END, a.trans_date DESC,a.trans_id DESC LIMIT 1`;
     var fetch_current_data_ccb = await db_Select(select1,table_name1,whr1,order1);
-    // console.log(fetch_current_data,'1');
+    console.log(fetch_current_data_ccb,'1');
    
     let current_curr_prn = 0;
     let current_curr_intt = 0;
@@ -592,7 +594,7 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
    if(fetch_current_data_ccb.msg && fetch_current_data_ccb.msg.length > 0){
     current_curr_prn =  fetch_current_data_ccb.msg[0].curr_prn ;
     current_curr_intt = fetch_current_data_ccb.msg[0].curr_intt ;
-    // console.log(current_curr_intt,current_curr_prn,'2');
+    console.log(current_curr_intt,current_curr_prn,'2');
    }
     
   // Update td_loan_member table
