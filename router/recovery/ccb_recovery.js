@@ -181,12 +181,13 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     let soc_td_trans_ids = await ccb_tran_id();
 
+    // let tot_curr_prn_amt = ccb_recov.reduce((sum, item) => sum + Number(item.curr_prn), 0);
     let tot_curr_prn_amt = ccb_recov.reduce((sum, item) => sum + Number(item.curr_prn), 0);
     let tot_cal_intt_amt = ccb_recov.reduce((sum, item) => sum + Number(item.calculated_interest), 0);
     // let tot_coll_recov_amt = ccb_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     // let tot_curr_prn_recov = ccb_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     // let tot_curr_intt_recov = ccb_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt);
+    let tot_current_prn = Number(loan_outstanding) - Number(prn_amt);
     let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
