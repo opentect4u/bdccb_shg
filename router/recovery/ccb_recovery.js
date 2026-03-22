@@ -723,9 +723,8 @@ ccb_recovRouter.post("/reject_ccb_recov", async (req, res) => {
     //  if (row.trans_date && row.trans_id) {
     let select_fetch = "*";
     let table_fetch = "bdccb.td_loan_member_trans";
-    let whr_fetch = `trans_date = '${row.trans_date}'
-                 AND trans_id = '${row.trans_id}'
-                 AND loan_id = '${row.loan_id}'`;
+    let whr_fetch = `loan_id = '${row.loan_id}' AND ccb_loan_id = '${loan_id}' AND trans_date = '${row.trans_date}'
+                 AND trans_id = '${row.trans_id}' AND tenant_id = '${tenant_id}' AND trans_type = '${row.trans_type}'`;
 
     let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
 
@@ -757,42 +756,42 @@ let values = columns.map(c => r[c]);
 
    // FETCH INTEREST ROW (I) FULL DATA
 
-   let int_data = await db_Select(
-        "*",
-        "bdccb.td_loan_member_trans",
-        `loan_id = '${row.loan_id}'
-         AND ccb_loan_id = '${loan_id}'
-         AND trans_date = '${row.trans_date}'
-         AND trans_type = 'I'
-         AND tenant_id = '${tenant_id}'`,
-        null
-      );
+  //  let int_data = await db_Select(
+  //       "*",
+  //       "bdccb.td_loan_member_trans",
+  //       `loan_id = '${row.loan_id}'
+  //        AND ccb_loan_id = '${loan_id}'
+  //        AND trans_date = '${row.trans_date}'
+  //        AND trans_type = 'I'
+  //        AND tenant_id = '${tenant_id}'`,
+  //       null
+  //     );
 
-      let interest_tran_id = null;
+  //     let interest_tran_id = null;
 
-      if (int_data.msg && int_data.msg.length > 0) {
-        let r_int = int_data.msg[0];
-        interest_tran_id = r_int.trans_id;
+  //     if (int_data.msg && int_data.msg.length > 0) {
+  //       let r_int = int_data.msg[0];
+  //       interest_tran_id = r_int.trans_id;
 
-   // INSERT INTEREST ROW INTO REJECT TABLE
-     let int_columns = Object.keys(r_int).filter(c =>
-          !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
-        );
+  //  // INSERT INTEREST ROW INTO REJECT TABLE
+  //    let int_columns = Object.keys(r_int).filter(c =>
+  //         !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
+  //       );
 
-        let int_values = int_columns.map(c => r_int[c]);
+  //       let int_values = int_columns.map(c => r_int[c]);
 
-        int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
-        int_values.push(created_by, datetime, ip_address, reject_remarks);
+  //       int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
+  //       int_values.push(created_by, datetime, ip_address, reject_remarks);
 
-        await saveRecord(
-          "bdccb.td_loan_member_trans_reject",
-          int_columns,
-          int_values,
-          null,
-          null,
-          0
-        );
-      }     
+  //       await saveRecord(
+  //         "bdccb.td_loan_member_trans_reject",
+  //         int_columns,
+  //         int_values,
+  //         null,
+  //         null,
+  //         0
+  //       );
+  //     }     
 
     // delete td_loan_member_trans table interest row
     // if (interest_tran_id) {
