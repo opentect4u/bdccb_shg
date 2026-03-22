@@ -378,8 +378,9 @@ ccb_recovRouter.post("/fetch_ccb_recov_dtls", async (req, res) => {
   try{
   const { tenant_id, branch_id, from_dt, to_dt, approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
-  table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
+  var select = `a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,(c.trans_id || ',' || i.trans_id) AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status`,
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id  AND c.trans_type = 'R' LEFT JOIN bdccb.td_loan_transactions i 
+  ON a.loan_id = i.loan_id AND i.trans_type = 'I' AND i.trans_dt = c.trans_dt`,
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}' AND c.approval_status = '${approval_status}'`,
   order = `c.trans_id desc,c.trans_dt desc`;
   var fetch_ccb_recovery_data = await db_Select(select, table_name, whr, order);
