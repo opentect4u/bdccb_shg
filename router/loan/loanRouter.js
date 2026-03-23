@@ -28,6 +28,19 @@ const loanCode = async (branch_code) => {
   return loan_code;
 };
 
+const loanCodes = async (branch_code) => {
+  const select = `COALESCE(MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_codes`;
+  const table = "bdccb.td_loan_member";
+  const whr = `branch_id = '${branch_code}'`;
+  const res = await db_Select(select, table, whr, null);
+
+  const loan_nos = res.msg[0].loan_codes;
+
+  const loan_codes = `${branch_code}${String(loan_nos).padStart(4, "0")}`;
+
+  return loan_codes;
+};
+
 // const memberLoanCode = async (member_id) => {
 
 //   const select = `COALESCE(MAX(SUBSTRING(loan_id::TEXT FROM LENGTH('${member_id}') + 1)::INTEGER),0) + 1 AS next_seq`;
@@ -941,9 +954,12 @@ for (const group_code in groupMap) {
     let loan_code = groupData.loan_code || await loanCode(branch_id);
   // let loan_code = groupData.loan_code;
 
+
   for (const mem of groupData.members) {
 
     let mem_trans_id = await member_transaction_id();
+  let loan_codes = await loanCodes(branch_id);
+
 
     // ✅ loanMemberId logic (same as yours)
     let lastLoan = await db_Select(
@@ -977,7 +993,7 @@ for (const group_code in groupMap) {
     ];
 
     const values1 = [
-      loanMemberId, loan_code, tenant_id, branch_id, loan_acc_no, loan_to,
+      loanMemberId, loan_to == 'P' ? loan_codes : loan_code, tenant_id, branch_id, loan_acc_no, loan_to,
       branch_shg_id, mem.group_code, mem.member_id,
       period, curr_roi, penal_roi, disb_dt, mem.disburse_amt,
       pay_mode, startDate, endDate,
@@ -1000,7 +1016,7 @@ for (const group_code in groupMap) {
     ];
 
     const values2 = [
-      disb_dt, mem_trans_id, loanMemberId, loan_code, tenant_id, branch_id,
+      disb_dt, mem_trans_id, loanMemberId, loan_to == 'P' ? loan_codes : loan_code,, tenant_id, branch_id,
       loan_to, branch_shg_id, loan_acc_no,
       'D', mem.disburse_amt, 0,
       0,0,0,0,0,0,0,0,'U',created_by, datetime, ip_address
