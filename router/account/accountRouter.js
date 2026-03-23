@@ -62,7 +62,7 @@ const transaction_id = async () => {
   accountRouter.post("/save_loan_voucher", async (req, res) => {
        try {
         var voucher_ids = 0;
-         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,dr_amt,cr_amt,member_ids,society_acc_no,created_by,ip_address,group_code} = req.body;
+         const { tenant_id,branch_id,voucher_dt,voucher_id,trans_id,voucher_type,acc_code,trans_type,dr_amt,cr_amt,member_ids,society_acc_no,loan_acc_no,created_by,ip_address,group_code} = req.body;
         //  console.log(req.body);
          
          let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -161,7 +161,7 @@ const transaction_id = async () => {
 
           var table_td = "bdccb.td_loan";
           var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
-          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,society_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code];
+          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,loan_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code];
           var whereColumns_td = [];
           var whereValues_td = [];
           var flag_td = 0;
@@ -178,7 +178,7 @@ const transaction_id = async () => {
           var table_trn = "bdccb.td_loan_transactions";
           var columns_trn = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
           "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-          var values_trn = [loan_data.disb_dt,transac_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,society_acc_no || null,"D",
+          var values_trn = [loan_data.disb_dt,transac_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",
           loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"A",created_by,datetime,ip_address];
           var whereColumns_trn = [];
           var whereValues_trn = [];
