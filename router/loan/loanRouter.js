@@ -951,6 +951,7 @@ for (const group_code in groupMap) {
     for (const group_code in groupMap) {
 
   let groupData = groupMap[group_code];
+  let loan_codes = loan_to === 'P' ? await loanCodes(branch_id) : null;
     let loan_code = groupData.loan_code || await loanCode(branch_id);
   // let loan_code = groupData.loan_code;
 
@@ -958,7 +959,7 @@ for (const group_code in groupMap) {
   for (const mem of groupData.members) {
 
     let mem_trans_id = await member_transaction_id();
-  let loan_codes = await loanCodes(branch_id);
+  // let loan_codes = await loanCodes(branch_id);
 
 
     // ✅ loanMemberId logic (same as yours)
@@ -1040,58 +1041,15 @@ await saveRecord(table2, columns2, values2, [], [], 0);
 });
 
 // FETCH PACS DETAILS FOR APPROVE
-// loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
-// try{
-// const { branch_id, tenant_id } = req.body;
-// // console.log(req.body);
-
-// var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
-// table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
-// whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'
-//       GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
-// order = null;
-// var fetch_data = await db_Select(select, table_name, whr, order);
-
-// if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
-//   return res.send({
-//     success: true,
-//     msg: "Fetch unapprove disbursement details",
-//     data: fetch_data.msg,
-//   });
-// } else {
-//   return res.send({
-//     success: true,
-//     msg: "No unapprove disbursement details found",
-//     data: [],
-//   });
-// }
-// }catch (error) {
-//     console.error("Error in while fetch unapprove disbursement details:", error);
-//     return res.send({
-//       success: false,
-//       msg: "Internal server error",
-//       errorCode: "SERVER_ERROR",
-//     });
-//   }
-// });
-
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 try{
 const { branch_id, tenant_id } = req.body;
 // console.log(req.body);
 
-var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,STRING_AGG(DISTINCT a.ccb_loan_id::text, ',') AS ccb_loan_id",
-table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN (
-    SELECT DISTINCT ON (loan_id, ccb_loan_id)
-           loan_id, ccb_loan_id, approval_status, trans_type
-    FROM bdccb.td_loan_member_trans
-    WHERE trans_type = 'D'
-    ORDER BY loan_id, ccb_loan_id, trans_id DESC
-) c 
- ON a.loan_id = c.loan_id 
-AND a.ccb_loan_id = c.ccb_loan_id`,
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
-      GROUP BY a.group_code,b.group_name`,
+var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
+table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'
+      GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
@@ -1117,6 +1075,49 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
     });
   }
 });
+
+// loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
+// try{
+// const { branch_id, tenant_id } = req.body;
+// // console.log(req.body);
+
+// var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,STRING_AGG(DISTINCT a.ccb_loan_id::text, ',') AS ccb_loan_id",
+// table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN (
+//     SELECT DISTINCT ON (loan_id, ccb_loan_id)
+//            loan_id, ccb_loan_id, approval_status, trans_type
+//     FROM bdccb.td_loan_member_trans
+//     WHERE trans_type = 'D'
+//     ORDER BY loan_id, ccb_loan_id, trans_id DESC
+// ) c 
+//  ON a.loan_id = c.loan_id 
+// AND a.ccb_loan_id = c.ccb_loan_id`,
+// whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
+//       GROUP BY a.group_code,b.group_name,c.approval_status`,
+// order = null;
+// var fetch_data = await db_Select(select, table_name, whr, order);
+
+// if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
+//   return res.send({
+//     success: true,
+//     msg: "Fetch unapprove disbursement details",
+//     data: fetch_data.msg,
+//   });
+// } else {
+//   return res.send({
+//     success: true,
+//     msg: "No unapprove disbursement details found",
+//     data: [],
+//   });
+// }
+// }catch (error) {
+//     console.error("Error in while fetch unapprove disbursement details:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
 
 // FETCH UNAPPROVE DISBURSEMENT GROUP DETAILS WITH MEMBER
 loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
