@@ -1055,7 +1055,7 @@ table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code 
 ) c 
  ON a.loan_id = c.loan_id 
 AND a.ccb_loan_id = c.ccb_loan_id`,
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
       GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
