@@ -1016,7 +1016,7 @@ for (const group_code in groupMap) {
     ];
 
     const values2 = [
-      disb_dt, mem_trans_id, loanMemberId, loan_to == 'P' ? loan_codes : loan_code,, tenant_id, branch_id,
+      disb_dt, mem_trans_id, loanMemberId, loan_to == 'P' ? loan_codes : loan_code, tenant_id, branch_id,
       loan_to, branch_shg_id, loan_acc_no,
       'D', mem.disburse_amt, 0,
       0,0,0,0,0,0,0,0,'U',created_by, datetime, ip_address
