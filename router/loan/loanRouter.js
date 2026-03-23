@@ -951,8 +951,26 @@ for (const group_code in groupMap) {
     for (const group_code in groupMap) {
 
   let groupData = groupMap[group_code];
-  let loan_codes = loan_to === 'P' ? await loanCodes(branch_id) : null;
-    let loan_code = groupData.loan_code || await loanCode(branch_id);
+
+  let loan_codes = null;
+
+    if (loan_to === 'P') {
+          loan_codes = await loanCodes(branch_id);
+           let check = await db_Select(
+            "ccb_loan_id",
+            "bdccb.td_loan_member",
+            `ccb_loan_id='${loan_codes}'`,
+            null
+          );
+
+          if (check.suc === 1 && check.msg.length > 0) {
+            loan_codes = await loanCodes(branch_id);
+          }
+        }
+  // let loan_codes = loan_to === 'P' ? await loanCodes(branch_id) : null;
+    // let loan_code = groupData.loan_code || await loanCode(branch_id);
+    let loan_code = groupData.loan_code || null;
+    
   // let loan_code = groupData.loan_code;
 
 
@@ -981,6 +999,8 @@ for (const group_code in groupMap) {
     let seq = String(nextSeq).padStart(2, "0");
     let loanMemberId = `${mem.member_id}${seq}`;
 
+    let final_ccb_id = loan_to === 'P' ? loan_codes : loan_code;
+
     // ================== td_loan_member ==================
     const table1 = "bdccb.td_loan_member";
 
@@ -994,7 +1014,7 @@ for (const group_code in groupMap) {
     ];
 
     const values1 = [
-      loanMemberId, loan_to == 'P' ? loan_codes : loan_code, tenant_id, branch_id, loan_acc_no, loan_to,
+      loanMemberId, final_ccb_id, tenant_id, branch_id, loan_acc_no, loan_to,
       branch_shg_id, mem.group_code, mem.member_id,
       period, curr_roi, penal_roi, disb_dt, mem.disburse_amt,
       pay_mode, startDate, endDate,
@@ -1017,7 +1037,7 @@ for (const group_code in groupMap) {
     ];
 
     const values2 = [
-      disb_dt, mem_trans_id, loanMemberId, loan_to == 'P' ? loan_codes : loan_code, tenant_id, branch_id,
+      disb_dt, mem_trans_id, loanMemberId, final_ccb_id, tenant_id, branch_id,
       loan_to, branch_shg_id, loan_acc_no,
       'D', mem.disburse_amt, 0,
       0,0,0,0,0,0,0,0,'U',created_by, datetime, ip_address
