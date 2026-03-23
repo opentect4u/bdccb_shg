@@ -1048,7 +1048,7 @@ const { branch_id, tenant_id } = req.body;
 var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
 table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN (
     SELECT DISTINCT ON (loan_id, ccb_loan_id)
-           loan_id, ccb_loan_id, approval_status
+           loan_id, ccb_loan_id, approval_status, trans_type
     FROM bdccb.td_loan_member_trans
     WHERE trans_type = 'D'
     ORDER BY loan_id, ccb_loan_id, trans_id DESC
