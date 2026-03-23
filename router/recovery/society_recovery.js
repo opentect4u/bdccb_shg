@@ -822,7 +822,7 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
 society_recovRouter.post("/reject_society_recov", async (req, res) => {
   try{
    const {loan_id,tenant_id,trans_dt,transaction_id,group_code,reject_recovery,created_by,ip_address,reject_remarks} = req.body;
-  //  console.log(req.body,'reject');
+   console.log(req.body,'reject');
 
    let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
 
@@ -830,9 +830,7 @@ society_recovRouter.post("/reject_society_recov", async (req, res) => {
 
     let select_fetch = "*";
     let table_fetch = "bdccb.td_loan_member_trans";
-    let whr_fetch = `trans_date = '${row.trans_date}'
-                 AND trans_id = '${row.trans_id}'
-                 AND loan_id = '${row.loan_id}'`;
+    let whr_fetch = `loan_id = '${row.loan_id}' AND ccb_loan_id = '${loan_id}' AND trans_date = '${row.trans_date}' AND trans_id = '${row.trans_id}' AND tenant_id = '${tenant_id}' AND trans_type = '${row.trans_type}'`;
 
     let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
 
@@ -864,49 +862,49 @@ let values = columns.map(c => r[c]);
 
    // FETCH INTEREST ROW (I) FULL DATA
 
-   let int_data = await db_Select(
-        "*",
-        "bdccb.td_loan_member_trans",
-        `loan_id = '${row.loan_id}'
-         AND ccb_loan_id = '${loan_id}'
-         AND trans_date = '${row.trans_date}'
-         AND trans_type = 'I'
-         AND tenant_id = '${tenant_id}'`,
-        null
-      );
+  //  let int_data = await db_Select(
+  //       "*",
+  //       "bdccb.td_loan_member_trans",
+  //       `loan_id = '${row.loan_id}'
+  //        AND ccb_loan_id = '${loan_id}'
+  //        AND trans_date = '${row.trans_date}'
+  //        AND trans_type = 'I'
+  //        AND tenant_id = '${tenant_id}'`,
+  //       null
+  //     );
 
-      let interest_tran_id = null;
+  //     let interest_tran_id = null;
 
-      if (int_data.msg && int_data.msg.length > 0) {
-        let r_int = int_data.msg[0];
-        interest_tran_id = r_int.trans_id;
+  //     if (int_data.msg && int_data.msg.length > 0) {
+  //       let r_int = int_data.msg[0];
+  //       interest_tran_id = r_int.trans_id;
 
    // INSERT INTEREST ROW INTO REJECT TABLE
-     let int_columns = Object.keys(r_int).filter(c =>
-          !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
-        );
+    //  let int_columns = Object.keys(r_int).filter(c =>
+    //       !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
+    //     );
 
-        let int_values = int_columns.map(c => r_int[c]);
+    //     let int_values = int_columns.map(c => r_int[c]);
 
-        int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
-        int_values.push(created_by, datetime, ip_address, reject_remarks);
+    //     int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
+    //     int_values.push(created_by, datetime, ip_address, reject_remarks);
 
-        await saveRecord(
-          "bdccb.td_loan_member_trans_reject",
-          int_columns,
-          int_values,
-          null,
-          null,
-          0
-        );
-      }     
+    //     await saveRecord(
+    //       "bdccb.td_loan_member_trans_reject",
+    //       int_columns,
+    //       int_values,
+    //       null,
+    //       null,
+    //       0
+    //     );
+    //   }     
 
     // delete td_loan_member_trans table interest row
-  const delete_record_interest = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id","ccb_loan_id","trans_type"],[row.trans_date, interest_tran_id, row.loan_id, loan_id, 'I']);
+  const delete_record_interest = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id","ccb_loan_id","trans_type"],[row.trans_date, row.trans_id, row.loan_id, loan_id, row.trans_type]);
   //  console.log(delete_record_interest,'delete');
 
    // Delete from td_loan_member_trans table recovery row
-   const delete_record = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id", "ccb_loan_id","trans_type"],[row.trans_date, row.trans_id, row.loan_id, loan_id, 'R']);
+  //  const delete_record = await deleteRecord("bdccb.td_loan_member_trans",["trans_date", "trans_id", "loan_id", "ccb_loan_id","trans_type"],[row.trans_date, row.trans_id, row.loan_id, loan_id, 'R']);
   //  console.log(delete_record,'dedede');
    
 
@@ -948,9 +946,9 @@ let values = columns.map(c => r[c]);
     let select_t = "trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
-           AND trans_dt = '${trans_dt}'
-           AND trans_type = 'I'`;
-    let order_t = null;
+                 AND trans_type = 'I'
+                 AND trans_id < '${transaction_id}'`;
+    let order_t = "trans_id DESC LIMIT 1";
     let interest_row = await db_Select(select_t, table_t, whr_t, order_t);
     // console.log(interest_row,'kiyt');
     
@@ -979,7 +977,7 @@ let values = columns.map(c => r[c]);
       // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_TRANSCATIONS TABLE
   var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
    table_name1 = "bdccb.td_loan_transactions a",
-   whr1 = `a.loan_id = '${loan_id}'`,
+   whr1 = `a.loan_id = '${loan_id}' AND a.trans_type != 'I'`,
    order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);
   //  console.log(fetch_current_data1,'hyfr');
