@@ -1080,7 +1080,7 @@ try{
 const { branch_id, tenant_id } = req.body;
 // console.log(req.body);
 
-var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status",
+var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,STRING_AGG(DISTINCT a.ccb_loan_id::text, ',') AS ccb_loan_id",
 table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN (
     SELECT DISTINCT ON (loan_id, ccb_loan_id)
            loan_id, ccb_loan_id, approval_status, trans_type
@@ -1091,7 +1091,7 @@ table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code 
  ON a.loan_id = c.loan_id 
 AND a.ccb_loan_id = c.ccb_loan_id`,
 whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}'
-      GROUP BY a.group_code,b.group_name,c.approval_status`,
+      GROUP BY a.group_code,b.group_name`,
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
@@ -1122,6 +1122,8 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
 loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
   try {
     const {group_code,branch_code,tenant_id, approval_status, loan_to, ccb_loan_id} = req.body;
+    console.log(req.body,'ju');
+    
 
     var select = "a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS pacs_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,a.society_acc_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,b.trans_type,b.approval_status,b.reject_remarks",
     table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
