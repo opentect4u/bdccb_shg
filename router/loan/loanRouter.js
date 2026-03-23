@@ -15,11 +15,51 @@ const express = require("express"),
 //   return loan_code;
 // };
 
+// const loanCode = async (branch_code) => {
+//   const select = `COALESCE(MAX(SUBSTR(loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_code`;
+//   const table = "bdccb.td_loan";
+//   const whr = `branch_id = '${branch_code}'`;
+//   const res = await db_Select(select, table, whr, null);
+
+//   const loan_no = res.msg[0].loan_code;
+
+//   const loan_code = `${branch_code}${String(loan_no).padStart(4, "0")}`;
+
+//   return loan_code;
+// };
+
+// const loanCodes = async (branch_code) => {
+//   const select = `COALESCE(MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_codes`;
+//   const table = "bdccb.td_loan_member";
+//   const whr = `branch_id = '${branch_code}'`;
+//   const res = await db_Select(select, table, whr, null);
+
+//   const loan_nos = res.msg[0].loan_codes;
+
+//   const loan_codes = `${branch_code}${String(loan_nos).padStart(4, "0")}`;
+
+//   return loan_codes;
+// };
+
 const loanCode = async (branch_code) => {
-  const select = `COALESCE(MAX(SUBSTR(loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_code`;
-  const table = "bdccb.td_loan";
-  const whr = `branch_id = '${branch_code}'`;
-  const res = await db_Select(select, table, whr, null);
+  const select = `
+    COALESCE(
+      GREATEST(
+        COALESCE(
+          (SELECT MAX(SUBSTR(loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER)
+           FROM bdccb.td_loan
+           WHERE branch_id='${branch_code}'), 0
+        ),
+        COALESCE(
+          (SELECT MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER)
+           FROM bdccb.td_loan_member
+           WHERE branch_id='${branch_code}'), 0
+        )
+      ), 0
+    ) + 1 AS loan_code
+  `;
+
+  const res = await db_Select(select, "bdccb.td_loan", null, null);
 
   const loan_no = res.msg[0].loan_code;
 
@@ -29,14 +69,28 @@ const loanCode = async (branch_code) => {
 };
 
 const loanCodes = async (branch_code) => {
-  const select = `COALESCE(MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER), 0) + 1 AS loan_codes`;
-  const table = "bdccb.td_loan_member";
-  const whr = `branch_id = '${branch_code}'`;
-  const res = await db_Select(select, table, whr, null);
+  const select = `
+    COALESCE(
+      GREATEST(
+        COALESCE(
+          (SELECT MAX(SUBSTR(ccb_loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER)
+           FROM bdccb.td_loan_member
+           WHERE branch_id='${branch_code}'), 0
+        ),
+        COALESCE(
+          (SELECT MAX(SUBSTR(loan_id::TEXT, LENGTH('${branch_code}') + 1)::INTEGER)
+           FROM bdccb.td_loan
+           WHERE branch_id='${branch_code}'), 0
+        )
+      ), 0
+    ) + 1 AS loan_codes
+  `;
 
-  const loan_nos = res.msg[0].loan_codes;
+  const res = await db_Select(select, "bdccb.td_loan_member", null, null);
 
-  const loan_codes = `${branch_code}${String(loan_nos).padStart(4, "0")}`;
+  const loan_no = res.msg[0].loan_codes;
+
+  const loan_codes = `${branch_code}${String(loan_no).padStart(4, "0")}`;
 
   return loan_codes;
 };
@@ -956,16 +1010,6 @@ for (const group_code in groupMap) {
 
     if (loan_to === 'P') {
           loan_codes = await loanCodes(branch_id);
-           let check = await db_Select(
-            "ccb_loan_id",
-            "bdccb.td_loan_member",
-            `ccb_loan_id='${loan_codes}'`,
-            null
-          );
-
-          if (check.suc === 1 && check.msg.length > 0) {
-            loan_codes = await loanCodes(branch_id);
-          }
         }
   // let loan_codes = loan_to === 'P' ? await loanCodes(branch_id) : null;
     // let loan_code = groupData.loan_code || await loanCode(branch_id);
