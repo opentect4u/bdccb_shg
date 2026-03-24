@@ -1020,4 +1020,185 @@ let values = columns.map(c => r[c]);
   }
 });
 
+// fetch details for view loan via society acc_no/group_code/group_name
+society_recovRouter.post("/search_grp_view", async (req, res) => {
+  try{
+   const { tenant_id,branch_code,group_name_view} = req.body;
+  //  console.log(req.body,'p');
+   
+   var select = "a.group_code,b.group_name,a.society_acc_no",
+   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
+   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.society_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name,a.society_acc_no`,
+   order = null;
+   var search_grp_view = await db_Select(select, table_name, whr, order);
+
+   if (search_grp_view.suc !== 1 || search_grp_view.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+    }
+
+   let groupCode = search_grp_view.msg[0].group_code;
+   let societyAccNo = search_grp_view.msg[0].society_acc_no;
+
+   // fetch group details based on above details
+   var select1 = "a.group_code,a.branch_code,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name AS pacs_name",
+   table_name1 = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code LEFT JOIN public.md_branch c ON a.branch_code = c.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id LEFT JOIN public.md_branch k ON a.pacs_id = k.branch_id",
+   whr1 = `a.group_code = '${groupCode}' AND a.pacs_id = '${branch_code}' AND a.delete_flag = 'N' AND b.society_acc_no = '${societyAccNo}' GROUP BY a.group_code,a.branch_code,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name`,
+   order1 = null;
+   var search_grp_view_dtls = await db_Select(select1, table_name1, whr1, order1);
+
+  let grpData = (search_grp_view_dtls.suc === 1 && Array.isArray(search_grp_view_dtls.msg))
+  ? search_grp_view_dtls.msg
+  : [];
+
+   let finalData = (search_grp_view.msg || []).map(item => {
+      return {...item,
+      group_details: grpData
+    };
+    });
+
+   return res.send({
+    success: true,
+    msg: "Fetch group details",
+    data: finalData
+   }) 
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch group view details",
+      error: []
+    });
+  }
+});
+
+// FETCH SOCIETY LOAN DETAILS
+society_recovRouter.post("/fetch_soc_loan_dtls", async (req, res) => {
+  try{
+  const { tenant_id,branch_code,group_code,society_acc_no } = req.body;
+
+  var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+  table_name = "bdccb.td_loan a",
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
+    FROM bdccb.td_loan_member b
+    WHERE b.group_code = a.group_code
+    AND b.society_acc_no = '${society_acc_no}'
+  )`,
+  order = null;
+  var fetch_loan_dtls = await db_Select(select,table_name,whr,order);
+
+  if (fetch_loan_dtls.suc !== 1 || fetch_loan_dtls.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+  }
+
+   let loanCode = fetch_loan_dtls.msg[0].loan_id;
+
+  // FETCH LOAN TRANSACTION DETAILS BASED ON GROUP 
+  var select1 = "TO_CHAR(a.trans_dt, 'YYYY-MM-DD') AS trans_dt,a.trans_id,a.loan_id,a.loan_ac_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn + a.curr_intt,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
+  table_name1 = "bdccb.td_loan_transactions a",
+  whr1 = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND a.loan_id = '${loanCode}'`,
+  order1 = `a.loan_id, a.trans_id`;
+  var fetch_loan_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
+
+  let transData = (fetch_loan_dtls_trans.suc === 1 && Array.isArray(fetch_loan_dtls_trans.msg))
+  ? fetch_loan_dtls_trans.msg
+  : [];
+
+  let finalData_trans = (fetch_loan_dtls.msg || []).map(item => {
+      return {...item,
+      trans_details: transData
+    };
+    });
+
+  return res.send({
+    success: true,
+    msg: "Fetch loan details with transaction",
+    data: finalData_trans
+  });
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch loan transaction details",
+      error: []
+    });
+  }
+});
+
+// FETCH INDIVITUAL MEMBER DETAILS
+society_recovRouter.post("/fetch_indivitual_member", async (req, res) => {
+  try{
+  const { loan_id,tenant_id,branch_code,group_code,society_acc_no } = req.body;
+
+  var select = "b.member_name,a.loan_id,a.ccb_loan_id,a.member_code,COALESCE(a.prn_amt + a.intt_amt,0) AS member_outstanding",
+  table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.tenant_id = b.tenant_id AND a.member_code = b.member_code AND a.group_code = b.group_code",
+  whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND a.society_acc_no = '${society_acc_no}'`,
+  order = `a.loan_id`;
+  var fetch_member = await db_Select(select,table_name,whr,order);
+
+  if (fetch_member.suc !== 1 || fetch_member.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+  }
+
+  return res.send({
+    success: true,
+    msg: "Member details",
+    data: fetch_member.msg
+  })
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch indivitual membe",
+      error: []
+    });
+  }
+});
+
+// FETCH INDIVITUAL MEMBER DETAILS WITH MEMBER TRANSACTIONS
+society_recovRouter.post("/fetch_indivitual_member_loan", async (req, res) => {
+  try{
+  const { ccb_loan_id,tenant_id,loan_id } = req.body;
+
+  var select1 = "TO_CHAR(a.trans_date, 'YYYY-MM-DD') AS trans_date,a.trans_id,a.loan_id,a.ccb_loan_id,a.loan_acc_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn + a.curr_intt,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
+  table_name1 = "bdccb.td_loan_member_trans a",
+  whr1 = `a.loan_id = '${loan_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.tenant_id = '${tenant_id}'`,
+  order1 = `a.loan_id,a.trans_id`;
+  var fetch_member_transaction = await db_Select(select1,table_name1,whr1,order1);
+
+  if(fetch_member_transaction.suc === 1 && fetch_member_transaction.msg.length > 0){
+     return res.send({
+    success: true,
+    msg: "Member loan transaction details",
+    data: fetch_member_transaction.msg
+  })
+  }else{
+     return res.send({
+    success: true,
+    msg: "Member loan transaction details not found",
+    data: []
+  })
+  }
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch indivitual member loan details",
+      error: []
+    });
+  }
+
+})
+
 module.exports = {society_recovRouter}
