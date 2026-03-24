@@ -90,12 +90,15 @@ society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
      // uniform interest calculation
     //  let calc_interest = Math.round((totalInterest * mem_outstanding) / currPrincipal);
     //  let calc_interest = Math.round((totalInterest / currPrincipal) * mem_outstanding);
-    let ratio = Number((totalInterest / currPrincipal).toFixed(3));
-    console.log(ratio,'ratio');
+    // let ratio = Number((totalInterest / currPrincipal).toFixed(3));
+    // console.log(ratio,'ratio');
     
+    // let calc_interest = Math.round(ratio * mem_outstanding);
+    // console.log(calc_interest,'calc_interest');
+    
+    let ratio = Math.trunc((totalInterest / currPrincipal) * 1000) / 1000;
+
     let calc_interest = Math.round(ratio * mem_outstanding);
-    console.log(calc_interest,'calc_interest');
-    
     
     result.push({
       loan_id: mem.loan_id,
