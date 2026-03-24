@@ -1199,6 +1199,6 @@ society_recovRouter.post("/fetch_indivitual_member_loan", async (req, res) => {
     });
   }
 
-})
+});
 
 module.exports = {society_recovRouter}
