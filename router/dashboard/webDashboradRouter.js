@@ -229,103 +229,191 @@ webDashboardRouter.post("/tot_loan_outstanding", async (req, res) => {
 });
 
 // TOTAL LOAN DISBURSED SHG/SOCIETY
+// webDashboardRouter.post("/tot_loan_disb", async (req, res) => {
+//     try{
+//     const {flag,user_type,branch_code} = req.body;
+
+//     const today = new Date();
+
+//     // yyyy-mm-dd
+//     const current_date = today.toISOString().split('T')[0];
+
+//     // first day of month
+//     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+//       .toISOString()
+//       .split('T')[0];
+
+//     let dateCondition = "";
+
+//     if (flag === 'Today') {
+//       dateCondition = `b.trans_dt = '${current_date}'`;
+//     } else {
+//       dateCondition = `b.trans_dt BETWEEN '${startOfMonth}' AND '${current_date}'`;
+//     }
+
+//     let branchCondition = "";
+
+//      if (user_type === 'B') {
+//       branchCondition = `a.branch_id = '${branch_code}'`;
+//     } else {
+//       branchCondition = `a.branch_shg_id = '${branch_code}'`;
+//     }
+
+//     let data = {};
+
+//     // ✅ Society (Indirect)
+//     const fetch_indirect = await db_Select(
+//       "COALESCE(SUM(b.dr_amt),0) AS indirect_disb",
+//       "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+//       `${branchCondition} 
+//        AND b.trans_type = 'D'
+//        AND ${dateCondition}
+//        AND b.approval_status = 'A'`
+//     );
+
+//     // const fetch_indirect_grp = await db_Select(
+//     //   "COUNT(DISTINCT a.group_code) AS indirect_grp",
+//     //   "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
+//     //   `${branchCondition} 
+//     //    AND b.trans_type = 'D'
+//     //    AND ${dateCondition}
+//     //    AND g.direct_indirect_flag = 'I'`
+//     // );
+
+//       if (user_type === 'B') {
+//          const fetch_direct = await db_Select(
+//         "COALESCE(SUM(b.dr_amt),0) AS direct_disb",
+//         "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+//         `${branchCondition} 
+//          AND b.trans_type = 'D'
+//          AND ${dateCondition}
+//          AND b.approval_status = 'A'`
+//       );
+
+//     //   const fetch_direct_grp = await db_Select(
+//     //     "COUNT(DISTINCT a.group_code) AS direct_grp",
+//     //     "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
+//     //     `${branchCondition} 
+//     //      AND b.trans_type = 'D'
+//     //      AND ${dateCondition}
+//     //      AND g.direct_indirect_flag = 'D'`
+//     //   );
+
+//       data = {
+//         shg_disbursed: fetch_direct.msg[0].direct_disb || 0,
+//         society_disbursed: fetch_indirect.msg[0].indirect_disb || 0,
+//         // shg_group_count: fetch_direct_grp.msg?.[0]?.direct_grp || 0,
+//         // society_group_count: fetch_indirect_grp.msg?.[0]?.indirect_grp || 0
+//       };
+//       }else{
+//       // ✅ Only Society for 'P'
+//       data = {
+//         society_disbursed: fetch_indirect.msg[0].indirect_disb || 0,
+//         // society_group_count: fetch_indirect_grp.msg?.[0]?.indirect_grp || 0
+//       };
+//       }
+
+//       return res.send({
+//       success: true,
+//       msg: "Loan disbursement fetched successfully",
+//       data: data
+//     });
+//     }catch (error) {
+//     console.error("Error in while fetch total loan disbursement:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR"
+//     });
+//     }
+// });
+
 webDashboardRouter.post("/tot_loan_disb", async (req, res) => {
-    try{
-    const {flag,user_type,branch_code} = req.body;
+  try {
+    const { flag, user_type, branch_code } = req.body;
 
     const today = new Date();
 
-    // yyyy-mm-dd
-    const current_date = today.toISOString().split('T')[0];
+    const current_date = today.toISOString().split("T")[0];
 
-    // first day of month
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       .toISOString()
-      .split('T')[0];
+      .split("T")[0];
 
     let dateCondition = "";
 
-    if (flag === 'Today') {
+    if (flag === "Today") {
       dateCondition = `b.trans_dt = '${current_date}'`;
     } else {
       dateCondition = `b.trans_dt BETWEEN '${startOfMonth}' AND '${current_date}'`;
     }
 
-    let branchCondition = "";
-
-     if (user_type === 'B') {
-      branchCondition = `a.branch_id = '${branch_code}'`;
-    } else {
-      branchCondition = `a.branch_shg_id = '${branch_code}'`;
-    }
-
     let data = {};
 
-    // ✅ Society (Indirect)
-    const fetch_indirect = await db_Select(
-      "COALESCE(SUM(b.dr_amt),0) AS indirect_disb",
-      "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
-      `${branchCondition} 
-       AND b.trans_type = 'D'
-       AND ${dateCondition}
-       AND b.approval_status = 'A'`
-    );
+    if (user_type === "B") {
 
-    // const fetch_indirect_grp = await db_Select(
-    //   "COUNT(DISTINCT a.group_code) AS indirect_grp",
-    //   "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
-    //   `${branchCondition} 
-    //    AND b.trans_type = 'D'
-    //    AND ${dateCondition}
-    //    AND g.direct_indirect_flag = 'I'`
-    // );
+      const shgList = await db_Select(
+     "branch_id AS branch_shg_id",
+     "public.md_branch",
+     `branch_jurisdiction_id = '${branch_code}'`
+);
+      const shgIds = shgList.msg.map(e => `'${e.branch_shg_id}'`).join(",");
+      // SINGLE QUERY FOR BOTH DIRECT + INDIRECT
+      const result = await db_Select(
+  `
+  COALESCE(SUM(CASE 
+    WHEN a.branch_id = '${branch_code}' THEN b.dr_amt 
+    ELSE 0 END),0) AS shg_disbursed,
 
-      if (user_type === 'B') {
-         const fetch_direct = await db_Select(
-        "COALESCE(SUM(b.dr_amt),0) AS direct_disb",
+  COALESCE(SUM(CASE 
+    WHEN a.branch_shg_id IN (${shgIds}) THEN b.dr_amt 
+    ELSE 0 END),0) AS society_disbursed
+  `,
+  "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+  `
+  b.trans_type = 'D'
+  AND ${dateCondition}
+  AND b.approval_status = 'A'
+  `
+);
+
+      data = {
+        shg_disbursed: result.msg[0].shg_disbursed || 0,
+        society_disbursed: result.msg[0].society_disbursed || 0
+      };
+
+    } else {
+      // ✅ ONLY SOCIETY FOR P LOGIN
+      const result = await db_Select(
+        "COALESCE(SUM(b.dr_amt),0) AS society_disbursed",
         "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
-        `${branchCondition} 
-         AND b.trans_type = 'D'
-         AND ${dateCondition}
-         AND b.approval_status = 'A'`
+        `
+        a.branch_shg_id = '${branch_code}'
+        AND b.trans_type = 'D'
+        AND ${dateCondition}
+        AND b.approval_status = 'A'
+        `
       );
 
-    //   const fetch_direct_grp = await db_Select(
-    //     "COUNT(DISTINCT a.group_code) AS direct_grp",
-    //     "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
-    //     `${branchCondition} 
-    //      AND b.trans_type = 'D'
-    //      AND ${dateCondition}
-    //      AND g.direct_indirect_flag = 'D'`
-    //   );
-
       data = {
-        shg_disbursed: fetch_direct.msg[0].direct_disb || 0,
-        society_disbursed: fetch_indirect.msg[0].indirect_disb || 0,
-        // shg_group_count: fetch_direct_grp.msg?.[0]?.direct_grp || 0,
-        // society_group_count: fetch_indirect_grp.msg?.[0]?.indirect_grp || 0
+        society_disbursed: result.msg[0].society_disbursed || 0
       };
-      }else{
-      // ✅ Only Society for 'P'
-      data = {
-        society_disbursed: fetch_indirect.msg[0].indirect_disb || 0,
-        // society_group_count: fetch_indirect_grp.msg?.[0]?.indirect_grp || 0
-      };
-      }
+    }
 
-      return res.send({
+    return res.send({
       success: true,
       msg: "Loan disbursement fetched successfully",
       data: data
     });
-    }catch (error) {
-    console.error("Error in while fetch total loan disbursement:", error);
+
+  } catch (error) {
+    console.error("Error in total loan disbursement:", error);
     return res.send({
       success: false,
       msg: "Internal server error",
       errorCode: "SERVER_ERROR"
     });
-    }
+  }
 });
 
 // FETCH UNAPPROVED TRANSACTION BRANCH AND SOCIETY
