@@ -264,7 +264,10 @@ ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
 
   var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}' AND c.approval_status = '${approval_status}'`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
+  if (from_dt && to_dt) {
+      whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+  }
   order = `c.trans_id desc,c.trans_dt desc`;
   var fetch_ccb_recovery_data1 = await db_Select(select, table_name, whr, order);
 
@@ -723,9 +726,8 @@ ccb_recovRouter.post("/reject_ccb_recov", async (req, res) => {
     //  if (row.trans_date && row.trans_id) {
     let select_fetch = "*";
     let table_fetch = "bdccb.td_loan_member_trans";
-    let whr_fetch = `trans_date = '${row.trans_date}'
-                 AND trans_id = '${row.trans_id}'
-                 AND loan_id = '${row.loan_id}'`;
+    let whr_fetch = `loan_id = '${row.loan_id}' AND ccb_loan_id = '${loan_id}' AND trans_date = '${row.trans_date}'
+                 AND trans_id = '${row.trans_id}' AND tenant_id = '${tenant_id}' AND trans_type = '${row.trans_type}'`;
 
     let data = await db_Select(select_fetch, table_fetch, whr_fetch, null);
 
@@ -757,42 +759,42 @@ let values = columns.map(c => r[c]);
 
    // FETCH INTEREST ROW (I) FULL DATA
 
-   let int_data = await db_Select(
-        "*",
-        "bdccb.td_loan_member_trans",
-        `loan_id = '${row.loan_id}'
-         AND ccb_loan_id = '${loan_id}'
-         AND trans_date = '${row.trans_date}'
-         AND trans_type = 'I'
-         AND tenant_id = '${tenant_id}'`,
-        null
-      );
+  //  let int_data = await db_Select(
+  //       "*",
+  //       "bdccb.td_loan_member_trans",
+  //       `loan_id = '${row.loan_id}'
+  //        AND ccb_loan_id = '${loan_id}'
+  //        AND trans_date = '${row.trans_date}'
+  //        AND trans_type = 'I'
+  //        AND tenant_id = '${tenant_id}'`,
+  //       null
+  //     );
 
-      let interest_tran_id = null;
+  //     let interest_tran_id = null;
 
-      if (int_data.msg && int_data.msg.length > 0) {
-        let r_int = int_data.msg[0];
-        interest_tran_id = r_int.trans_id;
+  //     if (int_data.msg && int_data.msg.length > 0) {
+  //       let r_int = int_data.msg[0];
+  //       interest_tran_id = r_int.trans_id;
 
-   // INSERT INTEREST ROW INTO REJECT TABLE
-     let int_columns = Object.keys(r_int).filter(c =>
-          !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
-        );
+  //  // INSERT INTEREST ROW INTO REJECT TABLE
+  //    let int_columns = Object.keys(r_int).filter(c =>
+  //         !["rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks"].includes(c)
+  //       );
 
-        let int_values = int_columns.map(c => r_int[c]);
+  //       let int_values = int_columns.map(c => r_int[c]);
 
-        int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
-        int_values.push(created_by, datetime, ip_address, reject_remarks);
+  //       int_columns.push("rejected_by", "rejected_dt", "rejected_ip_address", "reject_remarks");
+  //       int_values.push(created_by, datetime, ip_address, reject_remarks);
 
-        await saveRecord(
-          "bdccb.td_loan_member_trans_reject",
-          int_columns,
-          int_values,
-          null,
-          null,
-          0
-        );
-      }     
+  //       await saveRecord(
+  //         "bdccb.td_loan_member_trans_reject",
+  //         int_columns,
+  //         int_values,
+  //         null,
+  //         null,
+  //         0
+  //       );
+  //     }     
 
     // delete td_loan_member_trans table interest row
     // if (interest_tran_id) {
@@ -879,9 +881,10 @@ let values = columns.map(c => r[c]);
     let select_t = "trans_id";
     let table_t = "bdccb.td_loan_transactions";
     let whr_t = `loan_id = '${loan_id}'
-           AND trans_dt = '${trans_dt}'
-           AND trans_type = 'I'`;
-    let order_t = null;
+                 AND trans_type = 'I'
+                AND trans_id < '${transaction_id}'
+           `;
+    let order_t = "trans_id DESC LIMIT 1";
     let interest_row_ccb = await db_Select(select_t, table_t, whr_t, order_t);
     // console.log(interest_row,'kiyt');
     
@@ -910,7 +913,8 @@ let values = columns.map(c => r[c]);
       // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_TRANSCATIONS TABLE
   var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
    table_name1 = "bdccb.td_loan_transactions a",
-   whr1 = `a.loan_id = '${loan_id}'`,
+   whr1 = `a.loan_id = '${loan_id}'
+   AND a.trans_type != 'I'`,
    order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
    var fetch_current_data1_ccb = await db_Select(select1,table_name1,whr1,order1);
   //  console.log(fetch_current_data1,'hyfr');
@@ -948,6 +952,188 @@ let values = columns.map(c => r[c]);
       error: []
     });
   }
+});
+
+// fetch details for view loan via society acc_no/group_code/group_name
+ccb_recovRouter.post("/search_shg_grp_view", async (req, res) => {
+ try{
+   const { tenant_id,branch_code,group_name_view} = req.body;
+  //  console.log(req.body,'p');
+   
+   var select = "a.group_code,b.group_name,a.loan_acc_no",
+   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
+   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.loan_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name,a.loan_acc_no`,
+   order = null;
+   var shg_search_grp_view = await db_Select(select, table_name, whr, order);
+
+   if (shg_search_grp_view.suc !== 1 || shg_search_grp_view.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+    }
+
+   let groupCode = shg_search_grp_view.msg[0].group_code;
+   let loanAccNo = shg_search_grp_view.msg[0].loan_acc_no;
+
+   // fetch group details based on above details
+   var select1 = "a.group_code,a.branch_code,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name AS pacs_name",
+   table_name1 = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code LEFT JOIN public.md_branch c ON a.branch_code = c.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id LEFT JOIN public.md_branch k ON a.pacs_id = k.branch_id",
+   whr1 = `a.group_code = '${groupCode}' AND a.branch_code = '${branch_code}' AND a.delete_flag = 'N' AND b.loan_acc_no = '${loanAccNo}' GROUP BY a.group_code,a.branch_code,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name`,
+   order1 = null;
+   var shg_search_grp_view_dtls = await db_Select(select1, table_name1, whr1, order1);
+
+  let shg_grpData = (shg_search_grp_view_dtls.suc === 1 && Array.isArray(shg_search_grp_view_dtls.msg))
+  ? shg_search_grp_view_dtls.msg
+  : [];
+
+   let finalData = (shg_search_grp_view.msg || []).map(item => {
+      return {...item,
+      group_details: shg_grpData
+    };
+    });
+
+   return res.send({
+    success: true,
+    msg: "Fetch shg group details",
+    data: finalData
+   }) 
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch shg group view details",
+      error: []
+    });
+  }
+});
+
+// FETCH SOCIETY LOAN DETAILS
+ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
+  try{
+  const { tenant_id,branch_code,group_code,loan_acc_no } = req.body;
+
+  var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+  table_name = "bdccb.td_loan a",
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
+    FROM bdccb.td_loan_member b
+    WHERE b.group_code = a.group_code
+    AND b.loan_acc_no = '${loan_acc_no}'
+  )`,
+  order = null;
+  var fetch_ccb_loan_dtls = await db_Select(select,table_name,whr,order);
+
+  if (fetch_ccb_loan_dtls.suc !== 1 || fetch_ccb_loan_dtls.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+  }
+
+   let loanCode = fetch_ccb_loan_dtls.msg[0].loan_id;
+   let branch_shg_id = fetch_ccb_loan_dtls.msg[0].branch_shg_id;
+
+  // FETCH LOAN TRANSACTION DETAILS BASED ON GROUP 
+  var select1 = "TO_CHAR(a.trans_dt, 'YYYY-MM-DD') AS trans_dt,a.trans_id,a.loan_id,a.loan_ac_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn + a.curr_intt,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
+  table_name1 = "bdccb.td_loan_transactions a",
+  whr1 = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_shg_id}' AND a.loan_id = '${loanCode}'`,
+  order1 = `a.loan_id, a.trans_id`;
+  var fetch_ccb_loan_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
+
+  let ccb_transData = (fetch_ccb_loan_dtls_trans.suc === 1 && Array.isArray(fetch_ccb_loan_dtls_trans.msg))
+  ? fetch_ccb_loan_dtls_trans.msg
+  : [];
+
+  let finalData_trans = (fetch_ccb_loan_dtls.msg || []).map(item => {
+      return {...item,
+      trans_details: ccb_transData
+    };
+    });
+
+  return res.send({
+    success: true,
+    msg: "Fetch shg loan details with transaction",
+    data: finalData_trans
+  });
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch shg loan transaction details",
+      error: []
+    });
+  }
+});
+
+// FETCH INDIVITUAL MEMBER DETAILS
+ccb_recovRouter.post("/fetch_indivitual_shg_member", async (req, res) => {
+  try{
+  const { loan_id,tenant_id,branch_code,group_code,loan_acc_no } = req.body;
+
+  var select = "b.member_name,a.loan_id,a.ccb_loan_id,a.member_code,COALESCE(a.prn_amt + a.intt_amt,0) AS member_outstanding",
+  table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.tenant_id = b.tenant_id AND a.member_code = b.member_code AND a.group_code = b.group_code",
+  whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.group_code = '${group_code}' AND a.loan_acc_no = '${loan_acc_no}'`,
+  order = `a.loan_id`;
+  var fetch_shg_member = await db_Select(select,table_name,whr,order);
+
+  if (fetch_shg_member.suc !== 1 || fetch_shg_member.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+  }
+
+  return res.send({
+    success: true,
+    msg: "Shg Member details",
+    data: fetch_shg_member.msg
+  })
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch shg indivitual membe",
+      error: []
+    });
+  }
+});
+
+// FETCH INDIVITUAL MEMBER DETAILS WITH MEMBER TRANSACTIONS
+ccb_recovRouter.post("/fetch_indivitual_shg_member_loan", async (req, res) => {
+  try{
+  const { ccb_loan_id,tenant_id,loan_id } = req.body;
+
+  var select1 = "TO_CHAR(a.trans_date, 'YYYY-MM-DD') AS trans_date,a.trans_id,a.loan_id,a.ccb_loan_id,a.loan_acc_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn + a.curr_intt,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
+  table_name1 = "bdccb.td_loan_member_trans a",
+  whr1 = `a.loan_id = '${loan_id}' AND a.ccb_loan_id = '${ccb_loan_id}' AND a.tenant_id = '${tenant_id}'`,
+  order1 = `a.loan_id,a.trans_id`;
+  var fetch_shg_member_transaction = await db_Select(select1,table_name1,whr1,order1);
+
+  if(fetch_shg_member_transaction.suc === 1 && fetch_shg_member_transaction.msg.length > 0){
+     return res.send({
+    success: true,
+    msg: "Shg Member loan transaction details",
+    data: fetch_shg_member_transaction.msg
+  })
+  }else{
+     return res.send({
+    success: true,
+    msg: "Shg Member loan transaction details not found",
+    data: []
+  })
+  }
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch indivitual shg member loan details",
+      error: []
+    });
+  }
+
 });
 
 module.exports = {ccb_recovRouter}
