@@ -264,11 +264,11 @@ webDashboardRouter.post("/tot_loan_disb", async (req, res) => {
     // ✅ Society (Indirect)
     const fetch_indirect = await db_Select(
       "COALESCE(SUM(b.dr_amt),0) AS indirect_disb",
-      "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
+      "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
       `${branchCondition} 
        AND b.trans_type = 'D'
        AND ${dateCondition}
-       AND g.direct_indirect_flag = 'I'`
+       AND b.approval_status = 'A'`
     );
 
     // const fetch_indirect_grp = await db_Select(
@@ -283,11 +283,11 @@ webDashboardRouter.post("/tot_loan_disb", async (req, res) => {
       if (user_type === 'B') {
          const fetch_direct = await db_Select(
         "COALESCE(SUM(b.dr_amt),0) AS direct_disb",
-        "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group g ON a.group_code = g.group_code",
+        "bdccb.td_loan a JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
         `${branchCondition} 
          AND b.trans_type = 'D'
          AND ${dateCondition}
-         AND g.direct_indirect_flag = 'D'`
+         AND b.approval_status = 'A'`
       );
 
     //   const fetch_direct_grp = await db_Select(
