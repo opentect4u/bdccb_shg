@@ -124,15 +124,10 @@ webDashboardRouter.post("/fetch_ccb_web_dashboardgroup_data", async (req, res) =
       );
 
       const fetch_without_loan_grp_data = await db_Select(
-        "COUNT(*) AS without_loan",
-        "bdccb.md_group",
-        `branch_code = '${branch_code}' 
-         AND open_close_flag = 'O' 
-         AND delete_flag = 'N'
-         AND group_code NOT IN (
-           SELECT group_code FROM bdccb.td_loan 
-           WHERE branch_id = '${branch_code}'
-         )`
+        "COUNT(DISTINCT group_code) AS without_loan",
+        "bdccb.td_loan",
+        `branch_id = '${branch_code}' 
+         AND (curr_prn + curr_intt) = 0`
       );
 
       data = {
@@ -163,13 +158,10 @@ webDashboardRouter.post("/fetch_ccb_web_dashboardgroup_data", async (req, res) =
       );
 
       const fetch_without_loan_grp_data = await db_Select(
-        "COUNT(*) AS without_loan",
-        "bdccb.md_group",
-        `branch_code = '${branch_code}' 
-         AND group_code NOT IN (
-           SELECT group_code FROM bdccb.td_loan 
-           WHERE branch_shg_id = '${branch_code}'
-         )`
+        "COUNT(DISTINCT group_code) AS without_loan",
+        "bdccb.td_loan",
+        `branch_shg_id = '${branch_code}' 
+         AND (curr_prn + curr_intt) = 0`
       );
 
       data = {
