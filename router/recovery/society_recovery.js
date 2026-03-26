@@ -384,9 +384,17 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(SUM(CASE WHEN b.trans_type = 'R' THEN b.curr_prn_recov ELSE 0 END),0) - COALESCE(SUM(CASE WHEN b.trans_type = 'I' THEN b.dr_amt ELSE 0 END),0) AS principal_amount,COALESCE(SUM(CASE WHEN b.trans_type = 'I' THEN b.dr_amt ELSE 0 END),0) AS interest_amount",
-  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' LEFT JOIN bdccb.td_loan_member c ON a.loan_id = c.ccb_loan_id JOIN bdccb.md_group d ON a.group_code = d.group_code`,
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.curr_prn,a.curr_intt`,
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}' LEFT JOIN bdccb.td_loan_transactions i ON a.loan_id = i.loan_id AND i.trans_type = 'I'
+  AND i.trans_dt = '${trans_dt}' AND i.trans_id = '${transaction_id}' AND i.approval_status = '${approval_status}' LEFT JOIN (
+      SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+      FROM bdccb.td_loan_member
+      GROUP BY ccb_loan_id
+    ) c ON a.loan_id = c.ccb_loan_id
+
+    JOIN bdccb.md_group d 
+    ON a.group_code = d.group_code`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
   console.log(fetch_society_loan_dtls1,'ki');
