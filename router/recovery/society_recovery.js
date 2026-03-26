@@ -508,7 +508,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
 
    COALESCE(d.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_recovery,
 
-   COALESCE(i.dr_amt,0) AS interest_recovery
+   COALESCE(i.dr_amt,0) AS interest_recovery,
    
    CASE 
    WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
@@ -528,7 +528,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
    LEFT JOIN bdccb.td_loan_member_trans d 
    ON a.loan_id = d.loan_id 
    AND a.ccb_loan_id = d.ccb_loan_id
-   AND r.trans_type = 'R'
+   AND d.trans_type = 'R'
    AND DATE(d.trans_date) = '${trans_dt}'
    AND d.approval_status = '${approval_status}'
    LEFT JOIN (
@@ -544,7 +544,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
 ) i
  ON a.loan_id = i.loan_id 
 AND a.ccb_loan_id = i.ccb_loan_id`;
-   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND d.trans_type IN ('R','I') GROUP BY a.loan_id, a.member_code, b.member_name,d.trans_date,d.trans_id,d.trans_type`;
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`;
    order_member = null ;
    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
 
