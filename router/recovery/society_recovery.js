@@ -642,15 +642,9 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
    d.trans_id AS trans_id,
    d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
 
-   CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
-   ELSE 0
-   END AS principal_recovery,
-   
-   CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
-   ELSE 0
-   END AS interest_recovery,
+   COALESCE(d.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_recovery,
+
+   COALESCE(i.dr_amt,0) AS interest_recovery,
    
    CASE 
    WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
@@ -670,9 +664,23 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
    LEFT JOIN bdccb.td_loan_member_trans d 
    ON a.loan_id = d.loan_id 
    AND a.ccb_loan_id = d.ccb_loan_id
+   AND d.trans_type = 'R'
    AND DATE(d.trans_date) = '${trans_dt}'
-   AND d.approval_status = '${approval_status}'`;
-   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND d.trans_type IN ('R','I')`;
+   AND d.approval_status = '${approval_status}'
+   LEFT JOIN (
+  SELECT DISTINCT ON (loan_id, ccb_loan_id)
+    loan_id,
+    ccb_loan_id,
+    dr_amt
+  FROM bdccb.td_loan_member_trans
+  WHERE trans_type = 'I'
+  AND DATE(trans_date) = '${trans_dt}'
+  AND approval_status = '${approval_status}'
+  ORDER BY loan_id, ccb_loan_id, trans_id DESC
+) i
+ ON a.loan_id = i.loan_id 
+AND a.ccb_loan_id = i.ccb_loan_id`;
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`;
    order_member = null ;
    var fetch_member_dtls_trans = await db_Select(select_member,table_member,whr_member,order_member);
 
