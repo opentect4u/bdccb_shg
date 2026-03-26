@@ -429,19 +429,32 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
     table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
     whr = `a.branch_id = '${branch_code}' AND b.approval_status = 'U' AND b.trans_type IN('D','R')`,
     order = null;
+
+    // TOT_GRP_UNAPPROVE
+    var select1 = "COUNT(DISTINCT a.group_code)tot_unapprove_grp",
+    table_name1 = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+    whr1 = `a.branch_id = '${branch_code}' AND b.approval_status = 'U' AND b.trans_type IN('D','R')`,
+    order1 = null;
     }else{
     var select = "COALESCE(SUM(dr_amt),0) + COALESCE(SUM(cr_amt),0) AS tot_unapprove_loan",
     table_name = "bdccb.td_loan_transactions",
     whr = `branch_shg_id = '${branch_code}' AND approval_status = 'U' AND trans_type IN('D','R')`,
     order = null;
+
+    var select1 = "COUNT(DISTINCT a.group_code)tot_unapprove_grp",
+    table_name1 = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+    whr1 = `a.branch_shg_id = '${branch_code}' AND b.approval_status = 'U' AND b.trans_type IN('D','R')`,
+    order1 = null;
     }
     tot_loan_unapprove = await db_Select(select,table_name,whr,order);
+    tot_grp_unapprove = await db_Select(select1,table_name1,whr1,order1);
 
     return res.send({
       success: true,
       msg: "Unapproved loan details fetched successfully",
       data: {
         total_unapproved_amount: tot_loan_unapprove.msg[0].tot_unapprove_loan || 0,
+        total_unapproved_group: tot_grp_unapprove.msg[0].tot_unapprove_grp || 0,
       }
     });
     }catch (error) {
@@ -457,7 +470,7 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
 // LOAN COLLECTED
 webDashboardRouter.post("/tot_loan_collected", async (req, res) => {
     try{
-    const {branch_code} = req.body;
+    const {branch_code, flag, user_type} = req.body;
 
     const today = new Date();
 
@@ -469,26 +482,150 @@ webDashboardRouter.post("/tot_loan_collected", async (req, res) => {
       .toISOString()
       .split('T')[0];
 
-    data = {};  
-
-      let collected_today = await db_Select(
-      "COALESCE(SUM(b.cr_amt),0) AS total_amt_ccb",
+     let collected_soc = 0;
+     let collected_shg = 0;
+     let collected_not_depo = 0; 
+ 
+      if(user_type == 'B' && flag == 'Today'){
+      collected_soc = await db_Select(
+      "COALESCE(SUM(b.cr_amt),0) AS total_amt_soc",
       "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
       `a.branch_id = '${branch_code}'
        AND b.trans_type = 'R'
        AND b.approval_status = 'A'
-       AND DATE(b.trans_dt) = ${current_date}`
-    );
+       AND DATE(b.trans_dt) = '${current_date}'`
+       );
 
-      let collected_month = await db_Select(
-      "COALESCE(SUM(b.cr_amt),0) AS total_amt_ccb",
+       collected = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt",
+      "bdccb.td_loan_member_trans",
+      `branch_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_date) = '${current_date}'`
+       );
+
+       collected_not_depo = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_nt_collec",
+      "bdccb.td_loan_member_trans_temp",
+      `branch_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'U'
+       AND DATE(trans_date) = '${current_date}'`
+       );
+
+      collected_soc = collected_soc.msg[0].total_amt_soc;
+      collected_shg = collected.msg[0].total_amt;
+      collected_not_depo = collected_not_depo.msg[0].total_amt_nt_collec;
+      
+      }else if (user_type == 'B' && flag == 'Month'){
+      collected_soc = await db_Select(
+      "COALESCE(SUM(b.cr_amt),0) AS total_amt_soc",
       "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
       `a.branch_id = '${branch_code}'
        AND b.trans_type = 'R'
        AND b.approval_status = 'A'
-       AND DATE(b.trans_dt) BETWEEN ${startOfMonth} AND ${current_date}`
-    );
+       AND DATE(b.trans_dt) BETWEEN '${startOfMonth}' AND '${current_date}'`
+       );
 
+      collected = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt",
+      "bdccb.td_loan_member_trans",
+      `branch_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_date) BETWEEN '${startOfMonth}' AND '${current_date}'`
+       );
+
+       collected_not_depo = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_nt_collec",
+      "bdccb.td_loan_member_trans_temp",
+      `branch_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'U'
+       AND DATE(trans_date) BETWEEN '${startOfMonth}' AND '${current_date}'`
+      );
+
+      collected_soc = collected_soc.msg[0].total_amt_soc;
+      collected_shg = collected.msg[0].total_amt;
+      collected_not_depo = collected_not_depo.msg[0].total_amt_nt_collec;
+      
+      }else if (user_type == 'P' && flag == 'Today'){
+      collected_soc = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_soc",
+      "bdccb.td_loan_transactions",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_dt) =' ${current_date}'`
+       );
+
+        collected = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt",
+      "bdccb.td_loan_member_trans",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_date) = '${current_date}'`
+       );
+
+        collected_not_depo = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_nt_collec",
+      "bdccb.td_loan_member_trans_temp",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'U'
+       AND DATE(trans_date) = '${current_date}'`
+       );
+
+      collected_soc = collected_soc.msg[0].total_amt_soc;
+      collected_shg = collected.msg[0].total_amt;
+      collected_not_depo = collected_not_depo.msg[0].total_amt_nt_collec;
+
+      }else{
+        collected_soc = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_soc",
+      "bdccb.td_loan_transactions",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_dt) BETWEEN '${startOfMonth}' AND '${current_date}'`
+       );
+
+        collected = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt",
+      "bdccb.td_loan_member_trans",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_date) BETWEEN '${startOfMonth}' AND '${current_date}'`
+       );
+
+        collected_not_depo = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total_amt_nt_collec",
+      "bdccb.td_loan_member_trans_temp",
+      `branch_shg_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'U'
+       AND DATE(trans_date) BETWEEN '${startOfMonth}' AND '${current_date}'`
+      );
+      collected_soc = collected_soc.msg[0].total_amt_soc;
+      collected_shg = collected.msg[0].total_amt;
+      collected_not_depo = collected_not_depo.msg[0].total_amt_nt_collec;
+      }
+      
+      const data = {
+      deposited_ccb: "0",  
+      deposited_soc: collected_soc,
+      deposited_shg: collected_shg,
+      collected_nt_deposit: collected_not_depo
+      };
+
+      return res.send({
+      success: true,
+      msg: "fetch loan_collected",
+      data: data
+      });
     }catch (error) {
     console.error("Error in while fetch total loan collected", error);
     return res.send({

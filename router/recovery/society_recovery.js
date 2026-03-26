@@ -191,7 +191,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table2 = "bdccb.td_loan_member_trans";
     const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values2 = [date,soc_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn),Number(dt.calculated_interest),0,0,'U',created_by,datetime,ip_address];
+    const values2 = [date,soc_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn + dt.calculated_interest),0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns2 = [];
     const whereValues2 = [];
     const flag2 = 0;
@@ -209,12 +209,12 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     let soc_trans_ids = await members_trans_id();
 
-    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov);
+    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov + intt_recov);
     let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
     const table3 = "bdccb.td_loan_member_trans";
     const columns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values3 = [date,soc_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov),Number(dt.intt_recov),0,0,current_prn,current_intt_prn,0,0,'U',created_by,datetime,ip_address];
+    const values3 = [date,soc_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov + dt.intt_recov),0,0,0,current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns3 = [];
     const whereValues3 = [];
     const flag3 = 0;
@@ -257,13 +257,13 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     // let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     let tot_curr_prn_recov = society_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     let tot_curr_intt_recov = society_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt);
+    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt + intt_amt);
     let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding),intt_amt,0,0,'U',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding + intt_amt),0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
@@ -280,7 +280,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
+    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt + intt_amt,0,0,0,tot_current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;

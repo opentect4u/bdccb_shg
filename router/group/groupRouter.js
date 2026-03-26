@@ -434,12 +434,14 @@ groupRouter.get("/checkaddhar", async (req, res) => {
   // FETCH BRANCH NAME IN GROUP SECTION(DIRECT/INDIRECT LOAN)
   groupRouter.post("/fetch_branch_name", async (req, res) => {
     try{
-     const {tenant_id, dist_id, branch_code} = req.body;
+     const {tenant_id, dist_id, branch_code, user_type} = req.body;
 
-     var select = "tenant_id,branch_id,branch_name",
-     table_name = "public.md_branch",
-     whr = `tenant_id = '${tenant_id}' AND branch_id = '${branch_code}' AND branch_type = 'B' AND branch_status = 'O'`,
-     order = `branch_id`;
+     var select = user_type == 'B' ? `tenant_id,branch_id,branch_name` : `a.tenant_id,a.branch_jurisdiction_id  AS branch_id, b.branch_name AS branch_name`,
+     table_name = user_type == 'B' ? `public.md_branch` : `public.md_branch a
+                    LEFT JOIN public.md_branch b
+                    ON a.branch_jurisdiction_id = b.branch_id`,
+     whr = user_type == 'B' ? `tenant_id = '${tenant_id}' AND branch_id = '${branch_code}' AND branch_type = 'B' AND branch_status = 'O'` : `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.branch_type = 'P' AND a.branch_status = 'O'`,
+     order = user_type == 'B' ? `branch_id` :  `a.branch_id`;
      var fetch_brn_name = await db_Select(select,table_name,whr,order);
 
      if(fetch_brn_name.suc === 1 && fetch_brn_name.msg.length > 0){
