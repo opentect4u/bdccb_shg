@@ -427,7 +427,7 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
     if(user_type == 'B'){
     var select = "COALESCE(SUM(b.dr_amt),0) + COALESCE(SUM(b.cr_amt),0) AS tot_unapprove_loan",
     table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
-    whr = `branch_id = '${branch_code}' AND approval_status = 'U' AND trans_type IN('D','R')`,
+    whr = `a.branch_id = '${branch_code}' AND b.approval_status = 'U' AND b.trans_type IN('D','R')`,
     order = null;
     }else{
     var select = "COALESCE(SUM(dr_amt),0) + COALESCE(SUM(cr_amt),0) AS tot_unapprove_loan",
@@ -455,45 +455,46 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
 });
 
 // LOAN COLLECTED
-// webDashboardRouter,post("/tot_loan_collected", async (req, res) => {
-//     try{
-//     const {} = req.body;
+webDashboardRouter,post("/tot_loan_collected", async (req, res) => {
+    try{
+    const {} = req.body;
 
-//     const today = new Date();
+    const today = new Date();
 
-//     // yyyy-mm-dd
-//     const current_date = today.toISOString().split('T')[0];
+    // yyyy-mm-dd
+    const current_date = today.toISOString().split('T')[0];
 
-//     // first day of month
-//     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-//       .toISOString()
-//       .split('T')[0];
+    // first day of month
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
 
-//         let collected_today = await db_Select(
-//       "COALESCE(SUM(cr_amt),0) AS total",
-//       "bdccb.td_loan_transactions",
-//       `branch_id = '${branch_code}'
-//        AND trans_type = 'R'
-//        AND approval_status = 'A'
-//        AND DATE(trans_dt) = ${today}`
-//     );
+      let collected_today = await db_Select(
+      "COALESCE(SUM(b.cr_amt),0) AS total_amt_ccb",
+      "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+      `a.branch_id = '${branch_code}'
+       AND a.trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_dt) = ${today}`
+    );
 
-//       let collected_month = await db_Select(
-//       "COALESCE(SUM(cr_amt),0) AS total",
-//       "bdccb.td_loan_transactions",
-//       `branch_id = '${branch_code}'
-//        AND trans_type = 'R'
-//        AND approval_status = 'A'
-//        AND DATE(trans_dt) BETWEEN ${month_start} AND ${today}`
-//     );
+      let collected_month = await db_Select(
+      "COALESCE(SUM(cr_amt),0) AS total",
+      "bdccb.td_loan_transactions",
+      `branch_id = '${branch_code}'
+       AND trans_type = 'R'
+       AND approval_status = 'A'
+       AND DATE(trans_dt) BETWEEN ${month_start} AND ${today}`
+    );
 
-//     }catch (error) {
-//     console.error("Error in while fetch total loan collected", error);
-//     return res.send({
-//       success: false,
-//       msg: "Internal server error",
-//       errorCode: "SERVER_ERROR"
-//     });
-//     }
-// })
+    }catch (error) {
+    console.error("Error in while fetch total loan collected", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR"
+    });
+    }
+});
+
 module.exports = {webDashboardRouter}
