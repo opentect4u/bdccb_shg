@@ -182,6 +182,8 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
 society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   try{
   const {ccb_loan_id,tenant_id,branch_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,society_recov,created_by,ip_address} = req.body;
+  console.log(req.body,'soc');
+  
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
   let date = new Date().toISOString().slice(0, 10);
@@ -191,7 +193,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table2 = "bdccb.td_loan_member_trans";
     const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values2 = [date,soc_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn),Number(dt.calculated_interest),0,0,'U',created_by,datetime,ip_address];
+    const values2 = [date,soc_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn + dt.calculated_interest),0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns2 = [];
     const whereValues2 = [];
     const flag2 = 0;
@@ -209,12 +211,13 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     let soc_trans_ids = await members_trans_id();
 
-    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov);
+    let updated_prn = Number(dt.curr_prn) + Number(dt.calculated_interest);
+    let current_prn = updated_prn - Number(dt.prn_recov + dt.intt_recov);
     let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
     const table3 = "bdccb.td_loan_member_trans";
     const columns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values3 = [date,soc_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov),Number(dt.intt_recov),0,0,current_prn,current_intt_prn,0,0,'U',created_by,datetime,ip_address];
+    const values3 = [date,soc_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov + dt.intt_recov),0,0,0,current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns3 = [];
     const whereValues3 = [];
     const flag3 = 0;
@@ -257,13 +260,14 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     // let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     let tot_curr_prn_recov = society_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     let tot_curr_intt_recov = society_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt);
+    let updated_total_prn = Number(loan_outstanding) + Number(intt_amt);
+    let tot_current_prn = updated_total_prn - Number(prn_amt + intt_amt);
     let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding),intt_amt,0,0,'U',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,updated_total_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
@@ -280,7 +284,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
+    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,tot_coll_recov_amt,0,0,0,tot_current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;
@@ -380,12 +384,21 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id LEFT JOIN bdccb.td_loan_member c ON a.loan_id = c.ccb_loan_id JOIN bdccb.md_group d ON a.group_code = d.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}' LEFT JOIN bdccb.td_loan_transactions i ON a.loan_id = i.loan_id AND i.trans_type = 'I'
+  AND i.trans_dt = '${trans_dt}' AND i.trans_id = '${transaction_id}' AND i.approval_status = '${approval_status}' LEFT JOIN (
+      SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+      FROM bdccb.td_loan_member
+      GROUP BY ccb_loan_id
+    ) c ON a.loan_id = c.ccb_loan_id
+
+    JOIN bdccb.md_group d 
+    ON a.group_code = d.group_code`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
-
+  console.log(fetch_society_loan_dtls1,'ki');
+  
   if(fetch_society_loan_dtls1.suc === 1 && fetch_society_loan_dtls1.msg.length > 0){
      /* -------- Fetch Society Member recovery Details -------- */
      
