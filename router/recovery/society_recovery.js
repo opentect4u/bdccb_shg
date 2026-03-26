@@ -389,7 +389,8 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_type IN ('I','R') AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.curr_prn,a.curr_intt,b.trans_type,b.curr_prn_recov,b.dr_amt`,
   order = null;
   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
-
+  console.log(fetch_society_loan_dtls1,'ki');
+  
   if(fetch_society_loan_dtls1.suc === 1 && fetch_society_loan_dtls1.msg.length > 0){
      /* -------- Fetch Society Member recovery Details -------- */
      
