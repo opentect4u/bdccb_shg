@@ -209,7 +209,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     let soc_trans_ids = await members_trans_id();
 
-    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov + intt_recov);
+    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov + dt.intt_recov);
     let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
     const table3 = "bdccb.td_loan_member_trans";
