@@ -621,7 +621,7 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
       WHERE trans_type = 'I'
       AND trans_dt = '${trans_dt}'
       AND approval_status = '${approval_status}'
-      ORDER BY loan_id, trans_id DESC   -- latest I row
+      ORDER BY loan_id, trans_id DESC  
     ) i ON a.loan_id = i.loan_id
       LEFT JOIN (
       SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
@@ -634,6 +634,8 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_society_loan_dtls = await db_Select(select,table_name,whr,order);
+  console.log(fetch_society_loan_dtls,'ju');
+  
 
   if(fetch_society_loan_dtls.suc === 1 && fetch_society_loan_dtls.msg.length > 0){
      /* -------- Fetch Society Member recovery Details -------- */
@@ -664,7 +666,7 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
    LEFT JOIN bdccb.td_loan_member_trans d 
    ON a.loan_id = d.loan_id 
    AND a.ccb_loan_id = d.ccb_loan_id
-   AND d.trans_type = 'R'
+   AND d.trans_type IN ('R','I')
    AND DATE(d.trans_date) = '${trans_dt}'
    AND d.approval_status = '${approval_status}'
    LEFT JOIN (
