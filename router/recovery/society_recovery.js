@@ -399,12 +399,14 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
    d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
 
    CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
+   WHEN d.trans_type = 'I' THEN COALESCE(d.curr_prn_recov,0)
+   WHEN d.trans_type = 'R' THEN COALESCE(d.cr_amt,0) - COALESCE(d.dr_amt,0)
    ELSE 0
    END AS principal_recovery,
    
    CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
+   WHEN d.trans_type = 'I' THEN COALESCE(d.dr_amt,0)
+   WHEN d.trans_type = 'R' THEN COALESCE(d.dr_amt,0)
    ELSE 0
    END AS interest_recovery,
    
