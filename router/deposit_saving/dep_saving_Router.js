@@ -8,7 +8,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
         const tenant_id = parseInt(req.query.tenant_id || 0);
         const branch_id = parseInt(req.query.branch_id || 0);
         const shg_id = parseInt(req.query.shg_id || 0);
-            // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
+            // TENANT ID  IS MANDATORY
                 if (!tenant_id || tenant_id <= 0) {
                     return res.send({
                         success: false,
@@ -51,7 +51,7 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
     }
 });
 
-    // save / edit group
+    // save / SAVING ACCOUNT 
     depsavingRouter.post("/save_sbacc", async (req, res) => {
         try {
           const {sb_id,trans_no,tenant_id,shg_id,branch_id,acc_no,acc_opening_dt,balance,created_by,created_ip } = req.body;
@@ -103,16 +103,6 @@ depsavingRouter.get("/deposit_list", async (req, res) => {
             }else{
               return 0;
             }
-          // No transactions found, return 0 balance
-        // }else{
-        //       const select = `balance`;
-        //       const table_name = "bdccb.td_deposit_trans";
-        //       const whr = `sb_id = '${sb_id}' order by trans_no desc limit 1 `;
-        //       const order = null; 
-        //       const res_dt = await db_Select(select, table_name, whr, order);
-        //       const balance = res_dt.msg[0].balance;
-        //       return balance; // INTEGER
-        // }
     }
    depsavingRouter.post("/get_meb_acc_dtls", async (req, res) => {
 
