@@ -455,9 +455,9 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
 });
 
 // LOAN COLLECTED
-webDashboardRouter,post("/tot_loan_collected", async (req, res) => {
+webDashboardRouter.post("/tot_loan_collected", async (req, res) => {
     try{
-    const {} = req.body;
+    const {branch_code} = req.body;
 
     const today = new Date();
 
@@ -469,22 +469,24 @@ webDashboardRouter,post("/tot_loan_collected", async (req, res) => {
       .toISOString()
       .split('T')[0];
 
+    data = {};  
+
       let collected_today = await db_Select(
       "COALESCE(SUM(b.cr_amt),0) AS total_amt_ccb",
       "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
       `a.branch_id = '${branch_code}'
-       AND a.trans_type = 'R'
-       AND approval_status = 'A'
-       AND DATE(trans_dt) = ${today}`
+       AND b.trans_type = 'R'
+       AND b.approval_status = 'A'
+       AND DATE(b.trans_dt) = ${current_date}`
     );
 
       let collected_month = await db_Select(
-      "COALESCE(SUM(cr_amt),0) AS total",
-      "bdccb.td_loan_transactions",
-      `branch_id = '${branch_code}'
-       AND trans_type = 'R'
-       AND approval_status = 'A'
-       AND DATE(trans_dt) BETWEEN ${month_start} AND ${today}`
+      "COALESCE(SUM(b.cr_amt),0) AS total_amt_ccb",
+      "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+      `a.branch_id = '${branch_code}'
+       AND b.trans_type = 'R'
+       AND b.approval_status = 'A'
+       AND DATE(b.trans_dt) BETWEEN ${startOfMonth} AND ${current_date}`
     );
 
     }catch (error) {
