@@ -4,30 +4,6 @@ const bcrypt = require("bcrypt");
 groupRouter = express.Router();
 
  
- 
-// create group code
-// const groupCode = async (branch_code) => {
-//   const select = `
-//     COALESCE(
-//       MAX(
-//         CAST(group_code AS INTEGER)
-//       ),
-//       0
-//     ) + 1 AS group_no
-//   `;
- 
-//   const table_name = "bdccb.md_group";
-//   const res_dt = await db_Select(select, table_name, null, null);
- 
-//   const group_no = res_dt.msg[0].group_no;
- 
-//   // const group_code = `${branch_code}${String(group_no).padStart(2, "0")}`;
-//   const group_code = `${branch_code}${String(group_no)}`;
-//   // console.log(group_code,'grrr');
- 
-//   return group_code;
-// };
- 
 const groupCode = async (branch_code) => {
  
   const select = `
@@ -259,6 +235,39 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  }
 });
 
+ groupRouter.get("/fetch_grp_dtls_code", async (req, res) => {
+      try{
+          const {group_code} = req.query;
+          var select = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id",
+          table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
+          whr = `a.group_code = '${group_code}' AND a.delete_flag = 'N'`,
+          order = null;
+          var fetch_group_detail = await db_Select(select,table_name,whr,order);
+      
+          if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+              return res.send({
+              success: true,
+              msg: "Group Details",
+              data: fetch_group_detail.msg
+              });
+          }else{
+              return res.send({
+              success: true,
+              msg: "Failed to fetch group details",
+              data: []
+              });
+          }
+        }catch(error){
+          console.error("Error while fetch group details", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+
+ })
+
 // fetch group details in society level
 groupRouter.post("/fetch_pacs_group_details", async (req, res) => {
  try{
@@ -432,40 +441,40 @@ groupRouter.get("/checkaddhar", async (req, res) => {
   });
 
   // FETCH BRANCH NAME IN GROUP SECTION(DIRECT/INDIRECT LOAN)
-  groupRouter.post("/fetch_branch_name", async (req, res) => {
-    try{
-     const {tenant_id, dist_id, branch_code, user_type} = req.body;
-
-     var select = user_type == 'B' ? `tenant_id,branch_id,branch_name` : `a.tenant_id,a.branch_jurisdiction_id  AS branch_id, b.branch_name AS branch_name`,
-     table_name = user_type == 'B' ? `public.md_branch` : `public.md_branch a
-                    LEFT JOIN public.md_branch b
-                    ON a.branch_jurisdiction_id = b.branch_id`,
-     whr = user_type == 'B' ? `tenant_id = '${tenant_id}' AND branch_id = '${branch_code}' AND branch_type = 'B' AND branch_status = 'O'` : `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.branch_type = 'P' AND a.branch_status = 'O'`,
-     order = user_type == 'B' ? `branch_id` :  `a.branch_id`;
-     var fetch_brn_name = await db_Select(select,table_name,whr,order);
-
-     if(fetch_brn_name.suc === 1 && fetch_brn_name.msg.length > 0){
-        return res.send({
-        success: true,
-        msg: "Branch List",
-        data: fetch_brn_name.msg
-        });
-     }else{
-        return res.send({
-        success: true,
-        msg: "Failed to fetch branch List",
-        data: []
-        });
-     }
-    }catch(error){
-      console.error("Error while fetch branch name", error);
-      return res.send({
-      success: false,
-      msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
-      });
-    }
-  });
+    groupRouter.post("/fetch_branch_name", async (req, res) => {
+        try{
+        const {tenant_id, dist_id, branch_code, user_type} = req.body;
+    
+        var select = user_type == 'B' ? `tenant_id,branch_id,branch_name` : `a.tenant_id,a.branch_jurisdiction_id  AS branch_id, b.branch_name AS branch_name`,
+        table_name = user_type == 'B' ? `public.md_branch` : `public.md_branch a
+                        LEFT JOIN public.md_branch b
+                        ON a.branch_jurisdiction_id = b.branch_id`,
+        whr = user_type == 'B' ? `tenant_id = '${tenant_id}' AND branch_id = '${branch_code}' AND branch_type = 'B' AND branch_status = 'O'` : `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.branch_type = 'P' AND a.branch_status = 'O'`,
+        order = user_type == 'B' ? `branch_id` :  `a.branch_id`;
+        var fetch_brn_name = await db_Select(select,table_name,whr,order);
+    
+        if(fetch_brn_name.suc === 1 && fetch_brn_name.msg.length > 0){
+            return res.send({
+            success: true,
+            msg: "Branch List",
+            data: fetch_brn_name.msg
+            });
+        }else{
+            return res.send({
+            success: true,
+            msg: "Failed to fetch branch List",
+            data: []
+            });
+        }
+        }catch(error){
+          console.error("Error while fetch branch name", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+    });
 
   // FETCH PACS NAME BASED ON BRANCH
   groupRouter.post("/fetch_society_name", async (req, res) => {
@@ -517,6 +526,174 @@ groupRouter.get("/checkaddhar", async (req, res) => {
     }
   });
  
+// save / edit group
+groupRouter.post("/add_group", async (req, res) => {
+    try {
+      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,saving_acc_no,created_by,ip_address,pacs_id } = req.body;
+      // console.log(req.body,'datagrp');
+     
+      let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      // member validation
+      let error_msg = "";
+      if (group_name.length < 2) {
+        error_msg = "Group name must be at least 2 characters";
+      } else if (phone1.length !== 10) {
+        error_msg = "Phone number must be exactly 10 digits";
+      } else if (saving_acc_no.length < 5) {
+        error_msg = "Saving account number must be at least 5 digits";
+      }
+
+      if (error_msg) {
+        return res.send({
+          success: true,
+          msg: error_msg,
+        });
+      }
+ 
+      let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
+
+      let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
+
+      const distId = dist_id === "" ? null : dist_id;
+      const blockId = block_id === "" ? null : block_id;
+      const psId = ps_id === "" ? null : ps_id;
+      const poId = po_id === "" ? null : po_id;
+      const gpId = gp_id === "" ? null : gp_id;
+      const villageId = village_id === "" ? null : village_id;
+      const sahayikaId = sahayika_id === "" ? null : sahayika_id;
+      const phone = phone1 ? phone1.toString() : null;
+      const pin = pin_no ? pin_no.toString() : null;
+ 
+      const table = "bdccb.md_group";
+      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","direct_indirect_flag","pacs_id"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,direct_indirect_flag,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',datetime,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
+      const whereColumns = group_code > 0 ? ["group_code"] : [];
+      const whereValues = group_code > 0 ? [group_code] : [];
+      const flag = group_code > 0 ? 1 : 0;
+      const result = await saveRecord(table, columns, values,whereColumns,whereValues,flag);
+
+        if(result.suc !== 1) {
+          return res.send({
+            success: true,
+            msg: result.msg || (group_code > 0 ? "Failed to edit group" : "Failed to save group"),
+            data : []
+          });
+        }else{ 
+              const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
+              const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
+              const values3 = group_code > 0 ? [phone,phone,created_by,datetime,ip_address] :[phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
+              const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
+              const whereValues3 = group_code > 0 ? [grp_code] : [];
+              const flag3 = group_code > 0 ? 1 : 0;
+              const result_user = await saveRecord("bdccb.md_user", columns3, values3,whereColumns3,whereValues3,flag3);
+
+              return res.send({
+                  success: true,
+                  msg: result_user.suc > 0 ? "Group Created Successfully" : "Failed to create group"
+              });
+        }
+
+        
+      } catch (error) {
+        console.error("Error in while save group:", error);
+        return res.send({
+        success: false,
+        msg: "Internal server error",
+        errorCode: "SERVER_ERROR"
+       });
+      }
+});
+
+  // save / edit group
+  groupRouter.post("/add_member", async (req, res) => {
+    try {
+      const { group_code,tenant_id,branch_code,members,created_by,ip_address,pacs_id} = req.body;
+      // console.log(req.body,'datagrp');
+      let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      // member validation
+      if (!members || members.length === 0) {
+        return res.send({
+          success: true,
+          msg: "No members provided",
+        });
+      }
+ 
+      let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
+      let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
+     let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
+      for(const memb of members){
+        
+      member_code++;
+      const table1 = "bdccb.md_member";
+      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"];
+      const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion,memb.caste,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
+      const whereColumns1 = memb.member_id > 0 ? ["member_code","group_code","tenant_id"] : [];
+      const whereValues1 = memb.member_id > 0 ? [memb.member_id,group_code,tenant_id] : [];
+      const flag1 = memb.member_id > 0 ? 1 : 0;
+      
+      const result_member = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);  
+        
+      if (!result_member || result_member.suc !== 1) {
+            return res.send({
+              success: true,
+              msg: memb.member_id > 0 ? "Failed to edit member" : "Failed to save member",
+              data: []
+            });
+      }
+
+   
+      var acc_opening_dt = new Date().toISOString().slice(0, 10);
+      var balance = 0;
+      // console.log('member id ', memb.sb_acc_no);
+      const table2 = "bdccb.td_deposit";
+      const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
+      const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
+      const whereColumns2 = [];
+      const whereValues2 = [];
+      const flag2 = 0;
+      const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
+
+      if(!results || results.suc !== 1){
+        return res.send({
+            success: true,
+            msg: "Failed to save deposit details",
+            data: []
+          });
+      }
+
+      const table_trans = "bdccb.td_deposit_trans";
+      const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+      const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
+      const whereColumns_trans = [];
+      const whereValues_trans = [];
+      const flag_trans = 0;
+      const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
+    
+    
+      if(!result_trans || result_trans.suc !== 1){
+        return res.send({
+            success: true,
+            msg: "Failed to save transaction details",
+            data: []
+          });
+      }
+    }
+
+      return res.send({
+        success: true,
+        msg: group_code > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
+        // data: result.lastId
+      });
+      } catch (error) {
+        console.error("Error in while save group:", error);
+        return res.send({
+        success: false,
+        msg: "Internal server error",
+        errorCode: "SERVER_ERROR"
+       });
+      }
+  });
+
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
@@ -651,7 +828,7 @@ groupRouter.post("/save_group", async (req, res) => {
         errorCode: "SERVER_ERROR"
        });
       }
-});
- 
+  });
+   
  
 module.exports = {groupRouter}
