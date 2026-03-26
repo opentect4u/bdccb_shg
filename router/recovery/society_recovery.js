@@ -528,7 +528,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
    LEFT JOIN bdccb.td_loan_member_trans d 
    ON a.loan_id = d.loan_id 
    AND a.ccb_loan_id = d.ccb_loan_id
-   AND d.trans_type = 'R'
+   AND d.trans_type IN ('R','I')
    AND DATE(d.trans_date) = '${trans_dt}'
    AND d.approval_status = '${approval_status}'
    LEFT JOIN (
