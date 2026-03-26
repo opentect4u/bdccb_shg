@@ -380,6 +380,98 @@ return res.send({
 });
 
 // AFTER SUBMIT FETCH MEMBER LOAN DETAILS 
+// society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
+//   try{
+//   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
+
+//   var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+//   table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}'  LEFT JOIN (
+//       SELECT DISTINCT ON (loan_id) loan_id, dr_amt
+//       FROM bdccb.td_loan_transactions
+//       WHERE trans_type = 'I'
+//       AND trans_dt = '${trans_dt}'
+//       AND approval_status = '${approval_status}'
+//       ORDER BY loan_id, trans_id DESC   -- latest I row
+//     ) i ON a.loan_id = i.loan_id
+//       LEFT JOIN (
+//       SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+//       FROM bdccb.td_loan_member
+//       GROUP BY ccb_loan_id
+//     ) c ON a.loan_id = c.ccb_loan_id
+
+//     JOIN bdccb.md_group d 
+//     ON a.group_code = d.group_code`,
+//   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
+//   order = null;
+//   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
+//   // console.log(fetch_society_loan_dtls1,'ki');
+  
+//   if(fetch_society_loan_dtls1.suc === 1 && fetch_society_loan_dtls1.msg.length > 0){
+//      /* -------- Fetch Society Member recovery Details -------- */
+     
+//    var select_member = `a.loan_id,a.member_code,b.member_name,
+//    TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,
+//    d.trans_id AS trans_id,
+//    d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
+
+//    CASE 
+//    WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
+//    ELSE 0
+//    END AS principal_recovery,
+   
+//    CASE 
+//    WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
+//    ELSE 0
+//    END AS interest_recovery,
+   
+//    CASE 
+//    WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
+//    ELSE 0
+//    END AS loan_outstanding,
+   
+//    CASE 
+//    WHEN d.trans_type = 'I' THEN COALESCE(d.dr_amt,0)
+//    WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
+//    ELSE 0
+//    END AS calculated_interest`;
+//    table_member = `bdccb.td_loan_member a 
+//    LEFT JOIN bdccb.md_member b 
+//    ON a.member_code = b.member_code 
+//    AND a.group_code = b.group_code 
+
+//    LEFT JOIN bdccb.td_loan_member_trans d 
+//    ON a.loan_id = d.loan_id 
+//    AND a.ccb_loan_id = d.ccb_loan_id
+//    AND DATE(d.trans_date) = '${trans_dt}'
+//    AND d.approval_status = '${approval_status}'`;
+//    whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND d.trans_type IN ('R','I')`;
+//    order_member = null ;
+//    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
+
+//    // attach member list under data
+//    fetch_society_loan_dtls1.msg[0].member_list = fetch_member_dtls_trans1.suc === 1 && fetch_member_dtls_trans1.msg.length > 0 ? fetch_member_dtls_trans1.msg : [];
+//    return res.send({
+//         success: true,
+//         msg: "Fetch society member details",
+//         data: fetch_society_loan_dtls1.msg
+//      });
+//    }else {
+//     return res.send({
+//     success: true,
+//     msg: "Society member loan details not found",
+//     data: []
+//   });
+//    }
+//   }catch (error) {
+//     console.error("Error in while fetch society member recovery details:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
+
 society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
@@ -404,7 +496,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
-  console.log(fetch_society_loan_dtls1,'ki');
+  // console.log(fetch_society_loan_dtls1,'ki');
   
   if(fetch_society_loan_dtls1.suc === 1 && fetch_society_loan_dtls1.msg.length > 0){
      /* -------- Fetch Society Member recovery Details -------- */
@@ -414,15 +506,9 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
    d.trans_id AS trans_id,
    d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
 
-   CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
-   ELSE 0
-   END AS principal_recovery,
-   
-   CASE 
-   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
-   ELSE 0
-   END AS interest_recovery,
+   COALESCE(d.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_recovery,
+
+   COALESCE(i.dr_amt,0) AS interest_recovery
    
    CASE 
    WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
@@ -442,9 +528,23 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
    LEFT JOIN bdccb.td_loan_member_trans d 
    ON a.loan_id = d.loan_id 
    AND a.ccb_loan_id = d.ccb_loan_id
+   AND r.trans_type = 'R'
    AND DATE(d.trans_date) = '${trans_dt}'
-   AND d.approval_status = '${approval_status}'`;
-   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND d.trans_type IN ('R','I')`;
+   AND d.approval_status = '${approval_status}'
+   LEFT JOIN (
+  SELECT DISTINCT ON (loan_id, ccb_loan_id)
+    loan_id,
+    ccb_loan_id,
+    dr_amt
+  FROM bdccb.td_loan_member_trans
+  WHERE trans_type = 'I'
+  AND DATE(trans_date) = '${trans_dt}'
+  AND approval_status = '${approval_status}'
+  ORDER BY loan_id, ccb_loan_id, trans_id DESC
+) i
+ ON a.loan_id = i.loan_id 
+AND a.ccb_loan_id = i.ccb_loan_id`;
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND d.trans_type IN ('R','I') GROUP BY a.loan_id, a.member_code, b.member_name,d.trans_date,d.trans_id,d.trans_type`;
    order_member = null ;
    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
 
@@ -514,9 +614,24 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id LEFT JOIN bdccb.td_loan_member c ON a.loan_id = c.ccb_loan_id JOIN bdccb.md_group d ON a.group_code = d.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}'  LEFT JOIN (
+      SELECT DISTINCT ON (loan_id) loan_id, dr_amt
+      FROM bdccb.td_loan_transactions
+      WHERE trans_type = 'I'
+      AND trans_dt = '${trans_dt}'
+      AND approval_status = '${approval_status}'
+      ORDER BY loan_id, trans_id DESC   -- latest I row
+    ) i ON a.loan_id = i.loan_id
+      LEFT JOIN (
+      SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+      FROM bdccb.td_loan_member
+      GROUP BY ccb_loan_id
+    ) c ON a.loan_id = c.ccb_loan_id
+
+    JOIN bdccb.md_group d 
+    ON a.group_code = d.group_code`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_society_loan_dtls = await db_Select(select,table_name,whr,order);
 
