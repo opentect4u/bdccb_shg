@@ -182,6 +182,8 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
 society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   try{
   const {ccb_loan_id,tenant_id,branch_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,society_recov,created_by,ip_address} = req.body;
+  console.log(req.body,'soc');
+  
 
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
   let date = new Date().toISOString().slice(0, 10);
