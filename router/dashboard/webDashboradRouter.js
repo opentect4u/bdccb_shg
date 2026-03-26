@@ -425,9 +425,9 @@ webDashboardRouter.post("/dashboard_tot_loan_unapprove_dtls", async (req, res) =
 
     //total loan unapprove details today
     if(user_type == 'B'){
-    var select = "COALESCE(SUM(dr_amt),0) + COALESCE(SUM(cr_amt),0) AS tot_unapprove_loan",
-    table_name = "bdccb.td_loan_transactions",
-    whr = `branch_shg_id = '111' AND approval_status = 'U' AND trans_type IN('D','R')`,
+    var select = "COALESCE(SUM(b.dr_amt),0) + COALESCE(SUM(b.cr_amt),0) AS tot_unapprove_loan",
+    table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+    whr = `branch_id = '${branch_code}' AND approval_status = 'U' AND trans_type IN('D','R')`,
     order = null;
     }else{
     var select = "COALESCE(SUM(dr_amt),0) + COALESCE(SUM(cr_amt),0) AS tot_unapprove_loan",
