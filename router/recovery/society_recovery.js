@@ -209,7 +209,8 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     let soc_trans_ids = await members_trans_id();
 
-    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov + dt.intt_recov);
+    let updated_prn = Number(dt.curr_prn) + Number(dt.calculated_interest);
+    let current_prn = updated_prn - Number(dt.prn_recov + dt.intt_recov);
     let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
     const table3 = "bdccb.td_loan_member_trans";
@@ -280,7 +281,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt + intt_amt,0,0,0,tot_current_prn,0,0,0,'U',created_by,datetime,ip_address];
+    const values7 = [date,soc_td_tran_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,tot_coll_recov_amt,0,0,0,tot_current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;
