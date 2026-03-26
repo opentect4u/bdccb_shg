@@ -260,13 +260,14 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
     // let tot_coll_recov_amt = society_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     let tot_curr_prn_recov = society_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     let tot_curr_intt_recov = society_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(tot_curr_prn_amt) - Number(prn_amt + intt_amt);
+    let updated_total_prn = Number(loan_outstanding) + Number(intt_amt);
+    let tot_current_prn = updated_total_prn - Number(prn_amt + intt_amt);
     let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding) + Number(intt_amt),0,0,0,'U',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,updated_total_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
