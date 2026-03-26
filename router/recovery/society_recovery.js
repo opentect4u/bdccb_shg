@@ -386,7 +386,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
 
   var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,0 AS principal_amount,(CASE WHEN b.trans_type = 'I' THEN COALESCE(b.dr_amt,0) ELSE 0 END) AS interest_amount",
   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id LEFT JOIN bdccb.td_loan_member c ON a.loan_id = c.ccb_loan_id JOIN bdccb.md_group d ON a.group_code = d.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_type IN ('I','R') AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.curr_prn,a.curr_intt,b.trans_type,b.dr_amt`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,a.curr_prn,a.curr_intt,b.trans_type,b.dr_amt`,
   order = null;
   var fetch_society_loan_dtls1 = await db_Select(select,table_name,whr,order);
   console.log(fetch_society_loan_dtls1,'ki');
