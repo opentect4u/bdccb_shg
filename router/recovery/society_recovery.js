@@ -614,7 +614,7 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}'  LEFT JOIN (
       SELECT DISTINCT ON (loan_id) loan_id, dr_amt
       FROM bdccb.td_loan_transactions
