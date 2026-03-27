@@ -115,7 +115,7 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table2 = "bdccb.td_loan_member_trans";
     const columns2 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values2 = [date,ccb_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn),Number(dt.calculated_interest),0,0,'U',created_by,datetime,ip_address];
+    const values2 = [date,ccb_trans_id,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'I',Number(dt.calculated_interest),0,0,0,0,0,Number(dt.curr_prn + dt.calculated_interest),0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns2 = [];
     const whereValues2 = [];
     const flag2 = 0;
@@ -135,12 +135,13 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     let ccb_trans_ids = await ccb_tran_id();
 
-    let current_prn = Number(dt.curr_prn) - Number(dt.prn_recov);
+    let updated_prn = Number(dt.curr_prn) + Number(dt.calculated_interest);
+    let current_prn = updated_prn - Number(dt.prn_recov + dt.intt_recov);
     let current_intt_prn = Number(dt.calculated_interest) - Number(dt.intt_recov);
 
     const table3 = "bdccb.td_loan_member_trans";
     const columns3 = ["trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id","loan_to","branch_shg_id","loan_acc_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values3 = [date,ccb_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov),Number(dt.intt_recov),0,0,current_prn,current_intt_prn,0,0,'U',created_by,datetime,ip_address];
+    const values3 = [date,ccb_trans_ids,dt.loan_id,ccb_loan_id,tenant_id,branch_id,loan_to,branch_shg_id,loan_acc_no,'R',0,Number(dt.amount),Number(dt.prn_recov + dt.intt_recov),0,0,0,current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns3 = [];
     const whereValues3 = [];
     const flag3 = 0;
@@ -187,13 +188,14 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
     // let tot_coll_recov_amt = ccb_recov.reduce((sum, item) => sum + Number(item.amount), 0);
     // let tot_curr_prn_recov = ccb_recov.reduce((sum, item) => sum + Number(item.prn_recov), 0);
     // let tot_curr_intt_recov = ccb_recov.reduce((sum, item) => sum + Number(item.intt_recov), 0);
-    let tot_current_prn = Number(loan_outstanding) - Number(prn_amt);
+    let updated_total_prn = Number(loan_outstanding) + Number(intt_amt);
+    let tot_current_prn = updated_total_prn - Number(prn_amt + intt_amt);
     let tot_current_intt = Number(intt_amt) - Number(intt_amt);
     let tot_coll_recov_amt = Number(prn_amt) + Number(intt_amt);
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,Number(loan_outstanding),intt_amt,0,0,'U',created_by,datetime,ip_address];
+    const values5 = [date,soc_td_trans_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'I',intt_amt,0,0,0,0,0,updated_total_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
@@ -211,7 +213,7 @@ ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt","approval_status","created_by","created_dt","ip_address"];
-    const values7 = [date,ccb_td_tran_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,prn_amt,intt_amt,0,0,tot_current_prn,tot_current_intt,0,0,'U',created_by,datetime,ip_address];
+    const values7 = [date,ccb_td_tran_ids,tenant_id,loan_to,branch_shg_id,ccb_loan_id,loan_acc_no,'R',0,tot_coll_recov_amt,tot_coll_recov_amt,0,0,0,tot_current_prn,0,0,0,'U',created_by,datetime,ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;
@@ -264,7 +266,7 @@ ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
 
   var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.approval_status = '${approval_status}' AND a.branch_shg_id = '111'`;
   if (from_dt && to_dt) {
       whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
   }
@@ -297,13 +299,107 @@ ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
 
 // AFTER SUBMIT FETCH MEMBER LOAN DETAILS 
 // FETCH CCB RECOVERY MEMBER DETAILS
+// ccb_recovRouter.post("/fetch_ccb_mem_dtls", async (req, res) => {
+//   try{
+//   const { tenant_id,branch_id,group_code,trans_dt,transaction_id, approval_status } = req.body;
+
+//   var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
+//   table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
+//   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+//   order = null;
+//   var fetch_ccb_loan_dtls1 = await db_Select(select,table_name,whr,order);
+
+//   if(fetch_ccb_loan_dtls1.suc === 1 && fetch_ccb_loan_dtls1.msg.length > 0){
+//      /* -------- Fetch CCB Member recovery + interest Details -------- */
+
+//   var select_member = `a.loan_id,
+// a.member_code,
+// b.member_name,
+// TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,
+// d.trans_id AS trans_id,
+// d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
+
+// CASE 
+//   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
+//   ELSE 0
+// END AS principal_recovery,
+
+// CASE 
+//   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
+//   ELSE 0
+// END AS interest_recovery,
+
+// CASE 
+//   WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
+//   ELSE 0
+//   END AS loan_outstanding,
+
+// CASE 
+//   WHEN d.trans_type = 'I' THEN COALESCE(d.dr_amt,0)
+//   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
+//   ELSE 0
+// END AS calculated_interest`;
+//      table_member = `bdccb.td_loan_member a 
+// LEFT JOIN bdccb.md_member b 
+//   ON a.member_code = b.member_code 
+//   AND a.group_code = b.group_code
+
+// LEFT JOIN bdccb.td_loan_member_trans d 
+//   ON a.loan_id = d.loan_id 
+//   AND a.ccb_loan_id = d.ccb_loan_id
+//   AND DATE(d.trans_date) = '${trans_dt}'
+//   AND d.approval_status = '${approval_status}'`;
+//    whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'  AND d.trans_type IN ('R','I')`;
+//    order_member = null ;
+//    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
+
+
+//    // attach member list under data
+//    fetch_ccb_loan_dtls1.msg[0].member_list = fetch_member_dtls_trans1.suc === 1 && fetch_member_dtls_trans1.msg.length > 0 ? fetch_member_dtls_trans1.msg : [];
+//    return res.send({
+//         success: true,
+//         msg: "Fetch CCB member details",
+//         data: fetch_ccb_loan_dtls1.msg
+//      });
+//   }else{
+//     return res.send({
+//     success: true,
+//     msg: "CCB member loan details not found",
+//     data: []
+//   });
+//   }   
+//   }catch(error){
+//     console.error("Error in while fetch ccb member  recov dtls:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
+
 ccb_recovRouter.post("/fetch_ccb_mem_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id, approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}' LEFT JOIN (
+      SELECT DISTINCT ON (loan_id) loan_id, dr_amt
+      FROM bdccb.td_loan_transactions
+      WHERE trans_type = 'I'
+      AND trans_dt = '${trans_dt}'
+      AND approval_status = '${approval_status}'
+      ORDER BY loan_id, trans_id DESC   -- latest I row
+    ) i ON a.loan_id = i.loan_id 
+     LEFT JOIN (
+      SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+      FROM bdccb.td_loan_member
+      GROUP BY ccb_loan_id
+    ) c ON a.loan_id = c.ccb_loan_id 
+     JOIN bdccb.md_group d ON a.group_code = d.group_code`,
+
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_ccb_loan_dtls1 = await db_Select(select,table_name,whr,order);
 
@@ -317,15 +413,9 @@ TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,
 d.trans_id AS trans_id,
 d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
 
-CASE 
-  WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
-  ELSE 0
-END AS principal_recovery,
+COALESCE(d.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_recovery,
 
-CASE 
-  WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
-  ELSE 0
-END AS interest_recovery,
+COALESCE(i.dr_amt,0) AS interest_recovery,
 
 CASE 
   WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
@@ -337,6 +427,7 @@ CASE
   WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
   ELSE 0
 END AS calculated_interest`;
+
      table_member = `bdccb.td_loan_member a 
 LEFT JOIN bdccb.md_member b 
   ON a.member_code = b.member_code 
@@ -345,9 +436,23 @@ LEFT JOIN bdccb.md_member b
 LEFT JOIN bdccb.td_loan_member_trans d 
   ON a.loan_id = d.loan_id 
   AND a.ccb_loan_id = d.ccb_loan_id
+  AND d.trans_type IN ('R','I')
   AND DATE(d.trans_date) = '${trans_dt}'
-  AND d.approval_status = '${approval_status}'`;
-   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'  AND d.trans_type IN ('R','I')`;
+  AND d.approval_status = '${approval_status}'
+  LEFT JOIN (
+  SELECT DISTINCT ON (loan_id, ccb_loan_id)
+    loan_id,
+    ccb_loan_id,
+    dr_amt
+  FROM bdccb.td_loan_member_trans
+  WHERE trans_type = 'I'
+  AND DATE(trans_date) = '${trans_dt}'
+  AND approval_status = '${approval_status}'
+  ORDER BY loan_id, ccb_loan_id, trans_id DESC
+) i
+ ON a.loan_id = i.loan_id 
+AND a.ccb_loan_id = i.ccb_loan_id`;
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'`;
    order_member = null ;
    var fetch_member_dtls_trans1 = await db_Select(select_member,table_member,whr_member,order_member);
 
@@ -415,9 +520,23 @@ ccb_recovRouter.post("/fetch_ccb_mem_recov_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id,approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,SUM(a.curr_prn + a.curr_intt) AS loan_outstanding,b.curr_prn_recov AS principal_amount,b.curr_intt_recov AS interest_amount",
-  table_name = "bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id JOIN bdccb.md_group C ON a.group_code = c.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}' AND b.trans_dt = '${trans_dt}' AND b.trans_id = '${transaction_id}' AND b.approval_status = '${approval_status}' GROUP BY a.loan_id,a.group_code,c.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.disb_amt,b.curr_prn_recov,b.curr_intt_recov`,
+  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
+
+  table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}' LEFT JOIN (
+      SELECT DISTINCT ON (loan_id) loan_id, dr_amt
+      FROM bdccb.td_loan_transactions
+      WHERE trans_type = 'I'
+      AND trans_dt = '${trans_dt}'
+      AND approval_status = '${approval_status}'
+      ORDER BY loan_id, trans_id DESC   -- latest I row
+    ) i ON a.loan_id = i.loan_id 
+     LEFT JOIN (
+      SELECT ccb_loan_id, MAX(society_acc_no) AS society_acc_no
+      FROM bdccb.td_loan_member
+      GROUP BY ccb_loan_id
+    ) c ON a.loan_id = c.ccb_loan_id 
+     JOIN bdccb.md_group d ON a.group_code = d.group_code`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'`,
   order = null;
   var fetch_ccb_loan_dtls = await db_Select(select,table_name,whr,order);
 
@@ -440,15 +559,9 @@ TO_CHAR(d.trans_date, 'YYYY-MM-DD') AS trans_date,
 d.trans_id AS trans_id,
 d.trans_type,(COALESCE(d.cr_amt,0)) AS credit_amount,
 
-CASE 
-  WHEN d.trans_type = 'R' THEN COALESCE(d.curr_prn_recov,0)
-  ELSE 0
-END AS principal_recovery,
+COALESCE(d.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_recovery,
 
-CASE 
-  WHEN d.trans_type = 'R' THEN COALESCE(d.curr_intt_recov,0)
-  ELSE 0
-END AS interest_recovery,
+COALESCE(i.dr_amt,0) AS interest_recovery,
 
 CASE 
   WHEN d.trans_type = 'R' THEN COALESCE((d.curr_prn + d.curr_intt),0) 
@@ -468,9 +581,24 @@ LEFT JOIN bdccb.md_member b
 LEFT JOIN bdccb.td_loan_member_trans d 
   ON a.loan_id = d.loan_id 
   AND a.ccb_loan_id = d.ccb_loan_id
+  AND d.trans_type IN ('R','I')
   AND DATE(d.trans_date) = '${trans_dt}'
-  AND d.approval_status = '${approval_status}'`;
-   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'  AND d.trans_type IN ('R','I')`;
+  AND d.approval_status = '${approval_status}'
+  LEFT JOIN (
+  SELECT DISTINCT ON (loan_id, ccb_loan_id)
+    loan_id,
+    ccb_loan_id,
+    dr_amt
+  FROM bdccb.td_loan_member_trans
+  WHERE trans_type = 'I'
+  AND DATE(trans_date) = '${trans_dt}'
+  AND approval_status = '${approval_status}'
+  ORDER BY loan_id, ccb_loan_id, trans_id DESC
+) i
+ ON a.loan_id = i.loan_id 
+AND a.ccb_loan_id = i.ccb_loan_id`;
+
+   whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'`;
    order_member = null ;
    var fetch_member_dtls_trans = await db_Select(select_member,table_member,whr_member,order_member);
 
