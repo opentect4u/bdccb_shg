@@ -31,7 +31,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
   var data = req.body;
  
   // search group list //
-  var select = "a.group_code,a.group_name,a.direct_indirect_flag",
+  var select = "a.group_code,a.group_name,a.pacs_id",
   table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id";
   if(data.pacs_id == 111){
   whr = `a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N' AND a.pacs_id='${data.pacs_id}'
