@@ -430,8 +430,27 @@ groupRouter.get("/checkaddhar", async (req, res) => {
                 
                 // search group list //
               var select = "a.group_code,a.group_name,a.direct_indirect_flag",
-              table_name = "bdccb.md_group a",
-              whr = type == 'B' ? `a.branch_code = '${branch_id}' AND a.pacs_id=111 AND a.delete_flag = 'N' ` : ` a.pacs_id = '${branch_id}' AND a.delete_flag = 'N' `,
+               table_name = "bdccb.md_group a";
+              // whr = type == 'B' ? `a.branch_code = '${branch_id}' AND a.pacs_id=111 AND a.delete_flag = 'N' ` : ` a.pacs_id = '${branch_id}' AND a.delete_flag = 'N' `,
+
+              let whr = type == 'B'
+      ? `a.branch_code = '${branch_id}' 
+         AND a.pacs_id = 111 
+         AND a.delete_flag = 'N'
+         AND NOT EXISTS (
+            SELECT 1 
+            FROM bdccb.md_member m 
+            WHERE m.group_code = a.group_code 
+            AND m.branch_id = '${branch_id}'
+         )`
+      : `a.pacs_id = '${branch_id}' 
+         AND a.delete_flag = 'N'
+         AND NOT EXISTS (
+            SELECT 1 
+            FROM bdccb.md_member m 
+            WHERE m.group_code = a.group_code 
+            AND m.branch_id = '${branch_id}'
+         )`;
               order = null;
               var search_group_web = await db_Select(select,table_name,whr,order);
               if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
