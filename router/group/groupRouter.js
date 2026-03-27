@@ -434,23 +434,23 @@ groupRouter.get("/checkaddhar", async (req, res) => {
               // whr = type == 'B' ? `a.branch_code = '${branch_id}' AND a.pacs_id=111 AND a.delete_flag = 'N' ` : ` a.pacs_id = '${branch_id}' AND a.delete_flag = 'N' `,
 
               let whr = type == 'B'
-      ? `a.branch_code = '${branch_id}' 
-         AND a.pacs_id = 111 
-         AND a.delete_flag = 'N'
-         AND NOT EXISTS (
-            SELECT 1 
-            FROM bdccb.md_member m 
-            WHERE m.group_code = a.group_code 
-            AND m.branch_id = '${branch_id}'
-         )`
-      : `a.pacs_id = '${branch_id}' 
-         AND a.delete_flag = 'N'
-         AND NOT EXISTS (
-            SELECT 1 
-            FROM bdccb.md_member m 
-            WHERE m.group_code = a.group_code 
-            AND m.branch_id = '${branch_id}'
-         )`;
+              ? `a.branch_code = '${branch_id}' 
+                AND a.pacs_id = 111 
+                AND a.delete_flag = 'N'
+                AND NOT EXISTS (
+                    SELECT 1 
+                    FROM bdccb.md_member m 
+                    WHERE m.group_code = a.group_code 
+                    AND m.branch_id = '${branch_id}'
+                )`
+              : `a.pacs_id = '${branch_id}' 
+                AND a.delete_flag = 'N'
+                AND NOT EXISTS (
+                    SELECT 1 
+                    FROM bdccb.md_member m 
+                    WHERE m.group_code = a.group_code 
+                    AND m.branch_id = '${branch_id}'
+                )`;
               order = null;
               var search_group_web = await db_Select(select,table_name,whr,order);
               if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
@@ -646,6 +646,38 @@ groupRouter.post("/add_group", async (req, res) => {
        });
       }
   });
+
+  groupRouter.get("/get_group_memb_list", async (req, res) => {
+      try{
+          const {branch_code} = req.query;
+          var select = "distinct  a.group_code,count(a.member_code) as total_members,b.group_name",
+          table_name = "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code ",
+          whr = `a.branch_id = '${branch_code}' AND a.delete_flag = 'N' group by a.group_code,b.group_name`,
+          order = null;
+          var fetch_group_detail = await db_Select(select,table_name,whr,order);
+      
+          if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+              return res.send({
+              success: true,
+              msg: "Group Details",
+              data: fetch_group_detail.msg
+              });
+          }else{
+              return res.send({
+              success: true,
+              msg: "Failed to fetch group details",
+              data: []
+              });
+          }
+        }catch(error){
+          console.error("Error while fetch group details", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+    })
 
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
