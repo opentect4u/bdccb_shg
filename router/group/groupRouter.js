@@ -7,25 +7,15 @@ groupRouter = express.Router();
  
 const groupCode = async (branch_code) => {
  
-  const select = `
-    COALESCE(MAX(SUBSTR(group_code::TEXT, 4)::INTEGER), 0) + 1 AS group_no
-  `;
- 
+  const select = `COALESCE(MAX(SUBSTR(group_code::TEXT, 4)::INTEGER), 0) + 1 AS group_no`;
   const table = "bdccb.md_group";
   const res = await db_Select(select, table, null, null);
- 
   const group_no = res.msg[0].group_no;
- 
   const group_code = `${branch_code}${String(group_no).padStart(4, "0")}`;
- 
   return group_code;
 };
 
 const memberCode = async (branch_id) => {
-
-  // const select = `
-  //   COALESCE(MAX(SUBSTR(member_code::TEXT, 4)::INTEGER), 0) + 1 AS member_no
-  // `;
   const select =   `COALESCE(MAX(RIGHT(member_code::TEXT,5)::INTEGER),0) + 1 AS member_no`;
   const table = "bdccb.md_member";
   const res = await db_Select(select, table, null, null);
@@ -589,7 +579,6 @@ groupRouter.post("/add_group", async (req, res) => {
    
       var acc_opening_dt = new Date().toISOString().slice(0, 10);
       var balance = 0;
-      // console.log('member id ', memb.sb_acc_no);
       const table2 = "bdccb.td_deposit";
       const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
       const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
