@@ -1171,9 +1171,9 @@ society_recovRouter.post("/search_grp_view", async (req, res) => {
    const { tenant_id,branch_code,group_name_view} = req.body;
   //  console.log(req.body,'p');
    
-   var select = "a.group_code,b.group_name,a.society_acc_no",
+   var select = "a.group_code,b.group_name,MAX(a.society_acc_no) AS society_acc_no",
    table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
-   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.society_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name,a.society_acc_no`,
+   whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.society_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name`,
    order = null;
    var search_grp_view = await db_Select(select, table_name, whr, order);
 
