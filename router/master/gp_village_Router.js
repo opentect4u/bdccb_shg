@@ -12,7 +12,7 @@ gpvillRouter = express.Router();
         // DIST ID AND BLOCK ID IS MANDATORY
             if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0) {
                 return res.send({
-                    success: false,
+                    success: true,
                     msg: "dist_id and block id is required"
                 });
             }
@@ -85,7 +85,7 @@ gpvillRouter = express.Router();
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
             if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0 || !gp_id || gp_id <= 0) {
                 return res.send({
-                    success: false,
+                    success: true,
                     msg: "dist id and block id and gp id is required"
                 });
             }
@@ -162,7 +162,7 @@ gpvillRouter = express.Router();
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
             if (!tenant_id || tenant_id <= 0) {
                 return res.send({
-                    success: false,
+                    success: true,
                     msg: "tenant id is required"
                 });
             }
@@ -212,7 +212,7 @@ gpvillRouter = express.Router();
         // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
             if (!tenant_id || tenant_id <= 0) {
                 return res.send({
-                    success: false,
+                    success: true,
                     msg: "tenant id is required"
                 });
             }

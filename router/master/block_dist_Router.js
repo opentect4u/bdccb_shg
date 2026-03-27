@@ -37,7 +37,7 @@ bdRouter = express.Router();
             // DIST ID IS MANDATORY
             if (!dist_id || dist_id <= 0) {
                 return res.send({
-                    success: false,
+                    success: true,
                     msg: "dist_id is required"
                 });
             }
