@@ -42,14 +42,23 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  
   // search group list //
   var select = "a.group_code,a.group_name,a.direct_indirect_flag",
-  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id",
-  // whr = `a.branch_code = '${data.branch_code}' AND (a.group_name ILIKE '%${data.group_name}%' OR a.group_code::text ILIKE '%${data.group_name}%')`,
-  whr = `a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N'
+  table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id";
+  if(data.pacs_id == 111){
+  whr = `a.branch_code = '${data.branch_code}' AND a.delete_flag = 'N' AND a.pacs_id='${data.pacs_id}'
   ${data.group_name && data.group_name.trim() !== "" 
   ? `AND (a.group_name ILIKE '%${data.group_name}%' 
   OR a.group_code::text ILIKE '%${data.group_name}%')`
-  : ""}`
+  : ""}`;
    order = null;
+  }else{
+    whr = `a.pacs_id='${data.pacs_id}' AND a.delete_flag = 'N'
+      ${data.group_name && data.group_name.trim() !== "" 
+      ? `AND (a.group_name ILIKE '%${data.group_name}%' 
+      OR a.group_code::text ILIKE '%${data.group_name}%')`
+      : ""}`;
+      order = null;
+  }
+
    var search_group_web = await db_Select(select,table_name,whr,order);
  
    if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
@@ -482,7 +491,7 @@ groupRouter.post("/add_group", async (req, res) => {
       let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
 
     //  let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
-      let direct_indirect_flag = pacs_id == 111 ? 'D' : 'I';
+      let direct_indirect_flag = pacs_id === 111 ? 'D' : 'I';
 
       const distId = dist_id === "" ? null : dist_id;
       const blockId = block_id === "" ? null : block_id;
@@ -495,8 +504,8 @@ groupRouter.post("/add_group", async (req, res) => {
       const pin = pin_no ? pin_no.toString() : null;
  
       const table = "bdccb.md_group";
-      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","direct_indirect_flag","pacs_id"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
-      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,direct_indirect_flag,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',datetime,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
+      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","pacs_id"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',datetime,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
@@ -509,6 +518,7 @@ groupRouter.post("/add_group", async (req, res) => {
             data : []
           });
         }else{ 
+              if(group_code == 0){
               const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
               const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
               const values3 = group_code > 0 ? [phone,phone,created_by,datetime,ip_address] :[phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
@@ -521,6 +531,12 @@ groupRouter.post("/add_group", async (req, res) => {
                   success: true,
                   msg: result_user.suc > 0 ? "Group Created Successfully" : "Failed to create group"
               });
+            }else{
+               return res.send({
+                  success: true,
+                  msg: "Group Edited Successfully" 
+              });
+            }
         }
 
         
