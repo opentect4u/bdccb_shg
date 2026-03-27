@@ -32,9 +32,9 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
    });
    }
  
-   var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,SUM(a.prn_amt + a.intt_amt) AS loan_outstanding",
-   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
-   whr = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}'` : `a.society_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' GROUP BY a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt`,
+   var select = "a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,l.curr_prn AS loan_outstanding",
+   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan l ON a.ccb_loan_id = l.loan_id AND a.tenant_id = l.tenant_id",
+   whr = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}'` : `a.society_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' GROUP BY a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,l.curr_prn`,
    order = null;
    var fetch_soc_loan_dtls = await db_Select(select,table_name,whr,order);
 
