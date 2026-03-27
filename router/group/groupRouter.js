@@ -174,7 +174,6 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
           errorCode: "SERVER_ERROR"
           });
         }
-
  })
 
 // fetch group details in society level
