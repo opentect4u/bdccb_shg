@@ -104,16 +104,39 @@ webDashboardRouter.post("/fetch_ccb_web_dashboardgroup_data", async (req, res) =
         `branch_code = '${branch_code}' 
          AND open_close_flag = 'O' 
          AND delete_flag = 'N' 
-         AND direct_indirect_flag = 'D'`
+         AND pacs_id = '111'`
       );
 
+      // const pacsData = await db_Select("pacs_id","public.md_branch",`branch_id = '${branch_id}'`);
+
+      // const pacs_ids = pacsData.suc > 0 ? pacsData.msg.map(item => item.pacs_id) : [];
+
+      // const fetch_indirect_grp_data = await db_Select(
+      //   "COUNT(*) AS indirect_count",
+      //   "bdccb.md_group",
+      //   `branch_code = '${branch_code}' 
+      //    AND open_close_flag = 'O' 
+      //    AND delete_flag = 'N' 
+      //    AND pacs_id IN (${pacs_ids.map(id => `'${id}'`).join(",")})`
+      // );
+
+      // const fetch_indirect_grp_data = await db_Select(
+      // "COUNT(*) AS indirect_count",
+      // `bdccb.md_group g 
+      // JOIN public.md_branch b ON g.pacs_id = b.branch_id`,
+      // `g.branch_code = '${branch_code}'
+      // AND g.open_close_flag = 'O'
+      // AND g.delete_flag = 'N'
+      // AND g.pacs_id != '111'`
+      // );
+
       const fetch_indirect_grp_data = await db_Select(
-        "COUNT(*) AS indirect_count",
-        "bdccb.md_group",
-        `branch_code = '${branch_code}' 
-         AND open_close_flag = 'O' 
-         AND delete_flag = 'N' 
-         AND direct_indirect_flag = 'I'`
+      "COUNT(*) AS indirect_count",
+      `bdccb.md_group g`,
+      `g.branch_code = '${branch_code}'
+      AND g.open_close_flag = 'O'
+      AND g.delete_flag = 'N'
+      AND g.pacs_id != '111'`
       );
 
       const fetch_with_loan_grp_data = await db_Select(
