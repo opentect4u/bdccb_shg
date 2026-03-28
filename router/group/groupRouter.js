@@ -614,7 +614,8 @@ groupRouter.post("/add_group", async (req, res) => {
       }
  
       let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
-      let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
+      //let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
+      let direct_indirect_flag = pacs_id === 111 ? 'D' : 'I';
      let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
       for(const memb of members){
         
