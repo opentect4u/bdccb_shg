@@ -166,6 +166,38 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
         }
  })
 
+ groupRouter.get("/fetch_member_dtls_code", async (req, res) => {
+      try{420010
+          const {group_code} = req.query;
+          var select = "*",
+          table_name = "bdccb.md_member",
+          whr = `group_code = '${group_code}' AND delete_flag = 'N'`,
+          order = null;
+          var fetch_member_detail = await db_Select(select,table_name,whr,order);
+      
+          if(fetch_member_detail.suc === 1 && fetch_member_detail.msg.length > 0){
+              return res.send({
+              success: true,
+              msg: "Member Details",
+              data: fetch_member_detail.msg
+              });
+          }else{
+              return res.send({
+              success: true,
+              msg: "Failed to fetch member details",
+              data: []
+              });
+          }
+        }catch(error){
+          console.error("Error while fetch member details", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+ })
+
 // fetch group details in society level
 groupRouter.post("/fetch_pacs_group_details", async (req, res) => {
  try{
