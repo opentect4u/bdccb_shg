@@ -169,6 +169,15 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  groupRouter.get("/fetch_member_dtls", async (req, res) => {
       try{
           const {group_code} = req.query;
+
+          var select1 = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id",
+          table_name1 = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
+          whr1 = `a.group_code = '${group_code}' AND a.delete_flag = 'N'`,
+          order1 = null;
+          var fetch_group_detail = await db_Select(select1,table_name1,whr1,order1);
+
+
+
           var select = "member_code, branch_id, member_name, gender,gurdian_name, tenant_id, address, phone_no,aadhar_no, pan_no,  religion, caste, occupation,gp_leader_flag, asst_gp_leader_flag, member_account_no, ifsc",
           table_name = "bdccb.md_member",
           whr = `group_code = '${group_code}' AND delete_flag = 'N'`,
@@ -179,7 +188,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
               return res.send({
               success: true,
               msg: "Member Details",
-              data: fetch_member_detail.msg
+              data: { groupDetails: fetch_group_detail.msg[0], memberDetails: fetch_member_detail.msg }
               });
           }else{
               return res.send({
