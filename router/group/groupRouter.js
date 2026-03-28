@@ -637,40 +637,41 @@ groupRouter.post("/add_group", async (req, res) => {
             });
       }
 
-   
-      var acc_opening_dt = new Date().toISOString().slice(0, 10);
-      var balance = 0;
-      const table2 = "bdccb.td_deposit";
-      const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
-      const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
-      const whereColumns2 = [];
-      const whereValues2 = [];
-      const flag2 = 0;
-      const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
+      if(memb.member_id == 0){ 
+          var acc_opening_dt = new Date().toISOString().slice(0, 10);
+          var balance = 0;
+          const table2 = "bdccb.td_deposit";
+          const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
+          const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
+          const whereColumns2 = [];
+          const whereValues2 = [];
+          const flag2 = 0;
+          const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
 
-      if(!results || results.suc !== 1){
-        return res.send({
-            success: true,
-            msg: "Failed to save deposit details",
-            data: []
-          });
-      }
+          if(!results || results.suc !== 1){
+            return res.send({
+                success: true,
+                msg: "Failed to save deposit details",
+                data: []
+              });
+          }
 
-      const table_trans = "bdccb.td_deposit_trans";
-      const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
-      const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
-      const whereColumns_trans = [];
-      const whereValues_trans = [];
-      const flag_trans = 0;
-      const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
-    
-    
-      if(!result_trans || result_trans.suc !== 1){
-        return res.send({
-            success: true,
-            msg: "Failed to save transaction details",
-            data: []
-          });
+          const table_trans = "bdccb.td_deposit_trans";
+          const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+          const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
+          const whereColumns_trans = [];
+          const whereValues_trans = [];
+          const flag_trans = 0;
+          const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
+        
+        
+          if(!result_trans || result_trans.suc !== 1){
+            return res.send({
+                success: true,
+                msg: "Failed to save transaction details",
+                data: []
+              });
+          }
       }
     }
 
