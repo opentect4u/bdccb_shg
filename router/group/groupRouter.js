@@ -166,8 +166,8 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
         }
  })
 
- groupRouter.get("/fetch_member_dtls_code", async (req, res) => {
-      try{420010
+ groupRouter.get("/fetch_member_dtls", async (req, res) => {
+      try{
           const {group_code} = req.query;
           var select = "*",
           table_name = "bdccb.md_member",
