@@ -169,7 +169,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  groupRouter.get("/fetch_member_dtls", async (req, res) => {
       try{
           const {group_code} = req.query;
-          var select = "*",
+          var select = "member_code, branch_id, member_name, gender,gurdian_name, tenant_id, address, phone_no,aadhar_no, pan_no,  religion, caste, occupation,gp_leader_flag, asst_gp_leader_flag, member_account_no, ifsc",
           table_name = "bdccb.md_member",
           whr = `group_code = '${group_code}' AND delete_flag = 'N'`,
           order = null;
