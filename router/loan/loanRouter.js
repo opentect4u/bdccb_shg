@@ -1490,8 +1490,8 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
           const mem_table_trans = "bdccb.td_loan_ccb_trans";
           const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt","ip_address"];
           const mem_values_trans = [total ,"A",created_by, datetime,created_by, datetime,ip_address];
-          const mem_whereColumns_trans = ["loan_id","trans_id"];
-          const mem_whereValues_trans = [loanId, transId];
+          const mem_whereColumns_trans = ["loan_id"];
+          const mem_whereValues_trans = [loanId];
           const mem_flag_trans = 1;
           await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
 
