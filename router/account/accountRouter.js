@@ -8,6 +8,12 @@ const transaction_id = async () => {
   return newPayId;
 };
 
+const transactions_id = async () => {
+  const timestamp = new Date().getTime();
+  const newPayId = `${timestamp}`;
+  return newPayId;
+};
+
   const generateBalanceId = async () => {
       const timestamp = new Date().getTime();
       const balID = `${timestamp}`;
@@ -142,7 +148,7 @@ const transaction_id = async () => {
 
           let transac_id = await transaction_id();
 
-          let transacs_id = await transaction_id();
+          let transacs_id = await transactions_id();
 
 
           // fetch data from td_loan_member
