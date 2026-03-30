@@ -538,7 +538,7 @@ groupRouter.post("/add_group", async (req, res) => {
       }
  
       let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
-
+      console.log(grp_code,'grp_code');
     //  let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
       let direct_indirect_flag = pacs_id === 111 ? 'D' : 'I';
 
@@ -618,11 +618,11 @@ groupRouter.post("/add_group", async (req, res) => {
       //let direct_indirect_flag = pacs_id === 0 ? 'D' : 'I';
      let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
       for(const memb of members){
-        
+        const casteValue = memb.caste && memb.caste.trim() !== "" ? memb.caste : null;
       member_code++;
       const table1 = "bdccb.md_member";
       const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"];
-      const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,memb.caste,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion,memb.caste,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
+      const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
       const whereColumns1 = memb.member_id > 0 ? ["member_code","group_code","tenant_id"] : [];
       const whereValues1 = memb.member_id > 0 ? [memb.member_id,group_code,tenant_id] : [];
       const flag1 = memb.member_id > 0 ? 1 : 0;
