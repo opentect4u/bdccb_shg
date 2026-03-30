@@ -112,6 +112,12 @@ const transaction_id = async () => {
   return newPayId;
 };
 
+const transactions_id = async () => {
+  const timestamp = new Date().getTime();
+  const random = Math.floor(Math.random() * 1000);
+  return `${timestamp}${random}`;
+};
+
 const member_transaction_id = async () => {
     const timestamp = new Date().getTime();
     const newPayId = `${timestamp}`;
@@ -946,6 +952,7 @@ for (const group_code in groupMap) {
 
   let loan_code = await loanCode(branch_id);
   let trans_id = await transaction_id();
+  let transacs_id = await transactions_id();
 
   groupMap[group_code].loan_code = loan_code;
 
@@ -990,6 +997,53 @@ for (const group_code in groupMap) {
   let trans_result = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
 
   if (!trans_result || trans_result.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Transaction save failed for group " + group_code
+    });
+  }
+
+  // ================== td_loan_ccb ==================
+  var table = "bdccb.td_loan_ccb";
+
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
+
+  var values = [
+    loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
+    period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
+    startDate, endDate, 0, 0, 0, 0,
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code
+  ];
+
+  let result_ccb = await saveRecord(table, columns, values, [], [], 0);
+
+  if (!result_ccb || result_ccb.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Loan save failed for group " + group_code
+    });
+  }
+
+  // ================== td_loan_ccb_trans ==================
+  var table_trn = "bdccb.td_loan_ccb_trans";
+
+  var columns_trn = [
+    "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
+    "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+    "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
+    "approval_status","created_by","created_dt","ip_address"
+  ];
+
+  var values_trn = [
+    disb_dt, transacs_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
+    "D", total_disb_amt, 0,
+    0,0,0,0,
+    0,0,0,0,
+    "U", created_by, datetime, ip_address
+  ];
+  let trans_result_ccb = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+
+  if (!trans_result_ccb || trans_result_ccb.suc !== 1) {
     return res.send({
       success: false,
       msg: "Transaction save failed for group " + group_code
@@ -1432,6 +1486,22 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
           const mem_whereValuess = [loanId, groupCode];
           const mem_flags = 1;
           await saveRecord(mem_tables,mem_columnss,mem_valuess,mem_whereColumnss,mem_whereValuess,mem_flags); 
+
+          const mem_table_trans = "bdccb.td_loan_ccb_trans";
+          const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt","ip_address"];
+          const mem_values_trans = [total ,"A",created_by, datetime,created_by, datetime,ip_address];
+          const mem_whereColumns_trans = ["loan_id"];
+          const mem_whereValues_trans = [loanId];
+          const mem_flag_trans = 1;
+          await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
+
+          const mem_tables1 = "bdccb.td_loan_ccb";
+          const mem_columnss1 = ["curr_prn","modified_by","modified_dt","ip_address"];
+          const mem_valuess1 = [total ,created_by, datetime,ip_address];
+          const mem_whereColumnss1 = ["loan_id","group_code"];
+          const mem_whereValuess1 = [loanId, groupCode];
+          const mem_flags1 = 1;
+          await saveRecord(mem_tables1,mem_columnss1,mem_valuess1,mem_whereColumnss1,mem_whereValuess1,mem_flags1); 
     }
     return res.send({
       success: true,
