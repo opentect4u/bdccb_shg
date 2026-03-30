@@ -9,6 +9,12 @@ const ccb_tran_id = async () => {
     return(newPayId);
 };
 
+const ccbtrans_id = async () => {
+   const timestamp = new Date().getTime();
+  const random = Math.floor(Math.random() * 1000);
+  return `${timestamp}${random}`;
+};
+
 // FETCH GROUP DETAILS BASED ON CCB A/C NO
 ccb_recovRouter.post("/fetch_grp_dt", async (req, res) => {
   try{
@@ -853,6 +859,34 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     
   }
 
+   //  FETCH BOTH I & R (UNAPPROVED)
+   var select_trn = "*",
+      table_trn = "bdccb.td_loan_transactions",
+      whr_trn = `loan_id = '${loan_id}'
+                 AND trans_dt = '${trans_dt}'
+                 AND tenant_id = '${tenant_id}'
+                 AND approval_status != 'A'
+                 AND trans_type IN ('I','R')`;
+    const trans_rows = await db_Select(select_trn, table_trn, whr_trn);
+
+    // INSERT INTO td_ccb_loan_trans
+    if (trans_rows.msg && trans_rows.msg.length > 0) {
+
+        let tran_id = await ccbtrans_id();
+
+      for (let row of trans_rows.msg) {
+          let table_ins = "bdccb.td_ccb_loan_trans";
+          let columns_ins = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by", "created_dt","modified_by","modified_dt","ip_address"];
+          let values_ins = [trans_dt,tran_id,row.tenant_id,row.loan_to,row.branch_shg_id,row.loan_id,row.loan_ac_no,row.trans_type,row.dr_amt,row.cr_amt,row.curr_prn_recov,row.ovd_prn_recov,row.ovd_intt_recov,row.curr_prn,row.curr_int,row.ovd_prn,row.ovd_intt,'A',row.approved_by,row.approved_dt,row.created_by,row.created_dt,row.modified_by,row.modified_dt,row.ip_address];
+          let flag_ins = 0;
+          const insert_ccb = await saveRecord(table_ins, columns_ins, values_ins, [], [], flag_ins);
+          
+          if (!insert_ccb || insert_ccb.suc !== 1) {
+          return res.send({ success: false, msg: "Insert into CCB failed" });
+        }
+      }
+    }
+
   // Fetch Interest trans_id
     var select_int = "trans_id",
     table_name_int = "bdccb.td_loan_transactions",
@@ -936,6 +970,23 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     msg:"Failed to update balance in main table"
     });
     }
+
+    // Update td_loan_ccb table
+    let table6 = "bdccb.td_loan";
+    let columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+    let values6 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
+    let whereColumns6 = ["loan_id","tenant_id","group_code"];
+    let whereValues6 = [loan_id,tenant_id,group_code];
+    let flag6 = 1; // update flag
+    const update_td_loan_ccb6 = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5); 
+    
+    if (!update_td_loan_ccb6 || update_td_loan_ccb6.suc !== 1) {
+    return res.send({
+    success: true,
+    msg:"Failed to update balance in main table"
+    });
+    }
+
    return res.send({
     success: true,
     msg: "CCB Recovery accepted successfully" 
