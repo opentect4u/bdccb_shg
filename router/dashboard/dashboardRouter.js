@@ -225,9 +225,9 @@ dashboardRouter.post("/fetch_member_outstanding_dtls", async (req, res) => {
    let loan_finalData_member = [];
 
    for (let loans of fetch_loan_dtls.msg) {
-    let mem_select = "a.loan_id AS mem_loan_id,a.group_code,a.member_code AS member_id,d.member_name,COALESCE(a.prn_amt,0) AS principal_amt,COALESCE(a.intt_amt,0) AS interest_amt,COALESCE(SUM(a.prn_amt + a.intt_amt),0) AS outstanding,TO_CHAR(MAX(CASE WHEN b.trans_type = 'I' THEN b.trans_date END),'YYYY-MM-DD') AS interest_calculated_date",
-    mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
-    mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loans.loan_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.group_code,a.member_code,d.member_name,a.prn_amt,a.intt_amt,b.trans_type`;
+    let mem_select = "a.loan_id AS mem_loan_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,COALESCE(a.prn_amt,0) AS principal_amt,COALESCE(a.intt_amt,0) AS interest_amt,COALESCE(SUM(a.prn_amt + a.intt_amt),0) AS outstanding,TO_CHAR(MAX(CASE WHEN b.trans_type = 'I' THEN b.trans_date END),'YYYY-MM-DD') AS interest_calculated_date",
+    mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code",
+    mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loans.loan_id}' AND a.group_code = '${group_code}' GROUP BY a.loan_id,a.group_code,c.group_name,a.member_code,d.member_name,a.prn_amt,a.intt_amt`;
     let shg_member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
 
     loans.members = shg_member_dtls.suc === 1 ? shg_member_dtls.msg : [];

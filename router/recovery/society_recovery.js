@@ -835,8 +835,10 @@ society_recovRouter.post("/accept_society_recovery", async (req, res) => {
     whr_int = `loan_id = '${loan_id}' 
            AND trans_dt = '${trans_dt}'
            AND trans_type = 'I'
-           AND tenant_id = '${tenant_id}'`;
-    const interest_row = await db_Select(select_int,table_name_int,whr_int);
+           AND tenant_id = '${tenant_id}'
+           AND approval_status != 'A'`
+    order_int = "trans_dt DESC, trans_id DESC LIMIT 1";
+    const interest_row = await db_Select(select_int,table_name_int,whr_int,order_int);
 
     let interest_trans_id = null;
 
