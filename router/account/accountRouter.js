@@ -142,6 +142,9 @@ const transaction_id = async () => {
 
           let transac_id = await transaction_id();
 
+          let transacs_id = await transaction_id();
+
+
           // fetch data from td_loan_member
 
           var select = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt",
@@ -213,7 +216,7 @@ const transaction_id = async () => {
           var table_trn = "bdccb.td_loan_ccb_trans";
           var columns_trn = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
           "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by","created_dt","ip_address"];
-          var values_trn = [loan_data.disb_dt,transac_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",
+          var values_trn = [loan_data.disb_dt,transacs_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",
           loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"A",created_by,datetime,created_by,datetime,ip_address];
           var whereColumns_trn = [];
           var whereValues_trn = [];
