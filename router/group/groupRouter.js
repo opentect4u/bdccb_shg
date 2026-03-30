@@ -6,8 +6,8 @@ groupRouter = express.Router();
 
  
 const groupCode = async (branch_code) => {
- 
-  const select = `COALESCE(MAX(SUBSTR(group_code::TEXT, 4)::INTEGER), 0) + 1 AS group_no`;
+  //const select = `COALESCE(MAX(SUBSTR(group_code::TEXT, 4)::INTEGER), 0) + 1 AS group_no`;
+  const select = `COALESCE(MAX(RIGHT(group_code::TEXT, 4)::INTEGER), 0) + 1 AS group_no`;
   const table = "bdccb.md_group";
   const res = await db_Select(select, table, null, null);
   const group_no = res.msg[0].group_no;
