@@ -554,6 +554,50 @@ groupRouter.get("/checkaddhar", async (req, res) => {
           console.error("Error while fetch group list", error);
         }
     })
+
+    groupRouter.get("/group_list_for_login", async (req, res) => {
+        try{
+              const { block_id,branch_id } = req.query;
+              if(branch_id=='undefined' || branch_id === null || branch_id === '' || branch_id === '0'){
+                return res.send({ 
+                    success: true,
+                    msg: "Group List",
+                    data: search_group_web.msg
+                  });
+              }
+                
+                // search group list //
+              var get_branch_type = await db_Select("branch_type", "public.md_branch", `branch_id='${branch_id}'`, null);
+              const branch_type = get_branch_type.suc === 1 && get_branch_type.msg.length > 0 ? get_branch_type.msg[0].branch_type : null;
+              var type = branch_type === 'B' ? 'B' : 'P';
+              var select = "a.group_code,a.group_name",
+               table_name = "bdccb.md_group a";
+              let whr = type == 'B'
+              ? `a.branch_code = '${branch_id}' 
+                AND a.pacs_id = 111 
+                AND a.delete_flag = 'N' `
+              : `a.pacs_id = '${branch_id}' 
+                AND a.delete_flag = 'N' `;
+              order = null;
+              var search_group_web = await db_Select(select,table_name,whr,order);
+              if (search_group_web.suc !== 1 || search_group_web.msg.length === 0) {
+                  return res.send({
+                    success: true,
+                    msg: "No group found",
+                    data: []
+                  });
+                }else{
+                  return res.send({ 
+                    success: true,
+                    msg: "Group List",
+                    data: search_group_web.msg
+                  });
+
+                }
+        }catch(error){
+          console.error("Error while fetch group list", error);
+        }
+    })
  
 // save / edit group
 groupRouter.post("/add_group", async (req, res) => {
@@ -580,7 +624,7 @@ groupRouter.post("/add_group", async (req, res) => {
       }
  
       let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
-      console.log(grp_code,'grp_code');
+      console.log(grp_code,'grp_code-----------');
     //  let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
       let direct_indirect_flag = pacs_id === 111 ? 'D' : 'I';
 
@@ -610,9 +654,12 @@ groupRouter.post("/add_group", async (req, res) => {
           });
         }else{ 
               if(group_code == 0){
+              const bran_cd = pacs_id == 111 ? branch_code : pacs_id;
+              console.log(bran_cd,'bran_cd');
+              const generated_user_id = `${blockId}-${bran_cd}-${grp_code}-${saving_acc_no}`;
               const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
               const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
-              const values3 = group_code > 0 ? [phone,phone,created_by,datetime,ip_address] :[phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
+              const values3 = group_code > 0 ? [generated_user_id,phone,created_by,datetime,ip_address] :[generated_user_id, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
               const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
               const whereValues3 = group_code > 0 ? [grp_code] : [];
               const flag3 = group_code > 0 ? 1 : 0;
