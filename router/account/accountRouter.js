@@ -10,8 +10,8 @@ const transaction_id = async () => {
 
 const transactions_id = async () => {
   const timestamp = new Date().getTime();
-  const newPayId = `${timestamp}`;
-  return newPayId;
+  const random = Math.floor(Math.random() * 1000);
+  return `${timestamp}${random}`;
 };
 
   const generateBalanceId = async () => {
