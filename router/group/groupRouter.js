@@ -180,9 +180,9 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
           const {member_account_no, branch_code,org_type} = req.query;
           var select = org_type =='B' ? "a.member_name,b.group_name,b.group_code,c.branch_name" : "a.member_name,b.group_name,b.group_code",
           table_name = org_type =='B' ? "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN public.md_branch c ON b.pacs_id = c.branch_id" : "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code",
-          whr = org_type =='B' ? `a.member_account_no = '${member_account_no}' AND b.branch_code = '${branch_code}' AND a.delete_flag = 'N'` : `a.member_account_no = '${member_account_no}' AND b.pacs_id = '${branch_code}'  AND a.delete_flag = 'N'`,
+          whr = org_type =='B' ? `a.member_account_no = '${member_account_no}' AND b.branch_code = '${branch_code}' AND b.pacs_id = '111' AND a.delete_flag = 'N'` : `a.member_account_no = '${member_account_no}' AND b.pacs_id = '${branch_code}'  AND a.delete_flag = 'N'`,
           order = null;
-
+           console.log(whr);
           var fetch_group_detail = await db_Select(select,table_name,whr,order);
       
           if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
