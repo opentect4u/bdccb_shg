@@ -166,6 +166,48 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
         }
  })
 
+ groupRouter.get("/fetch_grp_dtls_memb_acc", async (req, res) => {
+      try{
+
+          if(!req.query.member_account_no || !req.query.branch_code || !req.query.org_type){
+              return res.send({
+                  success: false,
+                  msg: "Missing required parameters",
+                  data: []
+              });
+          }
+
+          const {member_account_no, branch_code,org_type} = req.query;
+          var select = org_type =='B' ? "a.member_name,b.group_name,b.group_code,c.branch_name" : "a.member_name,b.group_name,b.group_code",
+          table_name = org_type =='B' ? "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN public.md_branch c ON b.pacs_id = c.branch_id" : "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code",
+          whr = org_type =='B' ? `a.member_account_no = '${member_account_no}' AND b.branch_code = '${branch_code}' AND a.delete_flag = 'N'` : `a.member_account_no = '${member_account_no}' AND b.pacs_id = '${branch_code}'  AND a.delete_flag = 'N'`,
+          order = null;
+
+          var fetch_group_detail = await db_Select(select,table_name,whr,order);
+      
+          if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+              return res.send({
+              success: true,
+              msg: "Group Details",
+              data: fetch_group_detail.msg
+              });
+          }else{
+              return res.send({
+              success: true,
+              msg: "Failed to fetch group details",
+              data: []
+              });
+          }
+        }catch(error){
+          console.error("Error while fetch group details", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+ })
+
  groupRouter.get("/fetch_member_dtls", async (req, res) => {
       try{
           const {group_code} = req.query;

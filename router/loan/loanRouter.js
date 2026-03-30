@@ -482,12 +482,12 @@ try{
 // FETCH MEMBER DETAILS BASED ON SHG
 loanRouter.post("/fetch_member_name", async (req, res) => {
 try{
- const {group_code, branch_code, tenant_id} = req.body;
+ const {group_code, branch_code, tenant_id,member_account_no} = req.body;
 //  console.log(req.body,'member name');
 
  var select = "member_code member_id,member_name,member_account_no sb_acc_no",
  table_name = "bdccb.md_member",
- whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}' AND delete_flag = 'N' AND approval_status = 'A'`,
+ whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}' AND member_account_no = '${member_account_no}' AND delete_flag = 'N' AND approval_status = 'A'`,
  order = null;
  var fetch_shg_member = await db_Select(select,table_name,whr,order);
  
