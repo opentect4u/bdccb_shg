@@ -1359,15 +1359,50 @@ society_recovRouter.post("/fetch_indivitual_member_loan", async (req, res) => {
 
 });
 
+// fetch group name based on loan acc no
+society_recovRouter.post("/fetch_grp_name_ccb", async (req, res) => {
+  try{
+  const {tenant_id,branch_id,ccb_loan_acc_no} = req.body;
+  // console.log(req.body);
+  
+  var select = "a.group_code,b.group_name,a.loan_id",
+  table_name = "bdccb.td_loan_ccb a JOIN bdccb.md_group b ON a.group_code = b.group_code",
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}'`,
+  order = null;
+  var result = await db_Select(select,table_name,whr,order);
+
+  if(result.suc === 1 && result.msg.length > 0){
+    return res.send({
+      success: true,
+      msg: "Fetch group name",
+      data: result.msg
+    })
+  }else{
+    return res.send({
+      success: true,
+      msg: "Unable to fetch group name",
+      data: []
+    })
+  }
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch group name in ccb end",
+      error: []
+    });
+  }
+});
+
 // CCB LEVEL RECOVERY FOR SOCIETY
 society_recovRouter.post("/fetch_ccb_loan_dtls_fr_soc", async (req, res) => {
   try{
-  const {ccb_acc_no,branch_id,tenant_id,loan_to} = req.body;
-  //  console.log(req.body);
+  const {ccb_acc_no,branch_id,tenant_id,ccb_loan_id} = req.body;
+  //  console.log(req.body,'lo');
 
    var select1 = "COUNT(*) AS cnt",
    table1 = "bdccb.td_loan_ccb a LEFT JOIN bdccb.td_loan_ccb_trans b ON a.loan_id = b.loan_id",
-   whr1 = `a.loan_acc_no = '${ccb_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_to = '${loan_to}' AND b.approval_status = 'U'`,
+   whr1 = `a.loan_acc_no = '${ccb_acc_no}' AND a.loan_id = '${ccb_loan_id}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND b.approval_status = 'U'`,
    order1 = null;
    var fetch_unapprove_data_ccb = await db_Select(select1,table1,whr1,order1);
    
@@ -1383,7 +1418,7 @@ society_recovRouter.post("/fetch_ccb_loan_dtls_fr_soc", async (req, res) => {
  
    var select = "a.loan_id AS ccb_loan_id,a.branch_shg_id,a.group_code,b.group_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt AS disb_amt,a.curr_prn AS loan_outstanding",
    table_name = "bdccb.td_loan_ccb a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
-   whr = `a.loan_acc_no = '${ccb_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_to = '${loan_to}'`,
+   whr = `a.loan_id = '${ccb_loan_id}' AND a.loan_acc_no = '${ccb_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}'`,
    order = null;
    var fetch_soc_loan_dtls_ccb_level = await db_Select(select,table_name,whr,order);
 
@@ -1639,6 +1674,69 @@ society_recovRouter.post("/accept_ccb_recovery_fr_soc", async (req, res) => {
       msg:"Error occurred while accept society recovery",
       error: []
     })
+  }
+});
+
+// REJECT CCBN LEVEL SOCIETY RECOVERY
+society_recovRouter.post("/ccb_reject_society_recov", async (req, res) => {
+  try{
+   const {loan_id,tenant_id,trans_dt,recovery_trans_id,interest_trans_id,group_code,created_by,ip_address} = req.body;
+   console.log(req.body,'reject');
+
+   let datetime = new Date().toISOString().slice(0,19).replace("T"," ");
+   
+
+    // delete from td_loan_transactions table recovery row
+     await deleteRecord(
+      "bdccb.td_loan_ccb_trans",
+      ["trans_dt", "trans_id", "loan_id", "tenant_id", "trans_type"],
+      [trans_dt, recovery_trans_id, loan_id, tenant_id, "R"]);
+
+    // delete from td_loan_transactions table interest row
+     await deleteRecord(
+      "bdccb.td_loan_ccb_trans",
+      ["trans_dt", "trans_id", "loan_id", "tenant_id", "trans_type"],
+      [trans_dt, interest_trans_id, loan_id, tenant_id, "I"]);
+
+
+      // FETCH CURRENT PRINCIPAL AND INTEREST FROM TD_LOAN_TRANSCATIONS TABLE
+      var select1 = "(COALESCE(a.curr_prn,0)) AS td_curr_prn,(COALESCE(a.curr_intt,0)) AS td_curr_intt",
+   table_name1 = "bdccb.td_loan_ccb_trans a",
+   whr1 = `a.loan_id = '${loan_id}' AND a.trans_type != 'I'`,
+   order1 = "a.trans_dt DESC, a.trans_id DESC LIMIT 1";
+   var fetch_current_data1 = await db_Select(select1,table_name1,whr1,order1);   
+
+   let current_curr_prn = 0;
+   let current_curr_intt = 0;
+
+   if(fetch_current_data1.msg && fetch_current_data1.msg.length > 0){
+    current_curr_prn =  fetch_current_data1.msg[0].td_curr_prn ;
+    current_curr_intt = fetch_current_data1.msg[0].td_curr_intt ;
+    // console.log(current_curr_intt,current_curr_prn,'kiujh');
+    
+   }
+
+    // Update td_loan loan balance
+    let table3 = "bdccb.td_loan_ccb";
+    let columns3 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
+    let values3 = [Number(current_curr_prn), Number(current_curr_intt),created_by,datetime,ip_address];
+    let whereColumns3 = ["loan_id","group_code"];
+    let whereValues3 = [loan_id,group_code];
+    let flag3 = 1; // update flag
+    await saveRecord(table3, columns3, values3, whereColumns3, whereValues3, flag3);
+    // console.log(whereValues3,'whereValues3');
+
+    return res.send({
+      success: true,
+      msg: "Recovery rejected successfully"
+   });
+   }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while rejecting society recovery",
+      error: []
+    });
   }
 });
 
