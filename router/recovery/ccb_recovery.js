@@ -872,9 +872,10 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     // INSERT INTO td_ccb_loan_trans
     if (trans_rows.msg && trans_rows.msg.length > 0) {
 
-        let tran_id = await ccbtrans_id();
 
       for (let row of trans_rows.msg) {
+        let tran_id = await ccbtrans_id();
+        
           let table_ins = "bdccb.td_loan_ccb_trans";
           let columns_ins = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by", "created_dt","modified_by","modified_dt","ip_address"];
           let values_ins = [trans_dt,tran_id,row.tenant_id,row.loan_to,row.branch_shg_id,row.loan_id,row.loan_ac_no,row.trans_type,row.dr_amt,row.cr_amt,row.curr_prn_recov,row.ovd_prn_recov,row.ovd_intt_recov,row.curr_prn,row.curr_int,row.ovd_prn,row.ovd_intt,'A',row.approved_by,row.approved_dt,row.created_by,row.created_dt,row.modified_by,row.modified_dt,row.ip_address];
