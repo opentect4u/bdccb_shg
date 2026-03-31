@@ -23,6 +23,7 @@ app.use('/v1/depsav', require('./router/deposit_saving/indexdepsavingRouter'));
 app.use('/v1/account', require('./router/account/indexAccountRouter'));
 app.use('/v1/dashboard', require('./router/dashboard/indexDashboardRouter'));
 app.use('/v1/user', require('./router/user/indexUserRouter'));
+app.use('/v1/report', require('./router/report/indexReportRouter'));
 
 
 app.post("/v1/login", async (req, res) => {
