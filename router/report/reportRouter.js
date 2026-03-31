@@ -17,7 +17,7 @@ reportRouter.get("/get_disburs_dtls", async (req, res) => {
       }
       var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.group_name,c.member_name,c.member_account_no",
       table_name = "bdccb.td_loan_member a JOIN bdccb.md_group b ON a.group_code = b.group_code JOIN bdccb.md_member c ON a.group_code = c.group_code";
-        whr = `a.disb_dt >= '${frm_dt}' AND a.disb_dt <= '${to_dt}' AND a.branch_shg_id = '${branch_id}'`,
+        whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${branch_id}'`,
         order = null;
 
       var loan_result = await db_Select(select,table_name,whr,order);
@@ -25,18 +25,18 @@ reportRouter.get("/get_disburs_dtls", async (req, res) => {
       if (loan_result.suc === 1 && loan_result.msg.length > 0) {
           return res.send({
             success: true,
-            msg: "Group List",
+            msg: "Disbursment List",
             data: loan_result.msg
         });
         } else {
           return res.send({
             success: true,
-            msg: "Failed to fetch group data",
+            msg: "Failed to fetch Disbursment List",
             data: []
           });
         }
     }catch(error){
-      console.log("Error fetching group data:", error);
+      console.log("Error fetching Disbursment List:", error);
       return res.send({
         success: false,
         msg: "Internal server error",
@@ -56,7 +56,7 @@ reportRouter.get("/get_disburs_dtls", async (req, res) => {
       }
       var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.branch_name as society_name",
       table_name = "bdccb.td_loan_member a JOIN public.md_branch b ON b.branch_id = a.branch_shg_id";
-        whr = `a.disb_dt >= '${frm_dt}' AND a.disb_dt <= '${to_dt}' AND a.branch_shg_id = '${branch_id}' AND loan_to='P' `,
+        whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${branch_id}' AND loan_to='P' `,
         order = null;
 
       var loan_result = await db_Select(select,table_name,whr,order);
@@ -64,18 +64,18 @@ reportRouter.get("/get_disburs_dtls", async (req, res) => {
       if (loan_result.suc === 1 && loan_result.msg.length > 0) {
           return res.send({
             success: true,
-            msg: "Group List",
+            msg: "Society Loan List",
             data: loan_result.msg
         });
         } else {
           return res.send({
             success: true,
-            msg: "Failed to fetch group data",
+            msg: "Failed to fetch Society Loan List",
             data: []
           });
         }
     }catch(error){
-      console.log("Error fetching group data:", error);
+      console.log("Error fetching Society Loan List:", error);
       return res.send({
         success: false,
         msg: "Internal server error",
