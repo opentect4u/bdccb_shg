@@ -872,10 +872,11 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     // INSERT INTO td_ccb_loan_trans
     if (trans_rows.msg && trans_rows.msg.length > 0) {
 
-        let tran_id = await ccbtrans_id();
 
       for (let row of trans_rows.msg) {
-          let table_ins = "bdccb.td_ccb_loan_trans";
+        let tran_id = await ccbtrans_id();
+        
+          let table_ins = "bdccb.td_loan_ccb_trans";
           let columns_ins = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no","trans_type","dr_amt","cr_amt","curr_prn_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by", "created_dt","modified_by","modified_dt","ip_address"];
           let values_ins = [trans_dt,tran_id,row.tenant_id,row.loan_to,row.branch_shg_id,row.loan_id,row.loan_ac_no,row.trans_type,row.dr_amt,row.cr_amt,row.curr_prn_recov,row.ovd_prn_recov,row.ovd_intt_recov,row.curr_prn,row.curr_int,row.ovd_prn,row.ovd_intt,'A',row.approved_by,row.approved_dt,row.created_by,row.created_dt,row.modified_by,row.modified_dt,row.ip_address];
           let flag_ins = 0;
@@ -972,13 +973,13 @@ ccb_recovRouter.post("/accept_ccb_recovery", async (req, res) => {
     }
 
     // Update td_loan_ccb table
-    let table6 = "bdccb.td_loan";
+    let table6 = "bdccb.td_loan_ccb";
     let columns6 = ["curr_prn","curr_intt","modified_by","modified_dt","ip_address"];
     let values6 = [current_curr_prn,current_curr_intt,created_by,datetime,ip_address];
     let whereColumns6 = ["loan_id","tenant_id","group_code"];
     let whereValues6 = [loan_id,tenant_id,group_code];
     let flag6 = 1; // update flag
-    const update_td_loan_ccb6 = await saveRecord(table5,columns5,values5,whereColumns5,whereValues5,flag5); 
+    const update_td_loan_ccb6 = await saveRecord(table6,columns6,values6,whereColumns6,whereValues6,flag6); 
     
     if (!update_td_loan_ccb6 || update_td_loan_ccb6.suc !== 1) {
     return res.send({
