@@ -12,12 +12,13 @@ const member_trans_id = async () => {
 groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     try{
     const {tenant_id,branch_id,emp_id} = req.body;
-    // console.log(req.body);
+     let parts = emp_id.split("-");
+    let group_codes = parts[2];
     
 
     var select = "DISTINCT a.group_code,a.group_name,b.loan_to",
     table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
-    whr = `a.phone1 = '${emp_id}'`,
+    whr = `a.group_code = '${group_codes}'`,
     order = null;
     var fetch_grp_code = await db_Select(select,table_name,whr,order);
     // console.log(fetch_grp_code,'fetch_grp_code');
