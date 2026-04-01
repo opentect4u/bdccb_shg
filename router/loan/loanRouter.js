@@ -99,7 +99,7 @@ const loanCodes = async (branch_code) => {
    let loan_no = 1;
 
   if (res && res.suc === 1 && res.msg && res.msg.length > 0) {
-    loan_no = res.msg[0].loan_code || 1;
+    loan_no = res.msg[0].loan_codes || 1;
   }
 
   const loan_codes = `${branch_code}${String(loan_no).padStart(4, "0")}`;
