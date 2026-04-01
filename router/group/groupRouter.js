@@ -772,7 +772,7 @@ groupRouter.post("/add_group", async (req, res) => {
           
           var select = "group_code,group_name",
           table_name = "bdccb.md_group",
-          whr = branch_type_result.msg[0].branch_type === 'B' ? `branch_code = '${branch_id}' AND delete_flag = 'N'` : `pacs_id = '${branch_id}' AND delete_flag = 'N'`,
+          whr = branch_type_result.msg[0].branch_type === 'B' ? `branch_code = '${branch_id}' AND pacs_id = 111 AND delete_flag = 'N'` : `pacs_id = '${branch_id}' AND delete_flag = 'N'`,
           order = null;
           var fetch_group_detail = await db_Select(select,table_name,whr,order);
       
