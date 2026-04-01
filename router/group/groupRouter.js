@@ -767,9 +767,12 @@ groupRouter.post("/add_group", async (req, res) => {
     groupRouter.get("/group_list_for_login", async (req, res) => {
       try{
           const {branch_id} = req.query;
+          //check from md_branch branch type
+          var branch_type_result = await db_Select("branch_type","public.md_branch",`branch_id = '${branch_id}'`,null);
+          
           var select = "group_code,group_name",
           table_name = "bdccb.md_group",
-          whr = `branch_code = '${branch_id}' AND delete_flag = 'N'`,
+          whr = branch_type_result.msg[0].branch_type === 'B' ? `branch_code = '${branch_id}' AND delete_flag = 'N'` : `pacs_id = '${branch_id}' AND delete_flag = 'N'`,
           order = null;
           var fetch_group_detail = await db_Select(select,table_name,whr,order);
       
@@ -782,7 +785,7 @@ groupRouter.post("/add_group", async (req, res) => {
           }else{
               return res.send({
               success: true,
-              msg: "Failed to fetch group details",
+              msg: "No data Found",
               data: []
               });
           }
