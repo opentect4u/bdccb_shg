@@ -764,6 +764,38 @@ groupRouter.post("/add_group", async (req, res) => {
         }
     })
 
+    groupRouter.get("/group_list_for_login", async (req, res) => {
+      try{
+          const {branch_id} = req.query;
+          var select = "group_code,group_name",
+          table_name = "bdccb.md_group",
+          whr = `branch_code = '${branch_id}' AND delete_flag = 'N'`,
+          order = null;
+          var fetch_group_detail = await db_Select(select,table_name,whr,order);
+      
+          if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+              return res.send({
+              success: true,
+              msg: "Group Details",
+              data: fetch_group_detail.msg
+              });
+          }else{
+              return res.send({
+              success: true,
+              msg: "Failed to fetch group details",
+              data: []
+              });
+          }
+        }catch(error){
+          console.error("Error while fetch group details", error);
+          return res.send({
+          success: false,
+          msg: "Internal server error",
+          errorCode: "SERVER_ERROR"
+          });
+        }
+    })
+
 // save / edit group
 groupRouter.post("/save_group", async (req, res) => {
     try {
