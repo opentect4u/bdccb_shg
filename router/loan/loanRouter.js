@@ -61,7 +61,13 @@ const loanCode = async (branch_code) => {
 
   const res = await db_Select(select, "bdccb.td_loan", null, null);
 
-  const loan_no = res.msg[0].loan_code;
+  // const loan_no = res.msg[0].loan_code;
+
+   let loan_no = 1;
+
+  if (res && res.suc === 1 && res.msg && res.msg.length > 0) {
+    loan_no = res.msg[0].loan_code || 1;
+  }
 
   const loan_code = `${branch_code}${String(loan_no).padStart(4, "0")}`;
 
@@ -88,7 +94,13 @@ const loanCodes = async (branch_code) => {
 
   const res = await db_Select(select, "bdccb.td_loan_member", null, null);
 
-  const loan_no = res.msg[0].loan_codes;
+  // const loan_no = res.msg[0].loan_codes;
+
+   let loan_no = 1;
+
+  if (res && res.suc === 1 && res.msg && res.msg.length > 0) {
+    loan_no = res.msg[0].loan_code || 1;
+  }
 
   const loan_codes = `${branch_code}${String(loan_no).padStart(4, "0")}`;
 
