@@ -609,27 +609,19 @@ groupRouter.post("/add_group", async (req, res) => {
             data : []
           });
         }else{ 
-              if(group_code == 0){
               const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
+              const user_id = `${blockId}-${branch_code}-${grp_code}`;
               const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
-              const values3 = group_code > 0 ? [phone,phone,created_by,datetime,ip_address] :[phone, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
+              const values3 = group_code > 0 ? [user_id,phone,created_by,datetime,ip_address] :[user_id, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
               const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
               const whereValues3 = group_code > 0 ? [grp_code] : [];
               const flag3 = group_code > 0 ? 1 : 0;
               const result_user = await saveRecord("bdccb.md_user", columns3, values3,whereColumns3,whereValues3,flag3);
-
               return res.send({
                   success: true,
                   msg: result_user.suc > 0 ? "Group Created Successfully" : "Failed to create group"
               });
-            }else{
-               return res.send({
-                  success: true,
-                  msg: "Group Edited Successfully" 
-              });
-            }
         }
-
         
       } catch (error) {
         console.error("Error in while save group:", error);
