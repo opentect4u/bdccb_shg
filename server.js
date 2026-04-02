@@ -91,6 +91,7 @@ app.post("/v1/login", async (req, res) => {
       emp_name: userData.emp_name,
       designation: userData.designation,
       brn_code: userData.brn_code,
+      brn_block_id : userData.org_block_id,
       branch_name: userData.branch_name,
       user_type: userData.user_type,
       phone_mobile: userData.phone_mobile,
