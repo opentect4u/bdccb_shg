@@ -1367,7 +1367,7 @@ society_recovRouter.post("/fetch_grp_name_ccb", async (req, res) => {
   
   var select = "a.group_code,b.group_name,a.loan_id",
   table_name = "bdccb.td_loan_ccb a JOIN bdccb.md_group b ON a.group_code = b.group_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}'`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}' AND a.branch_shg_id NOT IN ('111')`,
   order = null;
   var result = await db_Select(select,table_name,whr,order);
 
