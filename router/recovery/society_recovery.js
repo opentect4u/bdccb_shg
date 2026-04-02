@@ -1233,6 +1233,66 @@ society_recovRouter.post("/search_grp_view", async (req, res) => {
   }
 });
 
+// FETCH MEMBER NAME ON THIS GROUP
+// society_recovRouter.post("/")
+
+// FETCH CCB LOAN DETAILS
+society_recovRouter.post("/fetch_ccb_loan_details", async (req, res) => {
+  try{
+  const { tenant_id,pacs_id,group_code,society_acc_no } = req.body;
+
+  var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+  table_name = "bdccb.td_loan_ccb a",
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${pacs_id}' AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
+    FROM bdccb.td_loan_member b
+    WHERE b.group_code = a.group_code
+    AND b.society_acc_no = '${society_acc_no}'
+  )`,
+  order = null;
+  var fetch_ccbloan_dtls = await db_Select(select,table_name,whr,order);
+
+  if (fetch_ccbloan_dtls.suc !== 1 || fetch_ccbloan_dtls.msg.length === 0) {
+    return res.send({
+    success: true,
+    msg: "No data found",
+    data: []
+     });
+  }
+
+   let loanCode = fetch_ccbloan_dtls.msg[0].loan_id;
+
+  // FETCH LOAN TRANSACTION DETAILS BASED ON GROUP 
+  var select1 = "TO_CHAR(a.trans_dt, 'YYYY-MM-DD') AS trans_dt,a.trans_id,a.loan_id,a.loan_ac_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn + a.curr_intt,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
+  table_name1 = "bdccb.td_loan_ccb_trans a",
+  whr1 = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${pacs_id}' AND a.loan_id = '${loanCode}'`,
+  order1 = `a.trans_dt,a.trans_id`;
+  var fetch_ccbloan_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
+
+  let transData = (fetch_ccbloan_dtls_trans.suc === 1 && Array.isArray(fetch_ccbloan_dtls_trans.msg))
+  ? fetch_ccbloan_dtls_trans.msg
+  : [];
+
+  let finalData_trans = (fetch_ccbloan_dtls.msg || []).map(item => {
+      return {...item,
+      trans_details: transData
+    };
+    });
+
+  return res.send({
+    success: true,
+    msg: "Fetch ccb loan details with transaction",
+    data: finalData_trans
+  });
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch ccb loan transaction details",
+      error: []
+    });
+  }
+});
+
 // FETCH SOCIETY LOAN DETAILS
 society_recovRouter.post("/fetch_soc_loan_dtls", async (req, res) => {
   try{
