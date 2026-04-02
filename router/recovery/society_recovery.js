@@ -148,7 +148,7 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) =>{
      let intt_recov = 0;
      let remaining_interest = 0;
 
-     if ((mem_amount - calculated_interest) > 0 && mem_amount >= calculated_interest) {
+     if ((mem_amount - calculated_interest) >= 0 && mem_amount >= calculated_interest) {
      // Case 1
         intt_recov = calculated_interest;
         prn_recov = mem_amount - calculated_interest;
