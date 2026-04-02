@@ -23,7 +23,7 @@ ccb_recovRouter.post("/fetch_grp_dt", async (req, res) => {
 
   var select = "a.group_code,b.group_name,a.loan_id",
   table_name = "bdccb.td_loan a JOIN bdccb.md_group b ON a.group_code = b.group_code AND a.branch_id = b.branch_code",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}'`,
+  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}' AND a.branch_shg_id IN ('111')`,
   order = null;
   var fetch_gp_data = await db_Select(select,table_name,whr,order);
   
