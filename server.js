@@ -38,7 +38,7 @@ app.post("/v1/login", async (req, res) => {
     }
 
     // FETCH USER
-    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
+    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
 
     let table_name = `bdccb.md_user a LEFT JOIN public.md_branch b ON a.brn_code = b.branch_id
       LEFT JOIN public.md_tenant c ON a.tenant_id = c.tenant_id
