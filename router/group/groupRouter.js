@@ -582,7 +582,7 @@ groupRouter.post("/add_group", async (req, res) => {
       let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
       console.log(grp_code,'grp_code');
     //  let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
-      let direct_indirect_flag = pacs_id === 111 ? 'D' : 'I';
+      let direct_indirect_flag = Number(pacs_id) === 111 ? 'D' : 'I';
 
       const distId = dist_id === "" ? null : dist_id;
       const blockId = block_id === "" ? null : block_id;
