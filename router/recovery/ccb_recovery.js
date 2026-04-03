@@ -1334,7 +1334,11 @@ ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   var select1 = "TO_CHAR(a.trans_dt, 'YYYY-MM-DD') AS trans_dt,a.trans_id,a.loan_id,a.loan_ac_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
   table_name1 = "bdccb.td_loan_ccb_trans a",
   whr1 = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${pacs_id}' AND a.loan_id = '${loanCode}'`,
-  order1 = `a.trans_dt,a.trans_id`;
+  order1 = `a.trans_dt,CASE 
+  WHEN a.trans_type = 'D' THEN 1
+  WHEN a.trans_type = 'I' THEN 2
+  WHEN a.trans_type = 'R' THEN 3
+  END,a.trans_id`;
   var fetch_ccbloan_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
 
   let transData = (fetch_ccbloan_dtls_trans.suc === 1 && Array.isArray(fetch_ccbloan_dtls_trans.msg))
