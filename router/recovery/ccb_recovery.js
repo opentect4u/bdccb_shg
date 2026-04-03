@@ -1315,7 +1315,7 @@ ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   )`,
   order = null;
   var fetch_ccbloan_dtls = await db_Select(select,table_name,whr,order);
-  console.log(fetch_ccbloan_dtls,'fetch_ccbloan_dtls');
+  // console.log(fetch_ccbloan_dtls,'fetch_ccbloan_dtls');
   
 
   if (fetch_ccbloan_dtls.suc !== 1 || fetch_ccbloan_dtls.msg.length === 0) {
@@ -1327,14 +1327,14 @@ ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   }
 
    let loanCode = fetch_ccbloan_dtls.msg[0].loan_id;
-   console.log(loanCode,'loancode');
+  //  console.log(loanCode,'loancode');
    
 
   // FETCH LOAN TRANSACTION DETAILS BASED ON GROUP 
   var select1 = "TO_CHAR(a.trans_dt, 'YYYY-MM-DD') AS trans_dt,a.trans_id,a.loan_id,a.loan_ac_no,a.trans_type,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.curr_prn,0) AS outstanding,a.approval_status,a.approved_by,TO_CHAR(a.approved_dt, 'YYYY-MM-DD') AS approved_dt",
   table_name1 = "bdccb.td_loan_ccb_trans a",
   whr1 = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${pacs_id}' AND a.loan_id = '${loanCode}'`,
-  order1 = `a.LOAN_ID,a.trans_id`;
+  order1 = `a.loan_id,a.trans_id`;
   var fetch_ccbloan_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
 
   let transData = (fetch_ccbloan_dtls_trans.suc === 1 && Array.isArray(fetch_ccbloan_dtls_trans.msg))
