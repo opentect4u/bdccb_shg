@@ -1234,7 +1234,38 @@ society_recovRouter.post("/search_grp_view", async (req, res) => {
 });
 
 // FETCH MEMBER NAME ON THIS GROUP
-// society_recovRouter.post("/")
+society_recovRouter.post("/fetch_mem_details", async (req, res) => {
+  try{
+  const { group_code } = req.body;
+
+  var select = "member_code,member_name,gp_leader_flag,asst_gp_leader_flag,member_account_no,ifsc,aadhar_no,gurdian_name,phone_no,gender,religion,caste,address",
+  table_name = "bdccb.md_member",
+  whr = `group_code = '${group_code}'`,
+  order = null;
+  var fetch_memb = await db_Select(select,table_name,whr,order);
+
+  if(fetch_memb.suc === 1 && fetch_memb.msg.length > 0){
+    return res.send({
+    success: true,
+    msg: "Fetch member details",
+    data: fetch_memb.msg
+    })
+  }else{
+    return res.send({
+    success: true,
+    msg: "Unable to fetch member details",
+    data: []
+    })
+  }
+  }catch(error){
+    console.log(error);
+    return res.send({
+      success:false,
+      msg:"Error occurred while fetch member details",
+      error: []
+    });
+  }
+});
 
 // FETCH CCB LOAN DETAILS
 society_recovRouter.post("/fetch_ccb_loan_details", async (req, res) => {
