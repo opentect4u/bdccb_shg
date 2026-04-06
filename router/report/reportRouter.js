@@ -2,7 +2,7 @@ const { db_Select, saveRecord } = require('../../model/pgcommon');
 const express = require('express');
 const bcrypt = require("bcrypt");
 const e = require('express');
-reportRouter = express.Router();
+const reportRouter = express.Router();
 
 
 // fetch group details along with member
