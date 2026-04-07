@@ -1173,13 +1173,16 @@ await saveRecord(table2, columns2, values2, [], [], 0);
 // FETCH PACS DETAILS FOR APPROVE
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 try{
-const { branch_id, tenant_id } = req.body;
+const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
 // console.log(req.body);
 
 var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
 table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D'
-      GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`,
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}'`;
+if (from_dt && to_dt) {
+  whr += `AND c.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+}
+whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.ccb_loan_id`;
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
@@ -1275,7 +1278,7 @@ loanRouter.post("/fetch_unapprove_disburse", async (req, res) => {
    let finalData_mem = [];
 
    for (let loan of loan_disb_dtls.msg) {
-    let mem_select = "a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+    let mem_select = "DISTINCT ON (a.member_code) a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
       mem_whr = `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}'`;
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,null);
@@ -1978,6 +1981,85 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
 //   }
 // });
 
+// loanRouter.post("/show_loan_status", async (req, res) => {
+//   try {
+//     const { branch_id, approval_status, loan_to, from_dt, to_dt } = req.body;
+//     //  console.log(req.body,'show');
+
+//     var select =
+//         loan_to == "P"
+//           ? `DISTINCT ON (a.ccb_loan_id, a.group_code)
+// a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id, a.group_code) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks` : 
+// `DISTINCT ON (a.loan_acc_no)
+// STRING_AGG(a.loan_id::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,grp.group_name,STRING_AGG(a.group_code::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.loan_acc_no) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn prn_amt,a.curr_intt intt_amt,a.ovd_prn ovd_prn_amt,a.ovd_intt ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by AS created_id,e.user_name created_by,a.created_dt AS created_date,a.ip_address,STRING_AGG(b.trans_id::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS trans_id`,
+// table_name = loan_to == "P"
+//           ?
+//         `bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id AND a.branch_id = b.branch_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id LEFT JOIN bdccb.md_group f ON a.group_code = f.group_code` : 
+//         `bdccb.td_loan a 
+//            LEFT JOIN (
+//               SELECT loan_acc_no,
+//                      STRING_AGG(DISTINCT f.group_name, ', ') AS group_name
+//               FROM bdccb.td_loan tl
+//               LEFT JOIN bdccb.md_group f ON tl.group_code = f.group_code
+//               GROUP BY loan_acc_no
+//            ) grp ON a.loan_acc_no = grp.loan_acc_no
+//            LEFT JOIN bdccb.td_loan_transactions b 
+//            ON a.tenant_id = b.tenant_id 
+//            AND a.loan_id = b.loan_id 
+//            AND a.branch_shg_id = b.branch_shg_id 
+//            LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id 
+//            LEFT JOIN bdccb.md_user e ON a.created_by = e.user_id`,
+//       whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D'`;
+//       if (from_dt && to_dt) {
+//          whr += ` AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+//       }
+//       order = loan_to == "P" ? `a.ccb_loan_id, a.group_code,a.disb_dt DESC` : `a.loan_acc_no, a.disb_dt DESC`;
+//     var show_loan_dtls = await db_Select(select, table_name, whr, order);
+
+//     if (!(show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0)) {
+//       return res.send({
+//         success: true,
+//         msg: `Unable to fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed loan details`,
+//         data: [],
+//       });
+//     }
+
+//       /* ---------------- MEMBER QUERY LOOP ---------------- */
+
+//        let finalData = [];
+
+//         for (let loan of show_loan_dtls.msg) {
+//           console.log(loan,'loan');
+          
+//       // Member select
+//       let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+//       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
+//       mem_whr = loan.loan_to == 'P' ? `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'` : `a.tenant_id = '${loan.tenant_id}' AND a.loan_acc_no = '${loan.loan_acc_no}'`;
+//       mem_order = `a.member_code,a.group_code,b.trans_id desc`
+//       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,mem_order);
+//       console.log(member_dtls);
+      
+
+//       loan.members = member_dtls.suc === 1 ? member_dtls.msg : [];
+
+//       finalData.push(loan);
+//     }
+
+//      return res.send({
+//       success: true,
+//       msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
+//       data: finalData,
+//     });
+//   } catch (error) {
+//     console.error("Error in while fetch loan status:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
+
 loanRouter.post("/show_loan_status", async (req, res) => {
   try {
     const { branch_id, approval_status, loan_to, from_dt, to_dt } = req.body;
@@ -1987,19 +2069,19 @@ loanRouter.post("/show_loan_status", async (req, res) => {
         loan_to == "P"
           ? `DISTINCT ON (a.ccb_loan_id, a.group_code)
 a.ccb_loan_id loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.ccb_loan_id, a.group_code) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address,b.reject_remarks` : 
-`DISTINCT ON (a.loan_acc_no)
-STRING_AGG(a.loan_id::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,grp.group_name,STRING_AGG(a.group_code::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.loan_acc_no) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn prn_amt,a.curr_intt intt_amt,a.ovd_prn ovd_prn_amt,a.ovd_intt ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by AS created_id,e.user_name created_by,a.created_dt AS created_date,a.ip_address,STRING_AGG(b.trans_id::text, ', ') OVER (PARTITION BY a.loan_acc_no) AS trans_id`,
+`DISTINCT ON (a.group_code)
+           a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,grp.group_name,a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER (PARTITION BY a.group_code) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn prn_amt,a.curr_intt intt_amt,a.ovd_prn ovd_prn_amt,a.ovd_intt ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by AS created_id,e.user_name created_by,a.created_dt AS created_date,a.ip_address,STRING_AGG(b.trans_id::text, ', ') OVER (PARTITION BY a.group_code) AS trans_id`,
 table_name = loan_to == "P"
           ?
         `bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id AND a.branch_id = b.branch_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id LEFT JOIN bdccb.md_group f ON a.group_code = f.group_code` : 
         `bdccb.td_loan a 
            LEFT JOIN (
-              SELECT loan_acc_no,
+              SELECT tl.group_code,
                      STRING_AGG(DISTINCT f.group_name, ', ') AS group_name
               FROM bdccb.td_loan tl
               LEFT JOIN bdccb.md_group f ON tl.group_code = f.group_code
-              GROUP BY loan_acc_no
-           ) grp ON a.loan_acc_no = grp.loan_acc_no
+              GROUP BY tl.group_code
+           ) grp ON a.group_code = grp.group_code
            LEFT JOIN bdccb.td_loan_transactions b 
            ON a.tenant_id = b.tenant_id 
            AND a.loan_id = b.loan_id 
@@ -2008,9 +2090,9 @@ table_name = loan_to == "P"
            LEFT JOIN bdccb.md_user e ON a.created_by = e.user_id`,
       whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D'`;
       if (from_dt && to_dt) {
-         whr += ` AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+         whr += loan_to == "P" ? `AND b.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'` : `AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
       }
-      order = loan_to == "P" ? `a.ccb_loan_id, a.group_code,a.disb_dt DESC` : `a.loan_acc_no, a.disb_dt DESC`;
+      order = loan_to == "P" ? `a.ccb_loan_id, a.group_code,a.disb_dt DESC` : `a.group_code, a.disb_dt DESC`;
     var show_loan_dtls = await db_Select(select, table_name, whr, order);
 
     if (!(show_loan_dtls.suc === 1 && show_loan_dtls.msg.length > 0)) {
@@ -2026,15 +2108,15 @@ table_name = loan_to == "P"
        let finalData = [];
 
         for (let loan of show_loan_dtls.msg) {
-          console.log(loan,'loan');
+          // console.log(loan,'loan');
           
       // Member select
       let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
-      mem_whr = loan.loan_to == 'P' ? `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'` : `a.tenant_id = '${loan.tenant_id}' AND a.loan_acc_no = '${loan.loan_acc_no}'`;
+      mem_whr = loan.loan_to == 'P' ? `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'` : `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'`;
       mem_order = `a.member_code,a.group_code,b.trans_id desc`
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,mem_order);
-      console.log(member_dtls);
+      // console.log(member_dtls);
       
 
       loan.members = member_dtls.suc === 1 ? member_dtls.msg : [];
