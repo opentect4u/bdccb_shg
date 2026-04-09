@@ -1114,7 +1114,7 @@ for (const group_code in groupMap) {
     // ================== td_loan_member ==================
     const table1 = "bdccb.td_loan_member";
 
-    const columns1 = loanMemberId > 0 ? [
+    const columns1 = mem.mem_loan_id > 0 ? [
       "period","curr_roi","penal_roi",
       "disb_dt","disb_amt","rep_start_dt","rep_end_dt",
       "tot_grp","sanction_no","sanction_dt","modified_by","modified_at","ip_address",
@@ -1128,7 +1128,7 @@ for (const group_code in groupMap) {
       "society_roi","society_penal_roi"
     ];
 
-    const values1 = loanMemberId > 0 ? [
+    const values1 = mem.mem_loan_id > 0 ? [
       period, curr_roi, penal_roi, disb_dt, mem.disburse_amt,
       startDate, endDate,tot_grp, sanction_no, sanction_dt,created_by, datetime, ip_address,
       loan_to == 'P' ? curr_roi : '0',
@@ -1143,15 +1143,15 @@ for (const group_code in groupMap) {
       loan_to == 'P' ? penal_roi : '0'
     ];
     
-    const whereColumns1 = loanMemberId > 0 ? ["loan_id","ccb_loan_id","tenant_id","group_code","member_code"] : [];
-    const whereValues1 = loanMemberId > 0 ? [loanMemberId,final_ccb_id,tenant_id,mem.group_code, mem.member_id] : [];
-    const flag1 = loanMemberId > 0 ? 1 : 0;
+    const whereColumns1 = mem.mem_loan_id > 0 ? ["loan_id","ccb_loan_id","tenant_id","group_code","member_code"] : [];
+    const whereValues1 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,loan_id,tenant_id,mem.group_code, mem.member_id] : [];
+    const flag1 = mem.mem_loan_id > 0 ? 1 : 0;
     await saveRecord(table1, columns1, values1, whereColumns1, whereValues1, flag1);
 
     // ================== td_loan_member_trans ==================
     const table2 = "bdccb.td_loan_member_trans";
 
-    const columns2 = loanMemberId > 0 ? [
+    const columns2 = mem.mem_loan_id > 0 ? [
       "trans_date","dr_amt","modified_by","modified_dt","ip_address"
     ] : [
       "trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id",
@@ -1162,7 +1162,7 @@ for (const group_code in groupMap) {
       "approval_status","created_by","created_dt","ip_address"
     ];
 
-    const values2 = loanMemberId > 0 ? [
+    const values2 = mem.mem_loan_id > 0 ? [
       disb_dt, mem.disburse_amt,created_by, datetime, ip_address
     ] : [
       disb_dt, mem_trans_id, loanMemberId, final_ccb_id, tenant_id, branch_id,
@@ -1170,9 +1170,9 @@ for (const group_code in groupMap) {
       'D', mem.disburse_amt, 0,
       0,0,0,0,0,0,0,0,'U',created_by, datetime, ip_address
     ];
-    const whereColumns2 = loanMemberId > 0 ? ["loan_id","ccb_loan_id","tenant_id"] : [];
-    const whereValues2 = loanMemberId > 0 ? [loanMemberId,final_ccb_id,tenant_id] : [];
-    const flag2 = loanMemberId > 0 ? 1 : 0;
+    const whereColumns2 = mem.mem_loan_id > 0 ? ["loan_id","ccb_loan_id","tenant_id"] : [];
+    const whereValues2 = mem.mem_loan_id > 0 ? [mem.mem_loan_id,loan_id,tenant_id] : [];
+    const flag2 = mem.mem_loan_id > 0 ? 1 : 0;
 await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
   }
 }
