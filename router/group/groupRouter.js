@@ -725,19 +725,59 @@ groupRouter.post("/add_group", async (req, res) => {
       }
   });
 
-  groupRouter.get("/get_group_memb_list", async (req, res) => {
+  // groupRouter.get("/get_group_memb_list", async (req, res) => {
+  //     try{
+  //         const {branch_code} = req.query;
+  //         var select = "distinct  a.group_code,count(a.member_code) as total_members,b.group_name",
+  //         table_name = "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code ",
+  //         whr = `a.branch_id = '${branch_code}' AND a.delete_flag = 'N' group by a.group_code,b.group_name`,
+  //         order = null;
+  //         var fetch_group_detail = await db_Select(select,table_name,whr,order);
+      
+  //         if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+  //             return res.send({
+  //             success: true,
+  //             msg: "Group Details",
+  //             data: fetch_group_detail.msg
+  //             });
+  //         }else{
+  //             return res.send({
+  //             success: true,
+  //             msg: "Failed to fetch group details",
+  //             data: []
+  //             });
+  //         }
+  //       }catch(error){
+  //         console.error("Error while fetch group details", error);
+  //         return res.send({
+  //         success: false,
+  //         msg: "Internal server error",
+  //         errorCode: "SERVER_ERROR"
+  //         });
+  //       }
+  //   })
+
+    groupRouter.post("/get_group_memb_list", async (req, res) => {
       try{
-          const {branch_code} = req.query;
-          var select = "distinct  a.group_code,count(a.member_code) as total_members,b.group_name",
-          table_name = "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code ",
-          whr = `a.branch_id = '${branch_code}' AND a.delete_flag = 'N' group by a.group_code,b.group_name`,
+          const {branch_code,pacs_id,group_name_code} = req.body;
+
+          var select = "distinct  a.group_code,count(a.member_code) as total_members,b.group_name";
+          table_name = "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code ";
+
+          if(pacs_id == '111'){
+          whr = `a.branch_id = '${branch_code}' AND a.delete_flag = 'N'
+                ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%')` : ""} GROUP BY a.group_code,b.group_name`;
+          }else{
+          whr = `a.branch_id = '${pacs_id}' AND  a.delete_flag = 'N' 
+                ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%')` : ""} GROUP BY a.group_code,b.group_name`
+          }
           order = null;
           var fetch_group_detail = await db_Select(select,table_name,whr,order);
-      
-          if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
+
+         if(fetch_group_detail.suc === 1 && fetch_group_detail.msg.length > 0){
               return res.send({
               success: true,
-              msg: "Group Details",
+              msg: "Group Details under edit member section",
               data: fetch_group_detail.msg
               });
           }else{
