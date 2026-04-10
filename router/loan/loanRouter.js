@@ -971,13 +971,13 @@ for (const group_code in groupMap) {
   // ================== td_loan ==================
   var table = "bdccb.td_loan";
 
-  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
 
   var values = [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
     startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B'
   ];
 
   let result = await saveRecord(table, columns, values, [], [], 0);
@@ -1018,13 +1018,13 @@ for (const group_code in groupMap) {
   // ================== td_loan_ccb ==================
   var table = "bdccb.td_loan_ccb";
 
-  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
 
   var values = [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
     startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B'
   ];
 
   let result_ccb = await saveRecord(table, columns, values, [], [], 0);
@@ -1125,7 +1125,7 @@ for (const group_code in groupMap) {
       "disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt",
       "prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt",
       "tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address",
-      "society_roi","society_penal_roi"
+      "society_roi","society_penal_roi","fund_type"
     ];
 
     const values1 = mem.mem_loan_id > 0 ? [
@@ -1140,7 +1140,7 @@ for (const group_code in groupMap) {
       pay_mode, startDate, endDate,
       0,0,0,0,tot_grp, sanction_no, sanction_dt,created_by, datetime, ip_address,
       loan_to == 'P' ? curr_roi : '0',
-      loan_to == 'P' ? penal_roi : '0'
+      loan_to == 'P' ? penal_roi : '0', 'B'
     ];
     
     const whereColumns1 = mem.mem_loan_id > 0 ? ["loan_id","ccb_loan_id","tenant_id","group_code","member_code"] : [];

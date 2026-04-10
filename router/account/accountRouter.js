@@ -153,7 +153,7 @@ const transactions_id = async () => {
 
           // fetch data from td_loan_member
 
-          var select = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt",
+          var select = "a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.fund_type",
           table_name = "bdccb.td_loan_member a",
           whr = `group_code = '${group_code}' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_to,a.branch_shg_id,a.group_code,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt`,
           order = null;
@@ -169,8 +169,8 @@ const transactions_id = async () => {
           const loan_data = fetch_data.msg[0];
 
           var table_td = "bdccb.td_loan";
-          var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
-          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,society_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code];
+          var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,society_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code, 'B'];
           var whereColumns_td = [];
           var whereValues_td = [];
           var flag_td = 0;
@@ -204,8 +204,8 @@ const transactions_id = async () => {
 
           // DATA INSERT INTO CCB LEVEL
           var table_td = "bdccb.td_loan_ccb";
-          var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code"];
-          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,loan_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code];
+          var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+          var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,loan_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code,'B'];
           var whereColumns_td = [];
           var whereValues_td = [];
           var flag_td = 0;
