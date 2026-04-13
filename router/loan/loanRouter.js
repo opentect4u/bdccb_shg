@@ -1595,7 +1595,7 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
   try{
    const { loan_id, trans_id, group_code, member_reject, created_by, ip_address, reject_remarks } = req.body;
-   console.log(req.body,'delete');
+  //  console.log(req.body,'delete');
    
 
      if (!member_reject || member_reject.length === 0) {

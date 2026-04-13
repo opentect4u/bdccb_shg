@@ -398,7 +398,7 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
     var table_trn = "bdccb.td_loan_ccb_trans";
     var columns_trn = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
     "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by","created_dt","ip_address"];
-    var values_trn = [loan_data.disb_dt,transacs_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"A",created_by,datetime,created_by,datetime,ip_address];
+    var values_trn = [loan_data.disb_dt,transacs_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"U",created_by,datetime,created_by,datetime,ip_address];
     var whereColumns_trn = [];
     var whereValues_trn = [];
     var flag_trn = 0;
@@ -427,7 +427,7 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
 
     const mem_table_trans = "bdccb.td_loan_member_trans";
     const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
-    const mem_values_trans = [mem.disb_amt,"U",created_by, datetime,created_by, datetime];
+    const mem_values_trans = [mem.disb_amt,"A",created_by, datetime,created_by, datetime];
     const mem_whereColumns_trans = ["loan_id","trans_id"];
     const mem_whereValues_trans = [mem.loan_id,mem.trans_id];
     const mem_flag_trans = 1;
@@ -449,6 +449,55 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
 });
 
 // REJECT RE-FINANCE DISBURSEMENT
+refinanceRouter.post("/reject_refinance_disb", async (req, res) => {
+  try{
+  const { loan_id, tenant_id, branch_shg_id, member_refinance_reject } = req.body;
+  
+  if (!member_refinance_reject || member_refinance_reject.length === 0) {
+      return res.send({
+        success: true,
+        msg: "No member data found"
+      });
+  }
 
+  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  if (member_refinance_reject && member_refinance_reject.length > 0) {
+  // Loop & update each member
+    for (let mem of member_refinance_reject) {
+    // delete from member trans
+      await deleteRecord(
+        "bdccb.td_loan_member_trans",
+        ["loan_id","trans_id","ccb_loan_id","tenant_id","branch_shg_id","trans_type"],
+        [mem.loan_id,mem.tran_id,loan_id,tenant_id,branch_shg_id,'D']
+      );
+
+    // delete from member
+      await deleteRecord(
+        "bdccb.td_loan_member",
+        ["loan_id","ccb_loan_id","tenant_id","branch_shg_id","group_code","member_code"],
+        [mem.loan_id,loan_id,tenant_id,branch_shg_id,mem.group_code,mem.member_id]
+      );
+    }
+    return res.send({
+      success: true,
+      msg: "Re-finance Disbursement Rejected Successfully"
+    });  
+  }else{
+  return res.send({
+   success: true,
+   msg: "Member details not found for reject",
+   data: []
+   })
+  }
+  }catch(error){
+   console.error("Error in while reject refinance disbursement:", error);
+   return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+})
 
 module.exports = {refinanceRouter}
