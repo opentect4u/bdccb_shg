@@ -1199,7 +1199,7 @@ const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
 
 var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(SUM(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.ccb_loan_id",
 table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_member_trans c ON a.loan_id = c.loan_id AND a.ccb_loan_id = c.ccb_loan_id",
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}'`;
+whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'`;
 if (from_dt && to_dt) {
   whr += `AND c.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'`;
 }
@@ -2109,7 +2109,7 @@ table_name = loan_to == "P"
            AND a.branch_shg_id = b.branch_shg_id 
            LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id 
            LEFT JOIN bdccb.md_user e ON a.created_by = e.user_id`,
-      whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D'`;
+      whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' AND a.fund_type = 'B'`;
       if (from_dt && to_dt) {
          whr += loan_to == "P" ? `AND b.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'` : `AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
       }
