@@ -505,9 +505,9 @@ refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req
   try{
   const {branch_id, approval_status} = req.body;
 
-  var select =`a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address`,
+  var select =`a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address,b.trans_id`,
     table_name = `bdccb.td_loan_ccb a LEFT JOIN bdccb.td_loan_ccb_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_group f ON a.group_code = f.group_code`,
-    whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND b.trans_type = 'D' AND a.fund_type = 'O' GROUP BY a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address`;
+    whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND b.trans_type = 'D' AND a.fund_type = 'O' GROUP BY a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address,b.trans_id`;
     order = `a.loan_id, a.group_code,a.disb_dt DESC`;
     var show_unapprove_branch_data = await db_Select(select, table_name, whr, order);
 
@@ -536,8 +536,33 @@ refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req
 // APPROVE RE-FINANCE DISBURSEMENT FROM BRANCH
 refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
   try{
-    const {} = req.body;
+  const {loan_id,tenant_id,branch_id,trans_id,group_code,curr_roi,penal_roi,disb_dt,created_by} = req.body;
+  
+  let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
+  let instl_date = await genDate(disb_dt, period, pay_mode);
+  const startDate = instl_date.emtStart;
+  const endDate = instl_date.emiEnd;
+
+  const mem_table = "bdccb.td_loan_ccb";
+  const mem_columns = ["curr_roi","penal_roi","disb_dt","rep_start_dt","rep_end_dt","modified_by","modified_dt"];
+  const mem_values = [curr_roi,penal_roi,disb_dt,startDate,endDate,created_by, datetime];
+  const mem_whereColumns = ["loan_id","tenant_id","branch_id","group_code"];
+  const mem_whereValues = [loan_id,tenant_id,branch_id,group_code];
+  const mem_flag = 1;
+  await saveRecord(mem_table,mem_columns,mem_values,mem_whereColumns,mem_whereValues,mem_flag);   
+
+  const mem_table_trans = "bdccb.td_loan_ccb_trans";
+  const mem_columns_trans = ["approval_status","approved_by","approved_dt","modified_by","modified_dt"];
+  const mem_values_trans = ["A",created_by, datetime,created_by, datetime];
+  const mem_whereColumns_trans = ["loan_id","trans_id"];
+  const mem_whereValues_trans = [loan_id,trans_id];
+  const mem_flag_trans = 1;
+  await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
+  return res.send({
+    success: true,
+    msg: "Re-finance disburse data approved Successfully",
+  });
   }catch(error){
    console.error("Error in while approve refinance disbursement from branch level:", error);
    return res.send({
