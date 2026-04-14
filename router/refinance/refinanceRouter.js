@@ -521,7 +521,7 @@ refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req
      return res.send({
       success: true,
       msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
-      data: finalData,
+      data: show_unapprove_branch_data.msg,
     });
   }catch(error){
    console.error("Error in while fetch unapprove refinance disbursement in branch level:", error);
