@@ -536,10 +536,11 @@ refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req
 // APPROVE RE-FINANCE DISBURSEMENT FROM BRANCH
 refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
   try{
-  const {loan_id,tenant_id,branch_id,trans_id,group_code,curr_roi,penal_roi,disb_dt,created_by} = req.body;
+  const {loan_id,tenant_id,branch_id,trans_id,group_code,curr_roi,penal_roi,period,disb_dt,created_by} = req.body;
   
   let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
-
+  var pay_mode = "Monthly";
+  
   let instl_date = await genDate(disb_dt, period, pay_mode);
   const startDate = instl_date.emtStart;
   const endDate = instl_date.emiEnd;
