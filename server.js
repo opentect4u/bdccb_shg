@@ -27,9 +27,102 @@ app.use('/v1/report', require('./router/report/indexReportRouter'));
 app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
 
 
+// app.post("/v1/login", async (req, res) => {
+//   try {
+//     const { username, password } = req.body;
+
+//     if (!username || !password) {
+//       return res.send({
+//         success: false,
+//         msg: "Username and password are required"
+//       });
+//     }
+
+//     // FETCH USER
+//     let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
+
+//     let table_name = `bdccb.md_user a LEFT JOIN public.md_branch b ON a.brn_code = b.branch_id
+//       LEFT JOIN public.md_tenant c ON a.tenant_id = c.tenant_id
+//       LEFT JOIN public.md_tenant_dist d ON c.tenant_id = d.tenant_id
+//       LEFT JOIN public.md_district e ON d.dist_id = e.dist_code`;
+
+//     //let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
+//     let whr = `a.user_id = '${username}' `;
+//     let order = null;
+
+//     let res_dt = await db_Select(select, table_name, whr, order);
+
+//     // Validate login response structure safely
+//     if (!res_dt || res_dt.suc !== 1 || res_dt.msg.length === 0) {
+//          return res.send({
+//               success: false,
+//               msg: "Invalid username"
+//             });
+   
+//     }
+//     // CREATE TOKEN
+//     const userData = res_dt.msg[0];
+//     // Check if user is active
+//     if (userData.active_flag !== 'Y') {
+//             return res.send({
+//                success: false,
+//                msg: "Account is inactive. Please contact administrator."
+//             });
+//     }
+    
+//     const isMatch = await bcrypt.compare(password.toString(), userData.password);
+
+//      if (!isMatch) {
+//       return res.send({ success: false, msg: "Invalid Password" });
+//     }
+//     const jwtToken = await createToken(userData);
+
+//     // DISTRICT LIST
+//     const district_list = res_dt.msg.map(row => ({
+//       dist_code: row.dist_id,
+//       dist_name: row.dist_name
+//     }));
+
+//     // USER DETAILS RESPONSE
+//     const user_dtls = {
+//       district_list: district_list,
+//       tenant_id: userData.tenant_id,
+//       tenant_name: userData.tenant_name,
+//       emp_id: userData.emp_id,
+//       emp_name: userData.emp_name,
+//       designation: userData.designation,
+//       brn_code: userData.brn_code,
+//       brn_block_id : userData.org_block_id,
+//       branch_name: userData.branch_name,
+//       user_type: userData.user_type,
+//       phone_mobile: userData.phone_mobile,
+//       active_flag: userData.active_flag,
+//       session_id: userData.session_id
+//     };
+
+//     return res.send({
+//       success: true,
+//       msg: "Login Successful",
+//       user_dtls: [user_dtls],
+//       token: jwtToken.token,
+//       refresh_token: jwtToken.token
+//     });
+
+//   } catch (error) {
+//     console.error("Error in /login route:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR"
+//     });
+//   }
+// });
+
 app.post("/v1/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, user_type, branch_id } = req.body;
+    // console.log(req.body,'login');
+    
 
     if (!username || !password) {
       return res.send({
@@ -39,7 +132,7 @@ app.post("/v1/login", async (req, res) => {
     }
 
     // FETCH USER
-    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
+    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,b.branch_type,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
 
     let table_name = `bdccb.md_user a LEFT JOIN public.md_branch b ON a.brn_code = b.branch_id
       LEFT JOIN public.md_tenant c ON a.tenant_id = c.tenant_id
@@ -47,7 +140,8 @@ app.post("/v1/login", async (req, res) => {
       LEFT JOIN public.md_district e ON d.dist_id = e.dist_code`;
 
     //let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
-    let whr = `a.user_id = '${username}' `;
+    let whr = `a.user_id = '${username}'`;
+
     let order = null;
 
     let res_dt = await db_Select(select, table_name, whr, order);
@@ -75,6 +169,38 @@ app.post("/v1/login", async (req, res) => {
      if (!isMatch) {
       return res.send({ success: false, msg: "Invalid Password" });
     }
+
+    // =========================
+    // BRANCH OVERRIDE LOGIC
+    // =========================
+    let final_branch_code = userData.brn_code;
+    let final_branch_name = userData.branch_name;
+    let final_block_id = userData.org_block_id;
+    let final_branch_type = userData.branch_type;
+
+    // If Head Office user → use frontend branch
+    if (user_type === 'H' && branch_id) {
+
+      const branch_dt = await db_Select(
+        "branch_id, branch_name, block_id, branch_type",
+        "public.md_branch",
+        `branch_id = '${branch_id}'`,
+        null
+      );
+
+      if (!branch_dt || branch_dt.suc !== 1 || branch_dt.msg.length === 0) {
+        return res.send({
+          success: false,
+          msg: "Invalid branch selected"
+        });
+      }
+
+      final_branch_code = branch_dt.msg[0].branch_id;
+      final_branch_name = branch_dt.msg[0].branch_name;
+      final_block_id = branch_dt.msg[0].block_id;
+      final_branch_type = branch_dt.msg[0].branch_type;
+    }
+
     const jwtToken = await createToken(userData);
 
     // DISTRICT LIST
@@ -91,9 +217,14 @@ app.post("/v1/login", async (req, res) => {
       emp_id: userData.emp_id,
       emp_name: userData.emp_name,
       designation: userData.designation,
-      brn_code: userData.brn_code,
-      brn_block_id : userData.org_block_id,
-      branch_name: userData.branch_name,
+      // brn_code: userData.brn_code,
+      // brn_block_id : userData.org_block_id,
+      // branch_name: userData.branch_name,
+
+      brn_code: final_branch_code,
+      brn_block_id: final_block_id,
+      branch_name: final_branch_name,
+      branch_type: final_branch_type,
       user_type: userData.user_type,
       phone_mobile: userData.phone_mobile,
       active_flag: userData.active_flag,
