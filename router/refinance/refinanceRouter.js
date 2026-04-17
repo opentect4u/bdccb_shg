@@ -381,7 +381,7 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
     // DATA INSERT INTO CCB LEVEL
     var table_td = "bdccb.td_loan_ccb";
     var columns_td = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
-    var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,loan_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,loan_data.curr_roi,loan_data.penal_roi,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code,'O'];
+    var values_td = [loan_data.loan_id,loan_data.tenant_id,loan_data.branch_id,loan_acc_no || null,loan_data.loan_to,loan_data.branch_shg_id,loan_data.period,0,0,loan_data.disb_dt,loan_data.disb_amt,loan_data.period_mode,loan_data.rep_start_dt,loan_data.rep_end_dt,total_disb_amt,0,0,0,0,loan_data.sanction_no,loan_data.sanction_dt,created_by,datetime,ip_address,group_code,'O'];
     var whereColumns_td = [];
     var whereValues_td = [];
     var flag_td = 0;
@@ -398,7 +398,7 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
     var table_trn = "bdccb.td_loan_ccb_trans";
     var columns_trn = ["trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
     "trans_type","dr_amt", "cr_amt","curr_prn_recov","curr_intt_recov","ovd_prn_recov","ovd_intt_recov","curr_prn", "curr_intt","ovd_prn","ovd_intt","approval_status","approved_by","approved_dt","created_by","created_dt","ip_address"];
-    var values_trn = [loan_data.disb_dt,transacs_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"A",created_by,datetime,created_by,datetime,ip_address];
+    var values_trn = [loan_data.disb_dt,transacs_id,loan_data.tenant_id,loan_data.loan_to,loan_data.branch_shg_id,loan_data.loan_id,loan_acc_no || null,"D",loan_data.disb_amt,0,0,0,0,0,total_disb_amt,0,0,0,"U",created_by,datetime,created_by,datetime,ip_address];
     var whereColumns_trn = [];
     var whereValues_trn = [];
     var flag_trn = 0;
@@ -427,7 +427,7 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
 
     const mem_table_trans = "bdccb.td_loan_member_trans";
     const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","modified_by","modified_dt"];
-    const mem_values_trans = [mem.disb_amt,"U",created_by, datetime,created_by, datetime];
+    const mem_values_trans = [mem.disb_amt,"A",created_by, datetime,created_by, datetime];
     const mem_whereColumns_trans = ["loan_id","trans_id"];
     const mem_whereValues_trans = [mem.loan_id,mem.trans_id];
     const mem_flag_trans = 1;
@@ -449,6 +449,130 @@ refinanceRouter.post("/approve_refinance_disburse", async (req, res) => {
 });
 
 // REJECT RE-FINANCE DISBURSEMENT
+refinanceRouter.post("/reject_refinance_disb", async (req, res) => {
+  try{
+  const { loan_id, tenant_id, branch_shg_id, member_refinance_reject } = req.body;
+  
+  if (!member_refinance_reject || member_refinance_reject.length === 0) {
+      return res.send({
+        success: true,
+        msg: "No member data found"
+      });
+  }
 
+  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  if (member_refinance_reject && member_refinance_reject.length > 0) {
+  // Loop & update each member
+    for (let mem of member_refinance_reject) {
+    // delete from member trans
+      await deleteRecord(
+        "bdccb.td_loan_member_trans",
+        ["loan_id","trans_id","ccb_loan_id","tenant_id","branch_shg_id","trans_type"],
+        [mem.loan_id,mem.tran_id,loan_id,tenant_id,branch_shg_id,'D']
+      );
+
+    // delete from member
+      await deleteRecord(
+        "bdccb.td_loan_member",
+        ["loan_id","ccb_loan_id","tenant_id","branch_shg_id","group_code","member_code"],
+        [mem.loan_id,loan_id,tenant_id,branch_shg_id,mem.group_code,mem.member_id]
+      );
+    }
+    return res.send({
+      success: true,
+      msg: "Re-finance Disbursement Rejected Successfully"
+    });  
+  }else{
+  return res.send({
+   success: true,
+   msg: "Member details not found for reject",
+   data: []
+   })
+  }
+  }catch(error){
+   console.error("Error in while reject refinance disbursement:", error);
+   return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+//FETCH UNAPPROVE RE-FINANCE DISBURSEMENT AT BRANCH LEVEL
+refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req, res) => {
+  try{
+  const {branch_id, approval_status} = req.body;
+
+  var select =`a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address,b.trans_id`,
+    table_name = `bdccb.td_loan_ccb a LEFT JOIN bdccb.td_loan_ccb_trans b ON a.tenant_id = b.tenant_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_group f ON a.group_code = f.group_code`,
+    whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND b.trans_type = 'D' AND a.fund_type = 'O' GROUP BY a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,f.group_name, a.group_code,a.loan_to,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.pay_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.fund_type,b.trans_type,b.approval_status,a.created_by,a.created_dt,a.ip_address,b.trans_id`;
+    order = `a.loan_id, a.group_code,a.disb_dt DESC`;
+    var show_unapprove_branch_data = await db_Select(select, table_name, whr, order);
+
+    if (!(show_unapprove_branch_data.suc === 1 && show_unapprove_branch_data.msg.length > 0)) {
+      return res.send({
+        success: true,
+        msg: `Unable to fetch ${approval_status == "A" ? "Approved" : "Unapproved"} refinance disbursed loan details`,
+        data: [],
+      });
+    }
+     return res.send({
+      success: true,
+      msg: `Fetch ${approval_status == "A" ? "Approved" : "Unapproved"} disbursed Loan Details`,
+      data: show_unapprove_branch_data.msg,
+    });
+  }catch(error){
+   console.error("Error in while fetch unapprove refinance disbursement in branch level:", error);
+   return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+})
+
+// APPROVE RE-FINANCE DISBURSEMENT FROM BRANCH
+refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
+  try{
+  const {loan_id,tenant_id,branch_id,trans_id,group_code,curr_roi,penal_roi,period,disb_dt,created_by} = req.body;
+  console.log(req.body,'approve_branch');
+  
+  let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
+  var pay_mode = "Monthly";
+
+  let instl_date = await genDate(disb_dt, period, pay_mode);
+  const startDate = instl_date.emtStart;
+  const endDate = instl_date.emiEnd;
+
+  const mem_table = "bdccb.td_loan_ccb";
+  const mem_columns = ["curr_roi","penal_roi","disb_dt","rep_start_dt","rep_end_dt","modified_by","modified_dt"];
+  const mem_values = [curr_roi,penal_roi,disb_dt,startDate,endDate,created_by, datetime];
+  const mem_whereColumns = ["loan_id","tenant_id","branch_id","group_code"];
+  const mem_whereValues = [loan_id,tenant_id,branch_id,group_code];
+  const mem_flag = 1;
+  await saveRecord(mem_table,mem_columns,mem_values,mem_whereColumns,mem_whereValues,mem_flag);   
+
+  const mem_table_trans = "bdccb.td_loan_ccb_trans";
+  const mem_columns_trans = ["approval_status","approved_by","approved_dt","modified_by","modified_dt"];
+  const mem_values_trans = ["A",created_by, datetime,created_by, datetime];
+  const mem_whereColumns_trans = ["loan_id","trans_id"];
+  const mem_whereValues_trans = [loan_id,trans_id];
+  const mem_flag_trans = 1;
+  await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
+  return res.send({
+    success: true,
+    msg: "Re-finance disburse data approved Successfully",
+  });
+  }catch(error){
+   console.error("Error in while approve refinance disbursement from branch level:", error);
+   return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+})
 
 module.exports = {refinanceRouter}
