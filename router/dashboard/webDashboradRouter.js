@@ -1020,11 +1020,19 @@ webDashboardRouter.post("/fetch_emp_type", async (req, res) => {
 // FETCH BRANCH AND SOCIETY NAME SUPERADMIN LEVEL
 webDashboardRouter.get("/fetch_brn_soc_name", async (req, res) => {
   try{
-
+  const {select_type} = req.query;
+  
+  if(select_type == 'B'){
   var select = "branch_type,branch_id,branch_name",
   table_name = "public.md_branch",
-  whr = `branch_status = 'O'`,
+  whr = `branch_type IN ('B','H') AND branch_status = 'O'`,
   order = null;
+  }else{
+  var select = "branch_type,branch_id,branch_name",
+  table_name = "public.md_branch",
+  whr = `branch_type IN ('P') AND branch_status = 'O'`,
+  order = null;
+  }
   var fetch_brn_soc = await db_Select(select,table_name,whr,order);
 
   if(fetch_brn_soc.suc === 1 && fetch_brn_soc.msg.length > 0){
