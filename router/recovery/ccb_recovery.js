@@ -1249,12 +1249,31 @@ let values = columns.map(c => r[c]);
 // fetch details for view loan via society acc_no/group_code/group_name
 ccb_recovRouter.post("/search_shg_grp_view", async (req, res) => {
  try{
-   const { tenant_id,branch_code,group_name_view} = req.body;
+   const { tenant_id,branch_code,group_name_view,branch_type} = req.body;
   //  console.log(req.body,'p');
+
+  let branchCondition = '';
+  let branchConditions = '';
+
+  if (branch_type === 'B') {
+  branchCondition = `a.branch_id = '${branch_code}'`;
+  } else if (branch_type === 'H') {
+  branchCondition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`;
+  } else if (branch_type === 'P'){
+  branchCondition = `a.branch_shg_id = '${branch_code}'`;
+  }
+
+  if(branch_type === 'B'){
+    branchConditions = `a.branch_code = '${branch_code}'`;
+  }else if (branch_type === 'H') {
+    branchConditions = `a.branch_code IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`;
+  }else if (branch_type === 'P'){
+  branchConditions = `a.pacs_id = '${branch_code}'`;
+  }
    
    var select = "a.group_code,b.group_name,a.loan_acc_no",
    table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code",
-   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.loan_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name,a.loan_acc_no`,
+   whr = `a.tenant_id = '${tenant_id}' AND ${branchCondition} AND (a.group_code::TEXT ILIKE '%${group_name_view}%' OR a.loan_acc_no::TEXT ILIKE '%${group_name_view}%' OR b.group_name::TEXT ILIKE '%${group_name_view}%') GROUP BY a.group_code,b.group_name,a.loan_acc_no`,
    order = null;
    var shg_search_grp_view = await db_Select(select, table_name, whr, order);
 
@@ -1272,7 +1291,7 @@ ccb_recovRouter.post("/search_shg_grp_view", async (req, res) => {
    // fetch group details based on above details
    var select1 = "a.group_code,a.branch_code,b.society_acc_no,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name AS pacs_name",
    table_name1 = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code LEFT JOIN public.md_branch c ON a.branch_code = c.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id LEFT JOIN public.md_branch k ON a.pacs_id = k.branch_id",
-   whr1 = `a.group_code = '${groupCode}' AND a.branch_code = '${branch_code}' AND a.delete_flag = 'N' AND b.loan_acc_no = '${loanAccNo}' GROUP BY a.group_code,a.branch_code,b.society_acc_no,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name`,
+   whr1 = `a.group_code = '${groupCode}' AND ${branchConditions} AND a.delete_flag = 'N' AND b.loan_acc_no = '${loanAccNo}' GROUP BY a.group_code,a.branch_code,b.society_acc_no,c.branch_name,a.group_name,a.phone1,a.sahayika_id,d.sahayika_name,a.group_addr,a.dist_id,e.dist_name,a.block_id,f.block_name,a.ps_id,g.ps_name,a.po_id,h.post_name,a.gp_id,i.gp_name,a.village_id,j.vill_name,a.pin_no,a.open_close_flag,a.grp_open_dt,a.grp_close_dt,a.delete_flag,a.direct_indirect_flag,a.pacs_id,k.branch_name`,
    order1 = null;
    var shg_search_grp_view_dtls = await db_Select(select1, table_name1, whr1, order1);
 
@@ -1304,14 +1323,33 @@ ccb_recovRouter.post("/search_shg_grp_view", async (req, res) => {
 // FETCH CCB LOAN DETAILS
 ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   try{
-  const { tenant_id,branch_id,pacs_id,group_code,loan_acc_no } = req.body;
+  const { tenant_id,branch_id,pacs_id,group_code,loan_acc_no,society_acc_no,branch_type } = req.body;
+
+  let branchCondition = '';
+  let acc_no = '';
+
+  if (branch_type === 'B') {
+  branchCondition = `a.branch_id = '${branch_id}' AND a.branch_shg_id = '${pacs_id}'`;
+  } else if (branch_type === 'H') {
+  branchCondition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`;
+  } else if (branch_type === 'P'){
+  branchCondition = `a.branch_shg_id = '${pacs_id}'`;
+  }
+
+  if (branch_type === 'B') {
+  acc_no = `b.loan_acc_no = '${loan_acc_no}'`;
+  } else if (branch_type === 'H') {
+  acc_no = '';
+  } else if (branch_type === 'P'){
+  acc_no = `b.society_acc_no = '${society_acc_no}'`;
+  }
 
   var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
   table_name = "bdccb.td_loan_ccb a",
-  whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.branch_shg_id = '${pacs_id}' AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
+  whr = `a.tenant_id = '${tenant_id}' AND ${branchCondition} AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
     FROM bdccb.td_loan_member b
     WHERE b.group_code = a.group_code
-    AND b.loan_acc_no = '${loan_acc_no}'
+    ${acc_no ? `AND ${acc_no}` : ''}
   )`,
   order = null;
   var fetch_ccbloan_dtls = await db_Select(select,table_name,whr,order);
@@ -1430,11 +1468,31 @@ ccb_recovRouter.post("/fetch_society_loan_dtls", async (req, res) => {
 // FETCH INDIVITUAL MEMBER DETAILS
 ccb_recovRouter.post("/fetch_indivitual_shg_member", async (req, res) => {
   try{
-  const { loan_id,tenant_id,branch_code,group_code,loan_acc_no } = req.body;
+  const { loan_id,tenant_id,branch_code,group_code,loan_acc_no,society_acc_no,branch_type,pacs_id } = req.body;
+
+  let branchcondition = '';
+  let acc_no = '';
+
+  if(branch_type == 'B'){
+  branchcondition = `a.branch_id = '${branch_code}'`;
+  }else if (branch_type == 'P'){
+  branchcondition = `a.branch_shg_id = '${pacs_id}'`;
+  }else if (branch_type == 'H'){
+  branchcondition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`;
+  }
+
+  
+  if(branch_type == 'B'){
+  acc_no = `a.loan_acc_no = '${loan_acc_no}'`;
+  }else if (branch_type == 'P'){
+  acc_no = `a.society_acc_no = '${society_acc_no}'`;
+  }else if (branch_type == 'H'){
+  acc_no = '';
+  }
 
   var select = "b.member_name,a.loan_id,a.ccb_loan_id,a.member_code,COALESCE(a.prn_amt + a.intt_amt,0) AS member_outstanding",
   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.tenant_id = b.tenant_id AND a.member_code = b.member_code AND a.group_code = b.group_code",
-  whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_code}' AND a.group_code = '${group_code}' AND a.loan_acc_no = '${loan_acc_no}'`,
+  whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' AND ${branchcondition} AND a.group_code = '${group_code}' ${acc_no ? `AND ${acc_no}` : ''}`,
   order = `a.loan_id`;
   var fetch_shg_member = await db_Select(select,table_name,whr,order);
 
