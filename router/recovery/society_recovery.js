@@ -1604,8 +1604,9 @@ society_recovRouter.post("/submit_ccb_recovery_fr_soc", async (req, res) => {
 // FETCH UNAPPROVE CCB LEVEL RECOVERY DATA
 society_recovRouter.post("/fetch_soc_recov_dtls_ccb_level", async (req, res) => {
   try{
-  const { tenant_id, branch_id, from_dt, to_dt, approval_status } = req.body;
+  const { tenant_id, branch_id, from_dt, to_dt, approval_status, branch_type } = req.body;
 
+  if(branch_type === 'B'){
   var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status";
   table_name = `bdccb.td_loan_ccb a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_ccb_trans c ON a.loan_id = c.loan_id`;
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
@@ -1613,6 +1614,44 @@ society_recovRouter.post("/fetch_soc_recov_dtls_ccb_level", async (req, res) => 
       whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
   }
   order = `c.trans_id desc,c.trans_dt desc`;
+}else{
+
+  let branchCheck = await db_Select(
+  "branch_id, branch_type",
+  "public.md_branch",
+  `branch_id = '${branch_id}'`,
+  null
+  );
+
+  let branch_condition = '';
+
+if (branchCheck.suc === 1 && branchCheck.msg.length > 0) {
+  let type = branchCheck.msg[0].branch_type;
+
+  if (type === 'B') {
+    branch_condition = `a.branch_id = '${branch_id}'`;
+  } else if (type === 'P') {
+    branch_condition = `a.branch_shg_id = '${branch_id}'`;
+  } else {
+    return res.send({
+      success: false,
+      msg: "Invalid branch type"
+    });
+  }
+} else {
+  return res.send({
+    success: false,
+    msg: "Branch not found"
+  });
+}
+  var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status";
+  table_name = `bdccb.td_loan_ccb a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_ccb_trans c ON a.loan_id = c.loan_id`;
+  whr = `a.tenant_id = '${tenant_id}' AND ${branch_condition} AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
+  if (from_dt && to_dt) {
+      whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+  }
+  order = `c.trans_id desc,c.trans_dt desc`;
+}
   var fetch_ccb_recovery_datas = await db_Select(select, table_name, whr, order);
 
   if (fetch_ccb_recovery_datas.suc === 1 && fetch_ccb_recovery_datas.msg.length > 0) {
