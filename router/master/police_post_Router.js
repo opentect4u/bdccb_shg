@@ -6,17 +6,18 @@ ppRouter = express.Router();
     ppRouter.get("/po_list", async (req, res) => {
         const id = parseInt(req.query.po_id || 0);
         const dist_id = parseInt(req.query.dist_id || 0);
+        const block_id = parseInt(req.query.block_id || 0);
 
         // DIST ID IS MANDATORY
             if (!dist_id || dist_id <= 0) {
                 return res.send({
                     success: true,
-                    msg: "dist_id is required"
+                    msg: "dist id is required"
                 });
             }
 
-        var select = "a.po_id,a.dist_id,a.post_name,a.pin,c.dist_name",
-        table_name = "md_postoffice a LEFT JOIN md_district c ON a.dist_id = c.dist_code",
+        var select = "a.po_id,a.dist_id,a.post_name,a.pin,c.dist_name,a.block_id,d.block_name",
+        table_name = "md_postoffice a LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_block d ON a.block_id = d.block_id",
         whr =  `a.dist_id = ${dist_id}`,
         order = null;
         // if (id > 0) {
@@ -25,6 +26,9 @@ ppRouter = express.Router();
         // if (dist_id > 0) {
         //     whr += ` AND a.dist_id = ${dist_id}`;
         // }
+        if (block_id > 0) {
+        whr += ` AND a.block_id = ${block_id}`;
+        }
         try {
             // console.log("Where Clause:", whr);
         var po_datas = await db_Select(select,table_name,whr,order);
@@ -45,8 +49,8 @@ ppRouter = express.Router();
 
     ppRouter.post("/save_post", async (req, res) => {
         try {
-            const { dist_id, post_name, pin, po_id,created_by,created_at,created_ip } = req.body;
-            const block_id = 0;
+            const { dist_id, post_name, pin, po_id, block_id, created_by,created_at,created_ip } = req.body;
+            // const block_id = 0;            
 
             const table = "md_postoffice";
             const columns = po_id > 0 ? ["dist_id","block_id","post_name","pin","modified_by","modified_at","ip_address"] : ["dist_id","block_id","post_name","pin", "delete_flag", "created_by","created_at","ip_address"];
@@ -75,17 +79,18 @@ ppRouter = express.Router();
     ppRouter.get("/policestation_list", async (req, res) => {
         const id = parseInt(req.query.po_id || 0);
         const dist_id = parseInt(req.query.dist_id || 0);
+        const block_id = parseInt(req.query.block_id || 0);
 
         // DIST ID IS MANDATORY
             if (!dist_id || dist_id <= 0) {
                 return res.send({
                     success: true,
-                    msg: "dist_id is required"
+                    msg: "dist id is required"
                 });
             }
 
-        var select = "a.ps_id,a.dist_id,a.ps_name,c.dist_name",
-        table_name = "md_police_station a LEFT JOIN md_district c ON a.dist_id = c.dist_code",
+        var select = "a.ps_id,a.dist_id,a.ps_name,c.dist_name,a.block_id,d.block_name",
+        table_name = "md_police_station a LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_block d ON a.block_id = d.block_id",
         whr = `a.dist_id = ${dist_id}`,
         order = null;
         // if (id > 0) {
@@ -94,6 +99,9 @@ ppRouter = express.Router();
         // if (dist_id > 0) {
         //     whr += ` AND a.dist_id = ${dist_id}`;
         // }
+        if (block_id > 0) {
+        whr += ` AND a.block_id = ${block_id}`;
+        }
         try {
             // console.log("Where Clause:", whr);
         var po_datas = await db_Select(select,table_name,whr,order);
@@ -114,9 +122,9 @@ ppRouter = express.Router();
 
     ppRouter.post("/save_policestation", async (req, res) => {
         try {
-            const { dist_id,  ps_name, pin, ps_id,created_by,created_at,created_ip } = req.body;
+            const { dist_id, block_id, ps_name, pin, ps_id,created_by,created_at,created_ip } = req.body;
 
-            const block_id = 0;
+            // const block_id = 0;
 
             const table = "md_police_station";
             const columns = ps_id > 0 ? ["dist_id","block_id","ps_name","modified_by","modified_at","ip_address"] : ["dist_id","block_id","ps_name", "delete_flag","created_by","created_at","ip_address"];
@@ -133,6 +141,41 @@ ppRouter = express.Router();
         } catch (error) {
             console.error("Error in /login route:", error);
             return res.send({
+            success: false,
+            msg: "Internal server error",
+            errorCode: "SERVER_ERROR"
+            });
+        }
+    });
+
+     ppRouter.get("/pin_list", async (req, res) => {
+        const dist_id = parseInt(req.query.dist_id || 0);
+        const block_id = parseInt(req.query.block_id || 0);
+
+        // DIST ID IS MANDATORY
+            if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0) {
+                return res.send({
+                    success: true,
+                    msg: "dist id and block id is required"
+                });
+            }
+
+        var select = "a.po_id,a.dist_id,a.block_id,a.post_name,c.dist_name,d.block_name,a.pin",
+        table_name = "md_postoffice a LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_block d ON a.block_id = d.block_id",
+        whr = `a.dist_id = ${dist_id} AND a.block_id = ${block_id}`,
+        order = null;
+        
+        try {
+            // console.log("Where Clause:", whr);
+        var po_datas = await db_Select(select,table_name,whr,order);
+            return res.send({
+                success: true,
+                msg: "Pin No List",
+                data: po_datas.msg
+            });
+        } catch (error) {
+           console.log("Error fetching police station data:", error);
+           return res.send({
             success: false,
             msg: "Internal server error",
             errorCode: "SERVER_ERROR"

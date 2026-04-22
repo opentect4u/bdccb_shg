@@ -142,8 +142,31 @@ userRouter = express.Router();
     }
     userRouter.get("/checkuser", async (req, res) => {
         const {user_id } = req.query;
+
         if(!user_id || user_id.trim() === ""){
-                validationError(res, "user id is required");
+          return res.send({
+            success: true,
+            msg: "User id is required",
+            user_status: 1
+        });
+        }
+         
+        if (!/^\d{10}$/.test(user_id)) {
+        // return validationError(res, "User id must be exactly 10 digits");
+        return res.send({
+            success: true,
+            msg: "User id must be exactly 10 digits",
+            user_status: 1
+        });
+        }
+
+        if (!/^[6-9]\d{9}$/.test(user_id)) {
+        // return validationError(res, "Invalid mobile number");
+        return res.send({
+            success: true,
+            msg: "Invalid mobile number",
+            user_status: 1
+        });
         }
         try {
             var whr = `user_id='${user_id}'`;

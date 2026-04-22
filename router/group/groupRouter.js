@@ -566,11 +566,14 @@ groupRouter.post("/add_group", async (req, res) => {
       let error_msg = "";
       if (group_name.length < 2) {
         error_msg = "Group name must be at least 2 characters";
-      } else if (phone1.length !== 10) {
-        error_msg = "Phone number must be exactly 10 digits";
-      } else if (saving_acc_no.length < 5) {
-        error_msg = "Saving account number must be at least 5 digits";
+      } else if (!/^[6-9]\d{9}$/.test(phone1)) {
+        error_msg = "Enter a valid 10-digit mobile number";
+      } else if (/^(\d)\1{9}$/.test(phone1)) {
+        error_msg = "Invalid phone number (all digits same)";
       }
+      // } else if (saving_acc_no.length < 5) {
+      //   error_msg = "Saving account number must be at least 5 digits";
+      // }
 
       if (error_msg) {
         return res.send({
