@@ -24,6 +24,12 @@ const memberCode = async (branch_id) => {
   return member_code;
 };
 
+const trans_code = async () => {
+  const timestamp = new Date().getTime();
+  const newPayId = `${timestamp}`;
+  return newPayId;
+};
+
 
 // fetch group details along with member
 groupRouter.post("/fetch_group_details", async (req, res) => {
@@ -562,6 +568,9 @@ groupRouter.post("/add_group", async (req, res) => {
       // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      let date = new Date().toISOString().slice(0, 10);
+
+      const new_trans_code = await trans_code();
       // member validation
       let error_msg = "";
       if (group_name.length < 2) {
@@ -599,7 +608,7 @@ groupRouter.post("/add_group", async (req, res) => {
  
       const table = "bdccb.md_group";
       const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","pacs_id"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
-      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',datetime,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',date,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
@@ -621,10 +630,42 @@ groupRouter.post("/add_group", async (req, res) => {
               const whereValues3 = group_code > 0 ? [grp_code] : [];
               const flag3 = group_code > 0 ? 1 : 0;
               const result_user = await saveRecord("bdccb.md_user", columns3, values3,whereColumns3,whereValues3,flag3);
-              return res.send({
+              // return res.send({
+              //     success: true,
+              //     msg: result_user.suc > 0 ? "Group Created Successfully" : "Failed to create group"
+              // });
+
+              if(result_user.suc > 0){
+                const columns4 = group_code > 0 ? ["acc_no","modified_by","modified_at","modified_ip"] :["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","acc_status_flag","created_by","created_at","created_ip"];
+              const values4 = group_code > 0 ? [saving_acc_no,created_by,datetime,ip_address] :[tenant_id,grp_code,branch_code,saving_acc_no,date,0,'O',created_by,datetime,ip_address];
+              const whereColumns4 = group_code > 0 ? ["shg_id"] : [];
+              const whereValues4 = group_code > 0 ? [group_code] : [];
+              const flag4 = group_code > 0 ? 1 : 0;
+              const sb_result = await saveRecord("bdccb.td_deposit", columns4, values4,whereColumns4,whereValues4,flag4);
+
+              // return res.send({
+              // success: true,
+              // msg: sb_result.suc > 0 ? "Group Created Successfully" : "Group created but SB transaction creation failed"
+              // });
+
+              if (sb_result.suc > 0) {
+              const columns5 = group_code > 0 ? ["acc_no","modified_by","modified_at","modified_ip"] :["tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip","approval_flag","approved_by","approved_at","shg_id"];
+              const values5 = group_code > 0 ? [saving_acc_no,created_by,datetime,ip_address] :[tenant_id,branch_code,saving_acc_no,date,'D',0,0,0,'Opening ACC',created_by,datetime,ip_address,'A',created_by,datetime,grp_code];
+              const whereColumns5 = group_code > 0 ? ["shg_id"] : [];
+              const whereValues5 = group_code > 0 ? [group_code] : [];
+              const flag5 = group_code > 0 ? 1 : 0;
+              await saveRecord("bdccb.td_deposit_trans", columns5, values5,whereColumns5,whereValues5,flag5);
+              }
+               return res.send({
+               success: true,
+              msg: sb_result.suc > 0 ? "Group Created Successfully" : "Group created but SB transaction creation failed"
+              });
+              }else{
+                 return res.send({
                   success: true,
                   msg: result_user.suc > 0 ? "Group Created Successfully" : "Failed to create group"
               });
+              }
         }
         
       } catch (error) {
@@ -638,10 +679,101 @@ groupRouter.post("/add_group", async (req, res) => {
 });
 
   // save / edit group
-  groupRouter.post("/add_member", async (req, res) => {
+  // groupRouter.post("/add_member", async (req, res) => {
+  //   try {
+  //     const { group_code,tenant_id,branch_code,members,created_by,ip_address,pacs_id} = req.body;
+  //     // console.log(req.body,'datagrp');
+  //     let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  //     // member validation
+  //     if (!members || members.length === 0) {
+  //       return res.send({
+  //         success: true,
+  //         msg: "No members provided",
+  //       });
+  //     }
+ 
+  //     let grp_code = group_code > 0 ? group_code : await groupCode(branch_code);
+  //     let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
+  //     //let direct_indirect_flag = pacs_id === 0 ? 'D' : 'I';
+  //    let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
+  //     for(const memb of members){
+  //       const casteValue = memb.caste && memb.caste.trim() !== "" ? memb.caste : null;
+  //     member_code++;
+  //     const table1 = "bdccb.md_member";
+  //     const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"];
+  //     const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
+  //     const whereColumns1 = memb.member_id > 0 ? ["member_code","group_code","tenant_id"] : [];
+  //     const whereValues1 = memb.member_id > 0 ? [memb.member_id,group_code,tenant_id] : [];
+  //     const flag1 = memb.member_id > 0 ? 1 : 0;
+      
+  //     const result_member = await saveRecord(table1, columns1, values1,whereColumns1,whereValues1,flag1);  
+        
+  //     if (!result_member || result_member.suc !== 1) {
+  //           return res.send({
+  //             success: true,
+  //             msg: memb.member_id > 0 ? "Failed to edit member" : "Failed to save member",
+  //             data: []
+  //           });
+  //     }
+
+  //     if(memb.member_id == 0){ 
+  //         var acc_opening_dt = new Date().toISOString().slice(0, 10);
+  //         var balance = 0;
+  //         const table2 = "bdccb.td_deposit";
+  //         const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
+  //         const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
+  //         const whereColumns2 = [];
+  //         const whereValues2 = [];
+  //         const flag2 = 0;
+  //         const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
+
+  //         if(!results || results.suc !== 1){
+  //           return res.send({
+  //               success: true,
+  //               msg: "Failed to save deposit details",
+  //               data: []
+  //             });
+  //         }
+
+  //         const table_trans = "bdccb.td_deposit_trans";
+  //         const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
+  //         const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
+  //         const whereColumns_trans = [];
+  //         const whereValues_trans = [];
+  //         const flag_trans = 0;
+  //         const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
+        
+        
+  //         if(!result_trans || result_trans.suc !== 1){
+  //           return res.send({
+  //               success: true,
+  //               msg: "Failed to save transaction details",
+  //               data: []
+  //             });
+  //         }
+  //     }
+  //   }
+
+  //     return res.send({
+  //       success: true,
+  //       msg: group_code > 0 ? "Record Updated Successfully" : "Record Inserted Successfully",
+  //       // data: result.lastId
+  //     });
+  //     } catch (error) {
+  //       console.error("Error in while save group:", error);
+  //       return res.send({
+  //       success: false,
+  //       msg: "Internal server error",
+  //       errorCode: "SERVER_ERROR"
+  //      });
+  //     }
+  // });
+
+  //ADD MEMBER
+    groupRouter.post("/add_member", async (req, res) => {
     try {
       const { group_code,tenant_id,branch_code,members,created_by,ip_address,pacs_id} = req.body;
-      // console.log(req.body,'datagrp');
+      console.log(req.body,'datagrp');
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
       // member validation
       if (!members || members.length === 0) {
@@ -655,9 +787,12 @@ groupRouter.post("/add_group", async (req, res) => {
       let direct_indirect_flag = pacs_id > 0 ? 'I' : 'D';
       //let direct_indirect_flag = pacs_id === 0 ? 'D' : 'I';
      let member_code = await memberCode(direct_indirect_flag == 'I' ? pacs_id : branch_code); 
+
       for(const memb of members){
         const casteValue = memb.caste && memb.caste.trim() !== "" ? memb.caste : null;
+
       member_code++;
+
       const table1 = "bdccb.md_member";
       const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"];
       const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
@@ -675,15 +810,16 @@ groupRouter.post("/add_group", async (req, res) => {
             });
       }
 
-      if(memb.member_id == 0){ 
+      if(result_member.suc > 0){ 
           var acc_opening_dt = new Date().toISOString().slice(0, 10);
           var balance = 0;
-          const table2 = "bdccb.td_deposit";
-          const columns2 = ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","created_by","created_at","created_ip"];
-          const values2 = [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,created_by,datetime,ip_address];
-          const whereColumns2 = [];
-          const whereValues2 = [];
-          const flag2 = 0;
+
+          const table2 = "bdccb.td_sb";
+          const columns2 = memb.member_id > 0 ? ["acc_no","modified_by","modified_at","modified_ip"] : ["tenant_id","shg_id","branch_id","acc_no","acc_opening_dt","balance","acc_status_flag","created_by","created_at","created_ip","member_id"];
+          const values2 = memb.member_id > 0 ? [memb.sb_acc_no,created_by,datetime,ip_address] : [tenant_id,grp_code,branch_code,memb.sb_acc_no,acc_opening_dt,balance,'O',created_by,datetime,ip_address,member_code];
+          const whereColumns2 = memb.member_id > 0 ? ["member_id"] : [];
+          const whereValues2 = memb.member_id > 0 ? [memb.member_id] : [];
+          const flag2 = memb.member_id > 0 ? 1 : 0;
           const results = await saveRecord(table2, columns2, values2,whereColumns2,whereValues2,flag2);
 
           if(!results || results.suc !== 1){
@@ -694,12 +830,12 @@ groupRouter.post("/add_group", async (req, res) => {
               });
           }
 
-          const table_trans = "bdccb.td_deposit_trans";
-          const columns_trans = ["sb_id","tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip"];
-          const values_trans = [results.lastId,tenant_id,branch_code,memb.sb_acc_no,datetime,'D',0,balance,balance,'Opening ACC',created_by,datetime,ip_address];
-          const whereColumns_trans = [];
-          const whereValues_trans = [];
-          const flag_trans = 0;
+          const table_trans = "bdccb.td_sb_trans";
+          const columns_trans = memb.member_id > 0 ? ["acc_no","modified_by","modified_at","modified_ip"] : ["tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip","approval_flag","approved_by","approved_at","shg_id","member_id"];
+          const values_trans = memb.member_id > 0 ? [memb.sb_acc_no,created_by,datetime,ip_address] : [tenant_id,branch_code,memb.sb_acc_no,datetime,'D',balance,balance,balance,'Opening ACC',created_by,datetime,ip_address,'A',created_by,datetime,grp_code,member_code];
+          const whereColumns_trans = memb.member_id > 0 ? ["member_id"] : [];
+          const whereValues_trans = memb.member_id > 0 ? [memb.member_id] : [];
+          const flag_trans = memb.member_id > 0 ? 1 : 0;
           const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
         
         
