@@ -497,15 +497,52 @@ try{
 }
 });
 
+// FETCH GROUP NAME BASED ON GROUP S/B AC NO
+loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
+  try{
+ const {branch_code,sb_ac_no} = req.body;
+ 
+ var select = "group_code,branch_code,group_name,sb_ac_no",
+ table_name = "bdccb.md_group",
+ whr = `branch_code = '${branch_code}' ${sb_ac_no && sb_ac_no.trim() !== "" 
+  ? `AND (sb_ac_no ILIKE '%${sb_ac_no}%')`
+  : ""}`,
+ order = null;
+ var fetch_gp_data = await db_Select(select,table_name,whr,order);
+
+ if(fetch_gp_data.suc === 1 && fetch_gp_data.msg.length > 0){
+   return res.send({
+      success: true,
+      msg: "Fetch group data",
+      data: fetch_gp_data.msg
+   })
+ }else{
+    return res.send({
+      success: true,
+      msg: "Failed to fetch group data",
+      data: []
+   })
+ }
+ }catch (error) {
+ console.error("Error in while fetch group details:", error);
+ return res.send({
+   success: false,
+   msg: "Internal server error",
+   errorCode: "SERVER_ERROR",
+ });
+}
+});
+
 // FETCH MEMBER DETAILS BASED ON SHG
 loanRouter.post("/fetch_member_name", async (req, res) => {
 try{
- const {group_code, branch_code, tenant_id,member_account_no} = req.body;
+ const {group_code, branch_code, tenant_id} = req.body;
 //  console.log(req.body,'member name');
 
- var select = "member_code member_id,member_name,member_account_no sb_acc_no",
+//  var select = "member_code member_id,member_name,member_account_no sb_acc_no",
+ var select = "member_code member_id,member_name",
  table_name = "bdccb.md_member",
- whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}' AND member_account_no = '${member_account_no}' AND delete_flag = 'N' AND approval_status = 'A'`,
+ whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}' AND delete_flag = 'N' AND approval_status = 'A'`,
  order = null;
  var fetch_shg_member = await db_Select(select,table_name,whr,order);
  
@@ -2193,7 +2230,7 @@ table_name = loan_to == "P"
           // console.log(loan,'loan');
           
       // Member select
-      let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,d.member_account_no AS sb_acc_no",
+      let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,c.sb_ac_no AS sb_acc_no",
       mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
       mem_whr = loan.loan_to == 'P' ? `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'` : `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'`;
       mem_order = `a.member_code,a.group_code,b.trans_id desc`

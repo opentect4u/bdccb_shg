@@ -25,6 +25,7 @@ app.use('/v1/dashboard', require('./router/dashboard/indexDashboardRouter'));
 app.use('/v1/user', require('./router/user/indexUserRouter'));
 app.use('/v1/report', require('./router/report/indexReportRouter'));
 app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
+app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 
 
 // app.post("/v1/login", async (req, res) => {
