@@ -504,9 +504,7 @@ loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
  
  var select = "group_code,branch_code,group_name,sb_ac_no",
  table_name = "bdccb.md_group",
- whr = `branch_code = '${branch_code}' ${sb_ac_no && sb_ac_no.trim() !== "" 
-  ? `AND (sb_ac_no ILIKE '%${sb_ac_no}%')`
-  : ""}`,
+ whr = `branch_code = '${branch_code}' AND sb_ac_no = '${sb_ac_no}'`,
  order = null;
  var fetch_gp_data = await db_Select(select,table_name,whr,order);
 
