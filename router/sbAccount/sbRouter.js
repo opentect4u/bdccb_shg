@@ -1,4 +1,4 @@
-const { db_Select, saveRecord } = require('../../model/pgcommon');
+const { db_Select, saveRecord, deleteRecord } = require('../../model/pgcommon');
 
 const express = require('express'),
   sbRouter = express.Router();
@@ -883,49 +883,94 @@ sbRouter.post("/approve_sb_transaction", async (req, res) => {
 });
 
 // REJECT TRANSACTION BEFORE APPROVE
-sbRouter.post("/reject_transaction", async (req, res) => {
+sbRouter.post("/reject_sb_transaction", async (req, res) => {
   try{
-  const {flag, tenant_id, branch_id,shg_id,grp_acc_no, dep_with_flag, trans_dt, members, deleted_by,deleted_ip} = req.body;
+  const {flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,trans_dt,members,modified_by,modified_ip} = req.body;
 
   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   // DELETE GROUP TRANSACTION
-   await deleteRecord("bdccb.td_deposit",["tenant_id","branch_id","shg_id","grp_acc_no","trans_dt"],[tenant_id,branch_id,shg_id,grp_acc_no,trans_dt]
-  );
-
+ 
   // td_deposit_trans
-    await deleteRecord("bdccb.td_deposit_trans",["tenant_id","branch_id","shg_id","grp_acc_no","trans_dt"],
-      [tenant_id,branch_id,shg_id,grp_acc_no,trans_dt]
+    await deleteRecord("bdccb.td_deposit_trans",["tenant_id","branch_id","shg_id","acc_no","trans_dt","approval_flag"],
+      [tenant_id,branch_id,shg_id,grp_acc_no,trans_dt,'U']
     );
 
-  // DELETE MEMBER TRANSACTION
+  // FETCH LAST APPROVED GROUP BALANCE
+   let grpData = await db_Select(
+      "balance",
+      "bdccb.td_deposit_trans",
+      `tenant_id = '${tenant_id}'
+      AND branch_id = '${branch_id}'
+      AND shg_id = '${shg_id}'
+      AND acc_no = '${grp_acc_no}'
+      AND approval_flag = 'A'`,
+      "trans_dt DESC",
+      1
+    );
+
+    let grp_balance = 0;
+
+    if (grpData.suc > 0 && grpData.msg.length > 0) {
+      grp_balance = grpData.msg[0].balance;
+    }
+
+    // UPDATE GROUP MAIN TABLE
+
+      await saveRecord("bdccb.td_deposit",
+      ["balance","modified_by","modified_at","modified_ip"],
+      [grp_balance,modified_by,datetime,modified_ip],
+      ["tenant_id","branch_id","shg_id","acc_no"],
+      [tenant_id,branch_id,shg_id,grp_acc_no],
+      1
+    );
+
+  // MEMBER PROCESS
    if (members && members.length > 0) {
      for (let m of members) {
-       // td_sb
-        await deleteRecord("bdccb.td_sb",["tenant_id","branch_id","shg_id","member_id","acc_no","trans_dt"],
-          [tenant_id,branch_id,shg_id,m.member_id,m.sb_acc_no,trans_dt]
+
+       // DELETE MEMBER UNAPPROVED TRANS
+        await deleteRecord("bdccb.td_sb_trans",["tenant_id","branch_id","acc_no","trans_dt","shg_id","member_id", "approval_flag"],
+          [tenant_id,branch_id,m.sb_acc_no,trans_dt,shg_id,m.member_id,'U']
         );
 
-        // td_sb_trans
-        await deleteRecord(
+         // FETCH LAST APPROVED MEMBER BALANCE
+
+         let memData = await db_Select(
+          "balance",
           "bdccb.td_sb_trans",
-          [
-            "tenant_id",
-            "branch_id",
-            "member_id",
-            "sb_acc_no",
-            "trans_dt"
-          ],
-          [
-            tenant_id,
-            branch_id,
-            m.member_id,
-            m.sb_acc_no,
-            trans_dt
-          ]
+          `tenant_id = '${tenant_id}'
+          AND branch_id = '${branch_id}'
+          AND acc_no = '${m.sb_acc_no}'
+          AND shg_id = '${shg_id}'
+          AND member_id = '${m.member_id}'
+          AND approval_flag = 'A'`,
+          "trans_dt DESC",
+          1
+        );
+
+        let member_balance = 0;
+
+        if (memData.suc > 0 && memData.msg.length > 0) {
+          member_balance = memData.msg[0].balance;
+        }
+
+         // UPDATE MEMBER MAIN TABLE
+           await saveRecord(
+          "bdccb.td_sb",
+          ["balance"],
+          [member_balance],
+          ["tenant_id","branch_id","acc_no","shg_id","member_id","modified_by","modified_at","modified_id"],
+          [tenant_id,branch_id,m.sb_acc_no,shg_id,m.member_id,modified_by,datetime,modified_ip],
+          1
         );
      }
    }
+
+    return res.send({
+      success: true,
+      msg: "Transaction Rejected Successfully"
+    });
 
   }catch (error) {
     console.log("Error while reject transaction:", error);
