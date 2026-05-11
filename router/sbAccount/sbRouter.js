@@ -442,7 +442,7 @@ sbRouter.post("/save_sb_transaction", async (req, res) => {
 // fetch deposit and Withdrawal list
 sbRouter.post("/fetch_sb_transaction_list", async (req, res) => {
   try {
-    const { dep_with_flag, tenant_id, branch_id} = req.body;
+    const { dep_with_flag, tenant_id, branch_id, approval_status} = req.body;
 
     var select = `a.shg_id, b.group_name, a.acc_no, TO_CHAR(a.trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt, a.dep_with_flag, a.dr_amt, a.cr_amt, a.balance, a.remarks, a.approval_flag,
     CASE WHEN EXISTS (
@@ -454,7 +454,7 @@ sbRouter.post("/fetch_sb_transaction_list", async (req, res) => {
     ELSE 'D'
     END AS flag`;
     var table_name = "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code";
-    var whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.dep_with_flag = '${dep_with_flag}' AND a.balance > 0`;
+    var whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.dep_with_flag = '${dep_with_flag}' AND a.approval_flag = '${approval_status}' AND a.balance > 0`;
 
     // if (trans_dt) {
     //   whr += ` AND date(a.trans_dt) = '${trans_dt}'`;
