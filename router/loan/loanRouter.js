@@ -1411,66 +1411,98 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       });
     }
 
-    let loan = loan_dtls.msg[0];
+    /* ---------------- FINAL RESPONSE ARRAY ---------------- */
 
-    /* ---------------- GROUP DETAILS ---------------- */
+    let response = [];
 
-    let grp_select = `DISTINCT ON (a.group_code) c.sb_ac_no AS grp_sb_acc_no,a.group_code,a.disb_amt`;
+    for (const loan of loan_dtls.msg) {
 
-    let grp_table = `
-      bdccb.td_loan a
-      LEFT JOIN bdccb.md_group c
-      ON a.group_code = c.group_code
-    `;
+      /* ---------------- GROUP DETAILS ---------------- */
 
-    let grp_whr = `
-      a.loan_id = '${loan.loan_id}'
-      AND a.loan_acc_no = '${loan.loan_acc_no}'
-    `;
+      let grp_select = `
+        DISTINCT ON (a.group_code)
 
-    let grp_order = `a.group_code`;
+        c.sb_ac_no AS grp_sb_acc_no,
+        a.group_code,
+        c.group_name,
+        a.disb_amt
+      `;
 
-    let grp_dtls = await db_Select(grp_select,grp_table,grp_whr,grp_order);
+      let grp_table = `
+        bdccb.td_loan a
 
-    /* ---------------- FINAL RESPONSE ---------------- */
+        LEFT JOIN bdccb.md_group c
+        ON a.group_code = c.group_code
+      `;
+
+      let grp_whr = `
+        a.loan_id = '${loan.loan_id}'
+        AND a.loan_acc_no = '${loan.loan_acc_no}'
+      `;
+
+      let grp_order = `
+        a.group_code
+      `;
+
+      let grp_dtls = await db_Select(
+        grp_select,
+        grp_table,
+        grp_whr,
+        grp_order
+      );
+
+      response.push({
+
+        loan_id       : loan.loan_id || 0,
+        tenant_id     : loan.tenant_id || "",
+        branch_id     : loan.branch_id || "",
+        loan_acc_no   : loan.loan_acc_no || "",
+        loan_to       : loan.loan_to || "",
+        branch_shg_id : loan.branch_shg_id || "",
+        loan_to_name : loan.loan_to_name || "",
+        period        : loan.period || "",
+        curr_roi      : loan.curr_roi || "",
+        penal_roi     : loan.penal_roi || "",
+        disb_dt       : loan.disb_dt || "",
+        disb_amt      : loan.disb_amt || 0,
+        tot_grp       : loan.tot_grp || 0,
+        sanction_no   : loan.sanction_no || "",
+        sanction_dt   : loan.sanction_dt || "",
+        created_by    : loan.created_by || "",
+        ip_address    : loan.ip_address || "",
+
+        approval_status : loan.approval_status || "",
+
+        approved_by : loan.approval_status === 'A'
+          ? loan.approved_by || ""
+          : "",
+
+        approved_dt : loan.approval_status === 'A'
+          ? loan.approved_dt || ""
+          : "",
+
+        groups : grp_dtls.suc === 1
+        ? grp_dtls.msg.map(g => ({
+
+            grp_sb_acc_no : g.grp_sb_acc_no || "",
+            group_code    : g.group_code || "",
+            group_anme    : g.group_namr || "",
+            disb_amt      : g.disb_amt || 0
+
+          }))
+        : []
+
+      });
+
+    }
+
+    /* ---------------- RETURN RESPONSE ---------------- */
 
     return res.send({
-    success: true,
-    loan_id       : loan.loan_id || 0,
-    tran_id       : loan.tran_id || 0,
-    tenant_id     : loan.tenant_id || "",
-    branch_id     : loan.branch_id || "",
-    loan_acc_no   : loan.loan_acc_no || "",
-    loan_to       : loan.loan_to || "",
-    branch_shg_id : loan.branch_shg_id || "",
-    period        : loan.period || "",
-    curr_roi      : loan.curr_roi || "",
-    penal_roi     : loan.penal_roi || "",
-    disb_dt       : loan.disb_dt || "",
-    disb_amt      : loan.disb_amt || 0,
-    tot_grp       : loan.tot_grp || 0,
-    sanction_no   : loan.sanction_no || "",
-    sanction_dt   : loan.sanction_dt || "",
-    created_by    : loan.created_by || "",
-    ip_address    : loan.ip_address || "",
-
-    approved_by   : loan.approved_by || "",
-    approved_dt   : loan.approved_dt || "",
-
-    groups : grp_dtls.suc === 1
-    ? grp_dtls.msg.map(g => ({
-        grp_sb_acc_no : g.grp_sb_acc_no || "",
-        group_code    : g.group_code || "",
-        disb_amt      : g.disb_amt || 0
-      }))
-    : []
-});
-
-    // return res.send({
-    //   success: true,
-    //   msg: "Fetch Society Disbursement Details",
-    //   data: response
-    // });
+      success: true,
+      msg: "Fetch Society Disbursement Details",
+      data: response
+    });
 
   } catch (error) {
 
@@ -1480,6 +1512,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       success: false,
       msg: "Internal Server Error"
     });
+
   }
 });
 
