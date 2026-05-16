@@ -1454,7 +1454,6 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       response.push({
 
         loan_id       : loan.loan_id || 0,
-        tran_id       : loan.trans_id || 0,
         tenant_id     : loan.tenant_id || "",
         branch_id     : loan.branch_id || "",
         loan_acc_no   : loan.loan_acc_no || "",
