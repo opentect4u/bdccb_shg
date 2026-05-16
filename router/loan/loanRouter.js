@@ -1525,7 +1525,8 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       approval_status,
       loan_to,
       from_dt,
-      to_dt
+      to_dt,
+      branch_type
     } = req.body;
 
     /* ---------------- MAIN LOAN DETAILS ---------------- */
@@ -1592,12 +1593,25 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
     `;
 
     let whr = `
-      a.branch_id = '${branch_id}'
       AND b.approval_status = '${approval_status}'
       AND a.loan_to = '${loan_to}'
       AND b.trans_type = 'D'
       AND a.fund_type = 'B'
     `;
+
+    if (branch_type === 'H') {
+
+    whr += `
+    AND a.branch_shg_id = '${branch_id}'
+    `;
+
+    } else {
+
+    whr += `
+    AND a.branch_id = '${branch_id}'
+    `;
+
+    }
 
     if (from_dt && to_dt) {
 
