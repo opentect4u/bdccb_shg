@@ -1281,7 +1281,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
     let transacs_id = await transactions_id();
 
 
-    groups[group].loan_code = loan_code;
+    group.loan_code = loan_code;
 
     // ================== td_loan ==================
     var table = "bdccb.td_loan";
@@ -1299,7 +1299,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
   if (!result || result.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Loan save failed for society level" + group_code
+      msg: "Loan save failed for society level" + group.group_code
     });
   }
 
@@ -1321,7 +1321,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
   if (!trans_result || trans_result.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Transaction save failed in society level" + group_code
+      msg: "Transaction save failed in society level" + group.group_code
     });
   }
 
@@ -1341,7 +1341,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
   if (!result_ccb || result_ccb.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Loan save failed while disburse branch to soc" + group_code
+      msg: "Loan save failed while disburse branch to soc" + group.group_code
     });
   }
 
@@ -1363,7 +1363,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
   if (!trans_result_ccb || trans_result_ccb.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Transaction save failed while disburse branch to society" + group_code
+      msg: "Transaction save failed while disburse branch to society" + group.group_code
     });
   }
 }
