@@ -1424,6 +1424,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
         c.sb_ac_no AS grp_sb_acc_no,
         a.group_code,
+        c.group_name,
         a.disb_amt
       `;
 
@@ -1486,6 +1487,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
             grp_sb_acc_no : g.grp_sb_acc_no || "",
             group_code    : g.group_code || "",
+            group_anme    : g.group_namr || "",
             disb_amt      : g.disb_amt || 0
 
           }))
