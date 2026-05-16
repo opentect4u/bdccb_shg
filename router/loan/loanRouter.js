@@ -502,9 +502,9 @@ loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
   try{
  const {branch_code,sb_ac_no} = req.body;
  
- var select = "group_code,branch_code,group_name,sb_ac_no",
- table_name = "bdccb.md_group",
- whr = `branch_code = '${branch_code}' AND sb_ac_no = '${sb_ac_no}'`,
+ var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no,b.balance AS grp_balance",
+ table_name = "bdccb.md_group a LEFT JOIN bdccb.td_deposit b ON a.group_code = b.shg_id AND a.sb_ac_no = b.acc_no",
+ whr = `a.branch_code = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
  order = null;
  var fetch_gp_data = await db_Select(select,table_name,whr,order);
 
@@ -565,7 +565,41 @@ try{
    errorCode: "SERVER_ERROR",
  });
   }
-})
+});
+
+// FETCH GROUP NAME BASED ON GROUP S/B AC NO IN SOCIETY
+loanRouter.post("/fetch_gp_based_ac_no_soc", async (req, res) => {
+  try{
+ const {branch_code,sb_ac_no} = req.body;
+ 
+ var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no",
+ table_name = "bdccb.md_group a",
+ whr = `a.pacs_id = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
+ order = null;
+ var fetch_gp_data_soc = await db_Select(select,table_name,whr,order);
+
+ if(fetch_gp_data_soc.suc === 1 && fetch_gp_data_soc.msg.length > 0){
+   return res.send({
+      success: true,
+      msg: "Fetch group data",
+      data: fetch_gp_data_soc.msg
+   })
+ }else{
+    return res.send({
+      success: true,
+      msg: "Failed to fetch group data",
+      data: []
+   })
+ }
+ }catch (error) {
+ console.error("Error in while fetch group details in society:", error);
+ return res.send({
+   success: false,
+   msg: "Internal server error",
+   errorCode: "SERVER_ERROR",
+ });
+}
+});
 
 // SAVE DISBURSEMENT (BRANCH -> PACS)
 
@@ -2228,8 +2262,8 @@ table_name = loan_to == "P"
           // console.log(loan,'loan');
           
       // Member select
-      let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,c.sb_ac_no AS sb_acc_no",
-      mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code",
+      let mem_select = "DISTINCT ON (a.member_code, a.group_code)a.loan_id AS mem_loan_id,b.trans_id AS tran_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,a.disb_amt AS disburse_amt,c.pacs_id,c.sb_ac_no AS sb_acc_no,COALESCE(e.balance,0) AS grp_balance",
+      mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code LEFT JOIN bdccb.td_deposit e ON a.group_code = e.shg_id",
       mem_whr = loan.loan_to == 'P' ? `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'` : `a.tenant_id = '${loan.tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${loan.group_code}'`;
       mem_order = `a.member_code,a.group_code,b.trans_id desc`
       let member_dtls = await db_Select(mem_select,mem_table,mem_whr,mem_order);
