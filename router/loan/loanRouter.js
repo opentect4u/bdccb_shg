@@ -1025,7 +1025,7 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     // CASE 1: loan_to = 'S' → GROUP LEVEL INSERT
     // =========================================================
 
- if (loan_to == 'P' || loan_to === 'S') {
+ if (loan_to === 'S') {
 for (const group_code in groupMap) {
 
   let groupData = groupMap[group_code];
@@ -1247,6 +1247,127 @@ await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
   }
 }
     }
+    return res.send({
+      success: true,
+      msg: loan_id > 0 ? "Disbursement edit Done Successfully"  : "Disbursement Done Successfully",
+    });
+  } catch (error) {
+    console.error("Error in while save disbursement:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// SAVE DISBURSEMENT SOCIETY
+loanRouter.post("/save_society_disbursement", async (req, res) => {
+  try {
+    const {tenant_id,branch_id,loan_acc_no,loan_to,branch_shg_id,period,curr_roi,penal_roi,disb_dt,disb_amt,tot_grp,sanction_no,sanction_dt,groups,created_by,ip_address,loan_id,tran_id} = req.body;
+    console.log(req.body,'data_soc');
+
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
+    var pay_mode = "Monthly";
+
+    let instl_date = await genDate(disb_dt, period, pay_mode);
+    const startDate = instl_date.emtStart;
+    const endDate = instl_date.emiEnd;
+
+    for (const group in groups) {
+
+    let loan_code = await loanCode(branch_id);
+    let trans_id = await transaction_id();
+    let transacs_id = await transactions_id();
+
+
+    groups[group].loan_code = loan_code;
+
+    // ================== td_loan ==================
+    var table = "bdccb.td_loan";
+
+    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+
+  var values = [
+    loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
+    period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
+  ];
+
+  let result = await saveRecord(table, columns, values, [], [], 0);
+
+  if (!result || result.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Loan save failed for society level" + group_code
+    });
+  }
+
+  // ================== td_loan_transactions ==================
+  var table_trn = "bdccb.td_loan_transactions";
+
+  var columns_trn = [
+    "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
+    "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+    "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
+    "approval_status","created_by","created_dt","ip_address"
+  ];
+
+  var values_trn = [
+    disb_dt, trans_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
+    "D", group.disb_amt, 0, 0, 0, 0, 0, 0, 0, 0, 0, "U", created_by, datetime, ip_address];
+  let trans_result = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+
+  if (!trans_result || trans_result.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Transaction save failed in society level" + group_code
+    });
+  }
+
+  // ================== td_loan_ccb ==================
+  var table = "bdccb.td_loan_ccb";
+
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+
+  var values = [
+    loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
+    period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
+  ];
+
+  let result_ccb = await saveRecord(table, columns, values, [], [], 0);
+
+  if (!result_ccb || result_ccb.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Loan save failed while disburse branch to soc" + group_code
+    });
+  }
+
+  // ================== td_loan_ccb_trans ==================
+  var table_trn = "bdccb.td_loan_ccb_trans";
+
+  var columns_trn = [
+    "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
+    "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+    "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
+    "approval_status","created_by","created_dt","ip_address"
+  ];
+
+  var values_trn = [
+    disb_dt, transacs_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
+    "D", group.disb_amt, 0, 0, 0, 0, 0, 0, 0, 0, 0, "U", created_by, datetime, ip_address];
+  let trans_result_ccb = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+
+  if (!trans_result_ccb || trans_result_ccb.suc !== 1) {
+    return res.send({
+      success: false,
+      msg: "Transaction save failed while disburse branch to society" + group_code
+    });
+  }
+}
+
     return res.send({
       success: true,
       msg: loan_id > 0 ? "Disbursement edit Done Successfully"  : "Disbursement Done Successfully",
