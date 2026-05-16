@@ -1274,7 +1274,7 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
     const startDate = instl_date.emtStart;
     const endDate = instl_date.emiEnd;
 
-    for (const group in groups) {
+    for (const group of groups) {
 
     let loan_code = await loanCode(branch_id);
     let trans_id = await transaction_id();
