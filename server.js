@@ -26,6 +26,7 @@ app.use('/v1/user', require('./router/user/indexUserRouter'));
 app.use('/v1/report', require('./router/report/indexReportRouter'));
 app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
 app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
+app.use('/v1/sbledger', require('./router/sbledger/indexsbledgerRouter'));
 
 
 // app.post("/v1/login", async (req, res) => {
@@ -122,7 +123,7 @@ app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 app.post("/v1/login", async (req, res) => {
   try {
     const { username, password, user_type, branch_id } = req.body;
-    // console.log(req.body,'login');
+    console.log(req.body,'login');
     
 
     if (!username || !password) {
@@ -133,12 +134,13 @@ app.post("/v1/login", async (req, res) => {
     }
 
     // FETCH USER
-    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,b.branch_type,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name`;
+    let select = `a.user_id emp_id,a.user_name emp_name,a.designation,a.brn_code,a.user_type,a.phone_mobile,a.active_flag,a.password,a.session_id,b.branch_name,b.block_id as org_block_id,b.branch_type,c.tenant_id,c.tenant_name,d.dist_id,e.dist_name,f.sb_ac_no`;
 
     let table_name = `bdccb.md_user a LEFT JOIN public.md_branch b ON a.brn_code = b.branch_id
       LEFT JOIN public.md_tenant c ON a.tenant_id = c.tenant_id
       LEFT JOIN public.md_tenant_dist d ON c.tenant_id = d.tenant_id
-      LEFT JOIN public.md_district e ON d.dist_id = e.dist_code`;
+      LEFT JOIN public.md_district e ON d.dist_id = e.dist_code
+      LEFT JOIN bdccb.md_group f ON split_part(a.user_id, '-', 3) = f.group_code::text`;
 
     //let whr = `a.user_id = '${username}' AND a.active_flag = 'Y'`;
     let whr = `a.user_id = '${username}'`;
@@ -229,7 +231,8 @@ app.post("/v1/login", async (req, res) => {
       user_type: userData.user_type,
       phone_mobile: userData.phone_mobile,
       active_flag: userData.active_flag,
-      session_id: userData.session_id
+      session_id: userData.session_id,
+      sb_ac_no: userData.sb_ac_no
     };
 
     return res.send({

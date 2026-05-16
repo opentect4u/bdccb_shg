@@ -1,6 +1,6 @@
-const { db_Select, saveRecord, deleteRecord } = require('../../model/pgcommon');
+const { db_Select, saveRecord, deleteRecord } = require("../../model/pgcommon");
 
-const express = require('express'),
+const express = require("express"),
   sbRouter = express.Router();
 
 // search group
@@ -10,11 +10,11 @@ sbRouter.post("/search_gp", async (req, res) => {
 
     var select = "a.group_code,a.group_name,a.sb_ac_no";
     table_name = "bdccb.md_group a";
-    if (branch_type == 'B' && pacs_id == 111) {
+    if (branch_type == "B" && pacs_id == 111) {
       whr = `a.branch_code = '${branch_code}' AND a.delete_flag = 'N' AND a.pacs_id = '${pacs_id}' AND a.sb_ac_no = '${gp_search}'
     GROUP BY a.group_code,a.group_name,a.sb_ac_no`;
       order = null;
-    } else if (branch_type == 'P') {
+    } else if (branch_type == "P") {
       whr = `a.pacs_id='${branch_code}' AND a.delete_flag = 'N'
       AND a.sb_ac_no = '${gp_search}'
       GROUP BY a.group_code,a.group_name,a.sb_ac_no`;
@@ -23,19 +23,19 @@ sbRouter.post("/search_gp", async (req, res) => {
       whr = `a.delete_flag = 'N' AND a.sb_ac_no = '${gp_search}'`;
       order = null;
     }
-    var fetch_gp = await db_Select(select, table_name, whr, order)
+    var fetch_gp = await db_Select(select, table_name, whr, order);
 
     if (fetch_gp.suc === 1 && fetch_gp.msg.length > 0) {
       return res.send({
         success: true,
         msg: "Group found",
-        data: fetch_gp.msg
+        data: fetch_gp.msg,
       });
     } else {
       return res.send({
         success: true,
         msg: "No Group found",
-        data: []
+        data: [],
       });
     }
   } catch (error) {
@@ -43,7 +43,7 @@ sbRouter.post("/search_gp", async (req, res) => {
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
@@ -56,8 +56,8 @@ sbRouter.post("/search_gp", async (req, res) => {
 //      // CHECK UNAPPROVED GROUP TRANSACTION
 //     let select1 = "COUNT(*) cnt";
 //     let table_name1 = "bdccb.td_deposit_trans";
-//     let whr1 = `shg_id = '${group_code}' 
-//                AND approval_flag = 'U'`; 
+//     let whr1 = `shg_id = '${group_code}'
+//                AND approval_flag = 'U'`;
 //     let order1 = null;
 
 //     let unapprove_gp = await db_Select(select1, table_name1, whr1, order1);
@@ -65,7 +65,7 @@ sbRouter.post("/search_gp", async (req, res) => {
 //     // CHECK UNAPPROVED MEMBER TRANSACTION
 //     select = "COUNT(*) cnt";
 //     table_name = "bdccb.td_sb_trans";
-//     whr = `shg_id = '${group_code}' 
+//     whr = `shg_id = '${group_code}'
 //            AND approval_flag = 'U'`; // change if needed
 
 //     let unapprove_mem = await db_Select(select, table_name, whr, order);
@@ -109,7 +109,7 @@ sbRouter.post("/search_gp", async (req, res) => {
 //       });
 //     }
 
-//     // FETCH GROUP MEMBERS // 
+//     // FETCH GROUP MEMBERS //
 //     var select = `a.member_code member_id,a.group_code,a.member_name,a.member_account_no as sb_acc_no,COALESCE(
 // (
 // SELECT balance
@@ -159,19 +159,20 @@ sbRouter.post("/search_gp", async (req, res) => {
 sbRouter.post("/fetch_gp_dtls", async (req, res) => {
   try {
     const { branch_code, pacs_id, branch_type, sb_ac_no } = req.body;
+    console.log(req.body,'ddd');
+    
 
-     // FIRST FETCH GROUP CODE USING ACCOUNT NUMBER
+    // FIRST FETCH GROUP CODE USING ACCOUNT NUMBER
 
-      let select_gp = "group_code";
-      let table_gp = "bdccb.md_group a";
-      let whr_gp = "";
-     if (branch_type == 'B' && pacs_id == 111) {
-
+    let select_gp = "group_code";
+    let table_gp = "bdccb.md_group a";
+    let whr_gp = "";
+    if (branch_type == "B" && pacs_id == 111) {
       whr_gp = `a.branch_code = '${branch_code}'
                 AND a.delete_flag = 'N'
                 AND a.pacs_id = '${pacs_id}'
                 AND a.sb_ac_no = '${sb_ac_no}'`;
-    } else if (branch_type == 'P') {
+    } else if (branch_type == "P") {
       whr_gp = `a.pacs_id='${branch_code}'
                 AND a.delete_flag = 'N'
                 AND a.sb_ac_no = '${sb_ac_no}'`;
@@ -180,13 +181,13 @@ sbRouter.post("/fetch_gp_dtls", async (req, res) => {
                 AND a.sb_ac_no = '${sb_ac_no}'`;
     }
 
-    let fetch_group_code = await db_Select(select_gp,table_gp,whr_gp,null);
+    let fetch_group_code = await db_Select(select_gp, table_gp, whr_gp, null);
 
-    if (fetch_group_code.suc !== 1 ||fetch_group_code.msg.length === 0) {
+    if (fetch_group_code.suc !== 1 || fetch_group_code.msg.length === 0) {
       return res.send({
         success: true,
         msg: "Group data not found",
-        data: []
+        data: [],
       });
     }
 
@@ -199,7 +200,7 @@ sbRouter.post("/fetch_gp_dtls", async (req, res) => {
     let table_name1 = "bdccb.td_deposit_trans";
     let whr1 = `shg_id = '${group_code}' AND approval_flag = 'U'`;
 
-    let unapprove_gp = await db_Select(select1,table_name1,whr1,null);
+    let unapprove_gp = await db_Select(select1, table_name1, whr1, null);
 
     // CHECK UNAPPROVED MEMBER TRANSACTION
 
@@ -207,21 +208,18 @@ sbRouter.post("/fetch_gp_dtls", async (req, res) => {
     let table_name2 = "bdccb.td_sb_trans";
     let whr2 = `shg_id = '${group_code}'
                 AND approval_flag = 'U'`;
-    let unapprove_mem = await db_Select(select2,table_name2,whr2,null);
+    let unapprove_mem = await db_Select(select2, table_name2, whr2, null);
 
     // IF ANY UNAPPROVED TRANSACTION EXISTS
 
     if (
-      (unapprove_gp.suc === 1 &&
-        Number(unapprove_gp.msg[0].cnt) > 0) ||
-
-      (unapprove_mem.suc === 1 &&
-        Number(unapprove_mem.msg[0].cnt) > 0)
+      (unapprove_gp.suc === 1 && Number(unapprove_gp.msg[0].cnt) > 0) ||
+      (unapprove_mem.suc === 1 && Number(unapprove_mem.msg[0].cnt) > 0)
     ) {
       return res.send({
         success: true,
         msg: "First approve previous transaction",
-        data: []
+        data: [],
       });
     }
 
@@ -237,10 +235,10 @@ LIMIT 1
 ) AS grp_balance`;
     table_name = "bdccb.md_group a";
 
-     if (branch_type == 'B' && pacs_id == 111) {
-    whr = `a.branch_code = '${branch_code}' AND a.delete_flag = 'N' AND a.pacs_id = '${pacs_id}' AND a.sb_ac_no = '${sb_ac_no}'`;
-    order = null;
-    } else if (branch_type == 'P') {
+    if (branch_type == "B" && pacs_id == 111) {
+      whr = `a.branch_code = '${branch_code}' AND a.delete_flag = 'N' AND a.pacs_id = '${pacs_id}' AND a.sb_ac_no = '${sb_ac_no}'`;
+      order = null;
+    } else if (branch_type == "P") {
       whr = `a.pacs_id='${branch_code}' AND a.delete_flag = 'N'
       AND a.sb_ac_no = '${sb_ac_no}'`;
       order = null;
@@ -248,19 +246,19 @@ LIMIT 1
       whr = `a.delete_flag = 'N' AND a.sb_ac_no = '${sb_ac_no}'`;
       order = null;
     }
-    var fetch_gp = await db_Select(select, table_name, whr, order)
+    var fetch_gp = await db_Select(select, table_name, whr, order);
 
     if (fetch_gp.suc !== 1 || fetch_gp.msg.length === 0) {
       return res.send({
         success: true,
         msg: "Group data not found",
-        data: []
+        data: [],
       });
     }
 
     // const group_code = fetch_gp.msg[0].group_code;
 
-    // FETCH GROUP MEMBERS // 
+    // FETCH GROUP MEMBERS //
     var select = `a.member_code member_id,a.group_code,a.member_name,a.member_account_no as sb_acc_no,COALESCE(
 (
 SELECT balance
@@ -279,22 +277,20 @@ LIMIT 1
     fetch_gp.msg.forEach((group) => {
       group["memb_dt"] =
         grp_mem_dt.suc === 1
-          ? grp_mem_dt.msg.filter(
-            (m) => m.group_code === group.group_code
-          )
+          ? grp_mem_dt.msg.filter((m) => m.group_code === group.group_code)
           : [];
     });
     if (fetch_gp.suc === 1 && fetch_gp.msg.length > 0) {
       return res.send({
         success: true,
         msg: "Group with member List",
-        data: fetch_gp.msg
+        data: fetch_gp.msg,
       });
     } else {
       return res.send({
         success: true,
         msg: "Failed to fetch group with member data",
-        data: []
+        data: [],
       });
     }
   } catch (error) {
@@ -302,7 +298,7 @@ LIMIT 1
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
@@ -310,22 +306,15 @@ LIMIT 1
 // save deposit/withdrawl
 sbRouter.post("/save_sb_transaction", async (req, res) => {
   try {
-    const { flag, tenant_id, branch_id, shg_id, grp_acc_no, dep_with_flag, cr_amt, created_by, created_ip, members } = req.body;
-    console.log(req.body, 'sb');
+    const {flag,user_type,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,cr_amt,created_by,created_ip,members} = req.body;
+    console.log(req.body, "sb");
 
-
-    let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-    // if (!members || !Array.isArray(members) || members.length === 0) {
-    //   return res.send({ success: true, msg: "Member data is required" });
-    // }
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     // Fetch current balance
-    const balance_data = await db_Select("balance", "bdccb.td_deposit_trans", `acc_no = '${grp_acc_no}'`, "trans_dt DESC", 1);
+    const balance_data = await db_Select("balance","bdccb.td_deposit_trans",`acc_no = '${grp_acc_no}'`,"trans_dt DESC",1,);
     let prev_balance = 0;
-    if (
-      balance_data.suc > 0 &&
-      balance_data.msg.length > 0) {
+    if (balance_data.suc > 0 && balance_data.msg.length > 0) {
       prev_balance = parseFloat(balance_data.msg[0].balance || 0);
     }
     // let prev_balance = parseFloat(balance_data.suc > 0 ? balance_data.msg[0].balance : 0);
@@ -333,48 +322,59 @@ sbRouter.post("/save_sb_transaction", async (req, res) => {
     let new_balance = 0;
     let dr_amt = 0;
     let cr_amount = 0;
-    let remarks = dep_with_flag == 'D' ? 'Deposit' : 'Withdrawal';
+    let remarks = dep_with_flag == "D" ? "Deposit" : "Withdrawal";
 
-    if (dep_with_flag == 'D') { // Deposit
+    if (dep_with_flag == "D") {
+      // Deposit
       new_balance = prev_balance + trans_amount;
       cr_amount = trans_amount;
-    } else { // Withdraw
+    } else {
+      // Withdraw
       new_balance = prev_balance - trans_amount;
       dr_amt = trans_amount;
     }
 
-    // 1. Calculate total amount
-    // let total_amount = 0;
-    // for (const m of members) {
-    //   total_amount += parseFloat(m.amount || 0);
-    // }
+    let approval_flag = user_type == 'S' ? 'U' : 'A';
 
-    // if (total_amount <= 0) {
-    //   return res.send({ success: true, msg: "Total amount must be greater than 0" });
-    // }
-
-    if (flag == 'M') {
+    if (flag == "M") {
       const table_trans = "bdccb.td_deposit_trans";
-      const columns_trans = ["tenant_id", "branch_id", "acc_no", "trans_dt", "dep_with_flag", "dr_amt", "cr_amt", "balance", "remarks", "created_by", "created_at", "created_ip", "approval_flag", "shg_id"];
-      const values_trans = [tenant_id, branch_id, grp_acc_no, datetime, dep_with_flag, dr_amt, cr_amount, new_balance, remarks, created_by, datetime, created_ip, 'U', shg_id];
+      const columns_trans = ["tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip","approval_flag","approved_by","approved_at",
+      "shg_id"];
+      const values_trans = [tenant_id,branch_id,grp_acc_no,datetime,dep_with_flag,dr_amt,cr_amount,new_balance,
+        remarks,created_by,datetime,created_ip,approval_flag,approval_flag == 'A' ? created_by : null,approval_flag == 'A' ? datetime : null,shg_id];
       const whereColumns_trans = [];
       const whereValues_trans = [];
       const flag_trans = 0;
-      const result_trans = await saveRecord(table_trans, columns_trans, values_trans, whereColumns_trans, whereValues_trans, flag_trans);
+      const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
 
       if (result_trans.suc === 0) {
         return res.send({
           success: true,
-          msg: result_trans.msg
+          msg: result_trans.msg,
         });
       }
 
+      if(approval_flag == 'A'){
+      const table_trans1 = "bdccb.td_deposit";
+      const columns_trans1 = ["balance","modified_by","modified_at","modified_ip"];
+      const values_trans1 = [new_balance, created_by, datetime, created_ip];
+      const whereColumns_trans1 = ["tenant_id", "shg_id", "acc_no"];
+      const whereValues_trans1 = [tenant_id, shg_id, grp_acc_no];
+      const flag_trans1 = 1;
+      const result_trans1 = await saveRecord(table_trans1,columns_trans1,values_trans1,whereColumns_trans1,whereValues_trans1,flag_trans1);
+
+      if (result_trans1.suc === 0) {
+        return res.send({
+          success: true,
+          msg: result_trans1.msg,
+        });
+      }
+    }
+
       for (const memb of members) {
-        const balance_mem_data = await db_Select("balance", "bdccb.td_sb_trans", `acc_no = '${memb.sb_acc_no}'`, "trans_dt DESC", 1);
+        const balance_mem_data = await db_Select("balance","bdccb.td_sb_trans",`acc_no = '${memb.sb_acc_no}'`,"trans_dt DESC",1);
         let mem_prev_balance = 0;
-        if (
-          balance_mem_data.suc > 0 &&
-          balance_mem_data.msg.length > 0) {
+        if (balance_mem_data.suc > 0 && balance_mem_data.msg.length > 0) {
           mem_prev_balance = parseFloat(balance_mem_data.msg[0].balance || 0);
         }
         const memb_amt = parseFloat(memb.amount || 0);
@@ -383,58 +383,101 @@ sbRouter.post("/save_sb_transaction", async (req, res) => {
         let mem_dr_amount = 0;
         //  let new_memb_balance = dep_with_flag === 'D' ? parseFloat(memb_balance) + memb_amt : parseFloat(memb_balance) - memb_amt;
 
-        if (dep_with_flag == 'D') { // Deposit
+        if (dep_with_flag == "D") {
+          // Deposit
           new_memb_balance = mem_prev_balance + memb_amt;
           mem_cr_amount = memb_amt;
           mem_dr_amount = 0;
-        } else { // Withdraw
+        } else {
+          // Withdraw
           new_memb_balance = mem_prev_balance - memb_amt;
           mem_dr_amount = memb_amt;
           mem_cr_amount = 0;
         }
 
+        let approval_flag = user_type == 'S' ? 'U' : 'A';
+
         const table_trans = "bdccb.td_sb_trans";
-        const columns_trans = ["tenant_id", "branch_id", "acc_no", "trans_dt", "dep_with_flag", "dr_amt", "cr_amt", "balance", "remarks", "created_by", "created_at", "created_ip", "approval_flag", "shg_id", "member_id"];
-        const values_trans = [tenant_id, branch_id, memb.sb_acc_no, datetime, dep_with_flag, mem_dr_amount, mem_cr_amount, new_memb_balance, remarks, created_by, datetime, created_ip, 'U', shg_id, memb.member_id];
+        const columns_trans = ["tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip","approval_flag","approved_by","approved_at",
+        "shg_id","member_id"];
+        const values_trans = [tenant_id,branch_id,memb.sb_acc_no,datetime,dep_with_flag,mem_dr_amount,
+          mem_cr_amount,new_memb_balance,remarks,created_by,datetime,created_ip,approval_flag,approval_flag == 'A' ? created_by : null,approval_flag == 'A' ? datetime : null,shg_id,memb.member_id];
         const whereColumns_trans = [];
         const whereValues_trans = [];
         const flag_trans = 0;
-        const result_trans_memb = await saveRecord(table_trans, columns_trans, values_trans, whereColumns_trans, whereValues_trans, flag_trans);
+        const result_trans_memb = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
 
         if (result_trans_memb.suc === 0) {
           return res.send({
             success: true,
             msg: result_trans_memb.msg,
-            member_id: memb.member_id
+            member_id: memb.member_id,
+          });
+        }
+
+        if (approval_flag == 'A') {
+        const table_trans1 = "bdccb.td_sb";
+        const columns_trans1 = ["balance","modified_by","modified_at","modified_ip"];
+        const values_trans1 = [new_memb_balance,created_by,datetime,created_ip];
+        const whereColumns_trans1 = ["tenant_id","shg_id","acc_no","member_id"];
+        const whereValues_trans1 = [tenant_id,shg_id,memb.sb_acc_no,memb.member_id];
+        const flag_trans1 = 1;
+        const result_trans_memb1 = await saveRecord(table_trans1,columns_trans1,values_trans1,whereColumns_trans1,whereValues_trans1,flag_trans1);
+
+        if (result_trans_memb1.suc === 0) {
+          return res.send({
+            success: true,
+            msg: result_trans_memb1.msg,
+            member_id: memb.member_id,
           });
         }
       }
+    }
     } else {
       const table_trans = "bdccb.td_deposit_trans";
-      const columns_trans = ["tenant_id", "branch_id", "acc_no", "trans_dt", "dep_with_flag", "dr_amt", "cr_amt", "balance", "remarks", "created_by", "created_at", "created_ip", "approval_flag", "shg_id"];
-      const values_trans = [tenant_id, branch_id, grp_acc_no, datetime, dep_with_flag, dr_amt, cr_amount, new_balance, remarks, created_by, datetime, created_ip, 'U', shg_id];
+      const columns_trans = ["tenant_id","branch_id","acc_no","trans_dt","dep_with_flag","dr_amt","cr_amt","balance","remarks","created_by","created_at","created_ip","approval_flag","approved_by","approved_at",
+      "shg_id"];
+      const values_trans = [tenant_id,branch_id,grp_acc_no,datetime,dep_with_flag,dr_amt,cr_amount,new_balance,
+        remarks,created_by,datetime,created_ip,approval_flag,approval_flag == 'A' ? created_by : null,approval_flag == 'A' ? datetime : null,shg_id];
       const whereColumns_trans = [];
       const whereValues_trans = [];
       const flag_trans = 0;
-      const result_trans = await saveRecord(table_trans, columns_trans, values_trans, whereColumns_trans, whereValues_trans, flag_trans);
+      const result_trans = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
 
       if (result_trans.suc === 0) {
         return res.send({
           success: true,
-          msg: result_trans.msg
+          msg: result_trans.msg,
+        });
+      }
+
+      if(approval_flag == 'A'){
+      const table_trans1 = "bdccb.td_deposit";
+      const columns_trans1 = ["balance","modified_by","modified_at","modified_ip"];
+      const values_trans1 = [new_balance, created_by, datetime, created_ip];
+      const whereColumns_trans1 = ["tenant_id", "shg_id", "acc_no"];
+      const whereValues_trans1 = [tenant_id, shg_id, grp_acc_no];
+      const flag_trans1 = 1;
+      const result_trans1 = await saveRecord(table_trans1,columns_trans1,values_trans1,whereColumns_trans1,whereValues_trans1,flag_trans1);
+
+      if (result_trans1.suc === 0) {
+        return res.send({
+          success: true,
+          msg: result_trans1.msg,
         });
       }
     }
+  }
     return res.send({
       success: true,
-      msg: "Savings transaction saved successfully"
+      msg: "Savings transaction saved successfully",
     });
   } catch (error) {
     console.log("Error while save savings transaction:", error);
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
@@ -442,7 +485,7 @@ sbRouter.post("/save_sb_transaction", async (req, res) => {
 // fetch deposit and Withdrawal list
 sbRouter.post("/fetch_sb_transaction_list", async (req, res) => {
   try {
-    const { dep_with_flag, tenant_id, branch_id, approval_status} = req.body;
+    const { dep_with_flag, tenant_id, branch_id, approval_status } = req.body;
 
     var select = `a.shg_id, b.group_name, a.acc_no, TO_CHAR(a.trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt, a.dep_with_flag, a.dr_amt, a.cr_amt, a.balance, a.remarks, a.approval_flag,
     CASE WHEN EXISTS (
@@ -452,28 +495,39 @@ sbRouter.post("/fetch_sb_transaction_list", async (req, res) => {
     AND x.trans_dt = a.trans_dt)
     THEN 'M'
     ELSE 'D'
-    END AS flag`;
-    var table_name = "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code";
+    END AS flag,
+    CASE
+    WHEN a.trans_dt = (
+    SELECT MAX(z.trans_dt)
+    FROM bdccb.td_deposit_trans z
+    WHERE z.shg_id = a.shg_id
+    AND z.acc_no = a.acc_no
+    )
+    THEN 'Y'
+    ELSE 'N'
+    END AS delete_flag`;
+    var table_name =
+      "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code";
     var whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.dep_with_flag = '${dep_with_flag}' AND a.approval_flag = '${approval_status}' AND a.balance > 0`;
 
     // if (trans_dt) {
     //   whr += ` AND date(a.trans_dt) = '${trans_dt}'`;
     // }
 
-    var order = "a.trans_dt";
+    var order = "a.trans_dt DESC";
     var fetch_data = await db_Select(select, table_name, whr, order);
 
     if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
       return res.send({
         success: true,
         msg: "Transaction list found",
-        data: fetch_data.msg
+        data: fetch_data.msg,
       });
     } else {
       return res.send({
         success: true,
         msg: "No transaction found",
-        data: []
+        data: [],
       });
     }
   } catch (error) {
@@ -481,55 +535,238 @@ sbRouter.post("/fetch_sb_transaction_list", async (req, res) => {
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
 
 // fetch total transaction details with member
+// sbRouter.post("/fetch_sb_transaction_dtls", async (req, res) => {
+//   try {
+//     const { group_code, trans_dt, flag } = req.body;
+
+//     var select = "a.shg_id, b.group_name, a.acc_no as grp_acc_no, TO_CHAR(trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt, a.dep_with_flag, a.dr_amt, a.cr_amt, a.balance as grp_balance, a.approval_flag";
+//     var table_name = "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code";
+//     var whr = `a.shg_id = '${group_code}' AND a.trans_dt = '${trans_dt}'`;
+
+//     var fetch_grp_trans = await db_Select(select, table_name, whr, null);
+//     if (fetch_grp_trans.suc !== 1 || fetch_grp_trans.msg.length === 0) {
+//       return res.send({
+//         success: true,
+//         msg: "Transaction details not found",
+//         data: []
+//       });
+//     }
+//     // Fetch Individual Member level transaction details
+//     if(flag == 'M'){
+//     var select_mem = "a.member_id, b.member_name, a.acc_no as sb_acc_no, a.dr_amt, a.cr_amt, a.balance as member_balance, a.dep_with_flag";
+//     var table_mem = "bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code AND a.shg_id = b.group_code";
+//     var whr_mem = `a.shg_id = '${group_code}' AND a.trans_dt = '${trans_dt}'`;
+//     var order_mem = "b.member_name";
+//     }else{
+//     var select_mem = "DISTINCT ON (a.member_id) a.member_id, b.member_name, a.acc_no as sb_acc_no, a.dr_amt, a.cr_amt, a.balance as member_balance, a.dep_with_flag";
+//     var table_mem = "bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code AND a.shg_id = b.group_code";
+//     var whr_mem = `a.shg_id = '${group_code}'`;
+//     var order_mem = `a.member_id, a.trans_dt DESC`;
+//     }
+
+//     var fetch_mem_trans = await db_Select(select_mem, table_mem, whr_mem,order_mem);
+//     var result = fetch_grp_trans.msg[0];
+//     result["memb_dt"] = fetch_mem_trans.suc === 1 ? fetch_mem_trans.msg : [];
+//     return res.send({
+//       success: true,
+//       msg: "Transaction details with member list",
+//       data: result
+//     });
+//   } catch (error) {
+//     console.log("Error while fetch savings transaction details:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR"
+//     });
+//   }
+// });
+
 sbRouter.post("/fetch_sb_transaction_dtls", async (req, res) => {
   try {
     const { group_code, trans_dt, flag } = req.body;
 
-    var select = "a.shg_id, b.group_name, a.acc_no as grp_acc_no, TO_CHAR(trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt, a.dep_with_flag, a.dr_amt, a.cr_amt, a.balance as grp_balance, a.approval_flag";
-    var table_name = "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code";
+    // GROUP TRANSACTION
+    var select = `
+      a.shg_id,
+      b.group_name,
+      a.acc_no as grp_acc_no,
+      TO_CHAR(a.trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt,
+      a.dep_with_flag,
+      a.dr_amt,
+      a.cr_amt,
+      a.balance as grp_balance,
+      a.approval_flag
+    `;
+
+    var table_name = `bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b
+      ON a.shg_id = b.group_code`;
+
     var whr = `a.shg_id = '${group_code}' AND a.trans_dt = '${trans_dt}'`;
-    
+
     var fetch_grp_trans = await db_Select(select, table_name, whr, null);
+
     if (fetch_grp_trans.suc !== 1 || fetch_grp_trans.msg.length === 0) {
       return res.send({
         success: true,
         msg: "Transaction details not found",
-        data: []
+        data: [],
       });
     }
-    // Fetch Individual Member level transaction details
-    if(flag == 'M'){
-    var select_mem = "a.member_id, b.member_name, a.acc_no as sb_acc_no, a.dr_amt, a.cr_amt, a.balance as member_balance, a.dep_with_flag";
-    var table_mem = "bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code AND a.shg_id = b.group_code";
-    var whr_mem = `a.shg_id = '${group_code}' AND a.trans_dt = '${trans_dt}'`;
-    var order_mem = "b.member_name";
-    }else{
-    var select_mem = "DISTINCT ON (a.member_id) a.member_id, b.member_name, a.acc_no as sb_acc_no, a.dr_amt, a.cr_amt, a.balance as member_balance, a.dep_with_flag";
-    var table_mem = "bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code AND a.shg_id = b.group_code";
-    var whr_mem = `a.shg_id = '${group_code}'`;
-    var order_mem = `a.member_id, a.trans_dt DESC`;
-    }
-    
-    var fetch_mem_trans = await db_Select(select_mem, table_mem, whr_mem,order_mem);
+
+    // MEMBER DETAILS
+    let select_mem = "";
+    let table_mem = "";
+    let whr_mem = "";
+    let order_mem = "";
+
+    if (flag == "M") {
+      select_mem = `a.member_id,b.member_name,a.acc_no as sb_acc_no,TO_CHAR(a.trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt,a.dr_amt,a.cr_amt,a.balance as member_balance,a.dep_with_flag,a.approval_flag`;
+      table_mem = `bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code
+        AND a.shg_id = b.group_code`;
+      whr_mem = `a.shg_id = '${group_code}' AND a.trans_dt = '${trans_dt}'`;
+      order_mem = "b.member_name";
+    } else {
+      // GROUP TRANSACTION
+      // SHOW LATEST MEMBER BALANCE
+
+      select_mem = `
+        x.member_id,
+        x.member_name,
+        x.sb_acc_no,
+        x.trans_dt,
+        x.dr_amt,
+        x.cr_amt,
+        x.member_balance,
+        x.dep_with_flag,
+        x.approval_flag
+    `;
+
+    table_mem = `
+    (
+        SELECT DISTINCT ON (a.member_id)
+
+            a.member_id,
+            m.member_name,
+            a.acc_no as sb_acc_no,
+
+            TO_CHAR(t.trans_dt, 'YYYY-MM-DD HH24:MI:SS') AS trans_dt,
+
+            COALESCE(t.dr_amt,0) as dr_amt,
+            COALESCE(t.cr_amt,0) as cr_amt,
+
+            a.balance as member_balance,
+            a.dep_with_flag,
+            a.approval_flag
+
+        FROM bdccb.td_sb_trans a
+
+        LEFT JOIN bdccb.md_member m
+        ON a.member_id = m.member_code
+        AND a.shg_id = m.group_code
+
+        LEFT JOIN bdccb.td_sb_trans t
+        ON a.member_id = t.member_id
+        AND a.shg_id = t.shg_id
+        AND t.trans_dt = '${trans_dt}'
+
+        WHERE a.shg_id = '${group_code}'
+
+        ORDER BY a.member_id, a.trans_dt DESC
+
+    ) x
+    `;
+
+    whr_mem = null;
+
+    order_mem = null;
+}
+
+    var fetch_mem_trans = await db_Select(
+      select_mem,
+      table_mem,
+      whr_mem,
+      order_mem,
+    );
+
     var result = fetch_grp_trans.msg[0];
+
     result["memb_dt"] = fetch_mem_trans.suc === 1 ? fetch_mem_trans.msg : [];
+
     return res.send({
       success: true,
       msg: "Transaction details with member list",
-      data: result
+      data: result,
     });
   } catch (error) {
     console.log("Error while fetch savings transaction details:", error);
+
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+// CHECKING BEFORE WITHDRAWL GROUP AMOUNT
+sbRouter.post("/check_before_withdrawal_grp_amt", async (req, res) => {
+  try{
+  const {tenant_id,shg_id,grp_acc_no,withdraw_amount} = req.body;
+
+  // FETCH GROUP BALANCE
+  const grp_balance_data = await db_Select("balance","bdccb.td_deposit_trans",`tenant_id='${tenant_id}' AND shg_id='${shg_id}' AND acc_no='${grp_acc_no}'`,"trans_dt DESC LIMIT 1");
+
+  var grp_balance = 0;
+
+  if (grp_balance_data.suc === 1 && grp_balance_data.msg.length > 0) {
+    grp_balance = Number(grp_balance_data.msg[0].balance || 0);
+  }
+
+  // FETCH TOTAL MEMBER BALANCE
+  const mem_balance_data  = await db_Select(`COALESCE(SUM(member_balance),0) AS total_member_balance`,
+  `(SELECT DISTINCT ON (member_id)
+        member_id,
+        balance AS member_balance
+        FROM bdccb.td_sb_trans
+        WHERE shg_id = '${shg_id}'
+        ORDER BY member_id, trans_dt DESC
+    ) x`,null,null);
+
+   var total_member_balance = 0;
+
+  if (mem_balance_data.suc === 1 && mem_balance_data.msg.length > 0) {
+    total_member_balance = Number(mem_balance_data.msg[0].total_member_balance || 0);
+  }
+
+  // AVAILABLE GROUP BALANCE
+  var available_balance = grp_balance - total_member_balance;
+
+  // VALIDATION
+  if (Number(withdraw_amount) > available_balance) {
+    return res.send({
+        success: false,
+        // msg: `Withdrawal amount exceeds available group balance. Available balance is ${available_balance}`
+        msg: `Insufficient balance. Available balance is ${available_balance}`
+    });
+  }else{
+    return res.send({
+        success: true,
+        msg: "Amount accepted"
+    });
+  }
+  }catch (error) {
+    console.log("Error while checking group withdrawal amount:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
     });
   }
 });
@@ -539,7 +776,7 @@ sbRouter.post("/fetch_sb_transaction_dtls", async (req, res) => {
 //   try {
 //     const { flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,cr_amt,trans_dt,members,approved_by,approved_ip} = req.body;
 //     console.log(req.body,'approve');
-    
+
 //     let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
 //     if (flag == 'M') {
@@ -584,7 +821,6 @@ sbRouter.post("/fetch_sb_transaction_dtls", async (req, res) => {
 //           success: true,
 //           msg: result_trans_apps.msg
 //         });
-      
 
 //       for (const memb of members) {
 
@@ -668,46 +904,56 @@ sbRouter.post("/fetch_sb_transaction_dtls", async (req, res) => {
 
 sbRouter.post("/approve_sb_transaction", async (req, res) => {
   try {
-    const { flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,cr_amt,trans_dt,members,approved_by,approved_ip} = req.body;
-    console.log(req.body,'approve');
-    
-    let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const {flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,cr_amt,trans_dt,members,approved_by,approved_ip} = req.body;
+    console.log(req.body, "approve");
 
-    if (flag == 'M') {
-       let total_member_amt = 0;
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-    for (const m of members) {
+    if (flag == "M") {
+      let total_member_amt = 0;
+
+      for (const m of members) {
         total_member_amt += parseFloat(m.amount || 0);
-    }
+      }
 
-    if (parseFloat(cr_amt || 0) !== total_member_amt) {
+      if (parseFloat(cr_amt || 0) !== total_member_amt) {
         return res.send({
           success: true,
-          msg: "Group amount and member amount mismatch"
+          msg: "Group amount and member amount mismatch",
         });
       }
     }
 
-     // =========================
+    // =========================
     // FETCH OLD GROUP TRANS
     // =========================
 
-    const old_grp_trans = await db_Select("*","bdccb.td_deposit_trans",`tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND acc_no='${grp_acc_no}' AND trans_dt='${trans_dt}' AND approval_flag='U'`,null);
+    const old_grp_trans = await db_Select(
+      "*",
+      "bdccb.td_deposit_trans",
+      `tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND acc_no='${grp_acc_no}' AND trans_dt='${trans_dt}' AND approval_flag='U'`,
+      null,
+    );
 
-     if (old_grp_trans.suc === 0 ||old_grp_trans.msg.length === 0) {
+    if (old_grp_trans.suc === 0 || old_grp_trans.msg.length === 0) {
       return res.send({
         success: true,
-        msg: "Transaction not found"
+        msg: "Transaction not found",
       });
     }
 
     const old_grp = old_grp_trans.msg[0];
 
-     // =========================
+    // =========================
     // FETCH CURRENT GROUP BALANCE
     // =========================
 
-    const grp_bal_dt = await db_Select("balance","bdccb.td_deposit",`tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND acc_no='${grp_acc_no}'`, null);
+    const grp_bal_dt = await db_Select(
+      "balance",
+      "bdccb.td_deposit",
+      `tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND acc_no='${grp_acc_no}'`,
+      null,
+    );
 
     let current_grp_balance = 0;
 
@@ -715,72 +961,77 @@ sbRouter.post("/approve_sb_transaction", async (req, res) => {
       current_grp_balance = parseFloat(grp_bal_dt.msg[0].balance || 0);
     }
 
-    let old_grp_amt =parseFloat(old_grp.cr_amt || old_grp.dr_amt || 0);
+    let old_grp_amt = parseFloat(old_grp.cr_amt || old_grp.dr_amt || 0);
 
     let edited_grp_amt = parseFloat(cr_amt || 0);
 
     let final_grp_balance = 0;
 
-    if (dep_with_flag == 'D') {
-
+    if (dep_with_flag == "D") {
       final_grp_balance = current_grp_balance + edited_grp_amt;
-
     } else {
-
       final_grp_balance = current_grp_balance - edited_grp_amt;
     }
 
     const table_trans = "bdccb.td_deposit_trans";
     const columns_trans = ["dr_amt","cr_amt","balance","approval_flag","approved_by","approved_at"];
-    const values_trans = [dep_with_flag == 'W' ? edited_grp_amt : 0,dep_with_flag == 'D' ? edited_grp_amt: 0, 
-    final_grp_balance,'A',approved_by,datetime];
+    const values_trans = [dep_with_flag == "W" ? edited_grp_amt : 0,dep_with_flag == "D" ? edited_grp_amt : 0,
+      final_grp_balance,"A",approved_by,datetime];
     const whereColumns_trans = ["tenant_id","branch_id","acc_no","trans_dt","shg_id"];
     const whereValues_trans = [tenant_id,branch_id,grp_acc_no,trans_dt,shg_id];
     const flag_trans = 1;
-    const result_trans_app = await saveRecord(table_trans, columns_trans, values_trans, whereColumns_trans, whereValues_trans, flag_trans)  
-      if (result_trans_app.suc === 0) {
-        return res.send({
-          success: true,
-          msg: result_trans_app.msg
-        });
-      }
+    const result_trans_app = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
+    if (result_trans_app.suc === 0) {
+      return res.send({
+        success: true,
+        msg: result_trans_app.msg,
+      });
+    }
 
-      const table_trans1 = "bdccb.td_deposit";
-      const columns_trans1 = ["balance","modified_by","modified_at","modified_ip"];
-      const values_trans1 = [final_grp_balance,approved_by,datetime,approved_ip];
-      const whereColumns_trans1 = ["tenant_id","shg_id","branch_id","acc_no"];
-      const whereValues_trans1 = [tenant_id,shg_id,branch_id,grp_acc_no];
-      const flag_trans1 = 1;
-      const result_trans_apps = await saveRecord(table_trans1, columns_trans1, values_trans1, whereColumns_trans1, whereValues_trans1, flag_trans1);
+    const table_trans1 = "bdccb.td_deposit";
+    const columns_trans1 = ["balance","modified_by","modified_at","modified_ip"];
+    const values_trans1 = [final_grp_balance,approved_by,datetime,approved_ip];
+    const whereColumns_trans1 = ["tenant_id", "shg_id", "branch_id", "acc_no"];
+    const whereValues_trans1 = [tenant_id, shg_id, branch_id, grp_acc_no];
+    const flag_trans1 = 1;
+    const result_trans_apps = await saveRecord(table_trans1,columns_trans1,values_trans1,whereColumns_trans1,whereValues_trans1,flag_trans1);
 
-      if (result_trans_apps.suc === 0) {
-        return res.send({
-          success: true,
-          msg: result_trans_apps.msg
-        });
-      }
-      
+    if (result_trans_apps.suc === 0) {
+      return res.send({
+        success: true,
+        msg: result_trans_apps.msg,
+      });
+    }
 
-      if (flag == 'M') {  
+    if (flag == "M") {
       for (const memb of members) {
+        // FETCH OLD MEMBER TRANS
 
-      // FETCH OLD MEMBER TRANS
+        const old_mem_trans = await db_Select(
+          "*",
+          "bdccb.td_sb_trans",
+          `tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND member_id='${memb.member_id}' AND trans_dt='${trans_dt}'
+      AND approval_flag='U'`,
+          null,
+        );
 
-      const old_mem_trans = await db_Select("*","bdccb.td_sb_trans",`tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND member_id='${memb.member_id}' AND trans_dt='${trans_dt}'
-      AND approval_flag='U'`,null);
-
-      if (old_mem_trans.suc === 0 || old_mem_trans.msg.length === 0) {
+        if (old_mem_trans.suc === 0 || old_mem_trans.msg.length === 0) {
           return res.send({
             success: true,
-            msg: `Old member transaction not found for ${memb.member_id}`
+            msg: `Old member transaction not found for ${memb.member_id}`,
           });
         }
 
-       const old_mem = old_mem_trans.msg[0];
+        const old_mem = old_mem_trans.msg[0];
 
-      // FETCH CURRENT MEMBER BALANCE
+        // FETCH CURRENT MEMBER BALANCE
 
-       const mem_bal_dt = await db_Select("balance","bdccb.td_sb",`tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND member_id='${memb.member_id}'`,null);
+        const mem_bal_dt = await db_Select(
+          "balance",
+          "bdccb.td_sb",
+          `tenant_id='${tenant_id}' AND branch_id='${branch_id}' AND shg_id='${shg_id}' AND member_id='${memb.member_id}'`,
+          null,
+        );
 
         let current_mem_balance = 0;
 
@@ -794,43 +1045,42 @@ sbRouter.post("/approve_sb_transaction", async (req, res) => {
 
         let final_mem_balance = 0;
 
-        if (dep_with_flag == 'D') {
-
+        if (dep_with_flag == "D") {
           final_mem_balance = current_mem_balance + edited_mem_amt;
         } else {
-
           final_mem_balance = current_mem_balance - edited_mem_amt;
         }
 
         const table_trans = "bdccb.td_sb_trans";
-        const columns_trans = ["dr_amt","cr_amt","balance","approval_flag", "approved_by", "approved_at"];
-        const values_trans = [dep_with_flag == 'W' ? edited_mem_amt : 0, dep_with_flag == 'D' ? edited_mem_amt : 0, final_mem_balance,'A',approved_by,datetime];
+        const columns_trans = ["dr_amt","cr_amt","balance","approval_flag","approved_by","approved_at"];
+        const values_trans = [dep_with_flag == "W" ? edited_mem_amt : 0,dep_with_flag == "D" ? edited_mem_amt : 0,
+          final_mem_balance,"A",approved_by,datetime];
         const whereColumns_trans = ["tenant_id","branch_id","acc_no","trans_dt","balance","shg_id","member_id"];
         const whereValues_trans = [tenant_id,branch_id,memb.sb_acc_no,trans_dt,memb.member_balance,shg_id,memb.member_id];
         const flag_trans = 1;
-        const result_trans_memb = await saveRecord(table_trans, columns_trans, values_trans, whereColumns_trans, whereValues_trans, flag_trans);
+        const result_trans_memb = await saveRecord(table_trans,columns_trans,values_trans,whereColumns_trans,whereValues_trans,flag_trans);
 
         if (result_trans_memb.suc === 0) {
           return res.send({
             success: true,
             msg: result_trans_memb.msg,
-            member_id: memb.member_id
+            member_id: memb.member_id,
           });
         }
 
         const table_trans4 = "bdccb.td_sb";
-        const columns_trans4 = ["balance", "modified_by", "modified_at","modified_ip"];
+        const columns_trans4 = ["balance","modified_by","modified_at","modified_ip",];
         const values_trans4 = [final_mem_balance,approved_by,datetime,approved_ip];
         const whereColumns_trans4 = ["tenant_id","shg_id","branch_id","acc_no","member_id"];
         const whereValues_trans4 = [tenant_id,shg_id,branch_id,memb.sb_acc_no,memb.member_id];
         const flag_trans4 = 1;
-        const result_trans_memb4 = await saveRecord(table_trans4, columns_trans4, values_trans4, whereColumns_trans4, whereValues_trans4, flag_trans4);
+        const result_trans_memb4 = await saveRecord(table_trans4,columns_trans4,values_trans4,whereColumns_trans4,whereValues_trans4,flag_trans4);
 
         if (result_trans_memb4.suc === 0) {
           return res.send({
             success: true,
             msg: result_trans_memb.msg,
-            member_id: memb.member_id
+            member_id: memb.member_id,
           });
         }
       }
@@ -868,36 +1118,37 @@ sbRouter.post("/approve_sb_transaction", async (req, res) => {
     // }
     return res.send({
       success: true,
-      msg: "Transaction approved successfully"
+      msg: "Transaction approved successfully",
     });
-
   } catch (error) {
     console.log("Error while approved transaction:", error);
 
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
 
 // REJECT TRANSACTION BEFORE APPROVE
 sbRouter.post("/reject_sb_transaction", async (req, res) => {
-  try{
-  const {flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,trans_dt,members,modified_by,modified_ip} = req.body;
+  try {
+    const {flag,tenant_id,branch_id,shg_id,grp_acc_no,dep_with_flag,trans_dt,members,modified_by,modified_ip
+    } = req.body;
 
-  let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-  // DELETE GROUP TRANSACTION
- 
-  // td_deposit_trans
-    await deleteRecord("bdccb.td_deposit_trans",["tenant_id","branch_id","shg_id","acc_no","trans_dt","approval_flag"],
-      [tenant_id,branch_id,shg_id,grp_acc_no,trans_dt,'U']
+    // DELETE GROUP TRANSACTION
+
+    // td_deposit_trans
+    await deleteRecord("bdccb.td_deposit_trans",
+      ["tenant_id","branch_id","shg_id","acc_no","trans_dt"],
+      [tenant_id, branch_id, shg_id, grp_acc_no, trans_dt],
     );
 
-  // FETCH LAST APPROVED GROUP BALANCE
-   let grpData = await db_Select(
+    // FETCH LAST APPROVED GROUP BALANCE
+    let grpData = await db_Select(
       "balance",
       "bdccb.td_deposit_trans",
       `tenant_id = '${tenant_id}'
@@ -906,7 +1157,7 @@ sbRouter.post("/reject_sb_transaction", async (req, res) => {
       AND acc_no = '${grp_acc_no}'
       AND approval_flag = 'A'`,
       "trans_dt DESC",
-      1
+      1,
     );
 
     let grp_balance = 0;
@@ -917,26 +1168,42 @@ sbRouter.post("/reject_sb_transaction", async (req, res) => {
 
     // UPDATE GROUP MAIN TABLE
 
-      await saveRecord("bdccb.td_deposit",
-      ["balance","modified_by","modified_at","modified_ip"],
-      [grp_balance,modified_by,datetime,modified_ip],
-      ["tenant_id","branch_id","shg_id","acc_no"],
-      [tenant_id,branch_id,shg_id,grp_acc_no],
-      1
+    await saveRecord(
+      "bdccb.td_deposit",
+      ["balance", "modified_by", "modified_at", "modified_ip"],
+      [grp_balance, modified_by, datetime, modified_ip],
+      ["tenant_id", "branch_id", "shg_id", "acc_no"],
+      [tenant_id, branch_id, shg_id, grp_acc_no],
+      1,
     );
 
-  // MEMBER PROCESS
-   if (members && members.length > 0) {
-     for (let m of members) {
-
-       // DELETE MEMBER UNAPPROVED TRANS
-        await deleteRecord("bdccb.td_sb_trans",["tenant_id","branch_id","acc_no","trans_dt","shg_id","member_id", "approval_flag"],
-          [tenant_id,branch_id,m.sb_acc_no,trans_dt,shg_id,m.member_id,'U']
+    // MEMBER PROCESS
+    if (members && members.length > 0) {
+      for (let m of members) {
+        // DELETE MEMBER UNAPPROVED TRANS
+        await deleteRecord(
+          "bdccb.td_sb_trans",
+          [
+            "tenant_id",
+            "branch_id",
+            "acc_no",
+            "trans_dt",
+            "shg_id",
+            "member_id"
+          ],
+          [
+            tenant_id,
+            branch_id,
+            m.sb_acc_no,
+            trans_dt,
+            shg_id,
+            m.member_id
+          ],
         );
 
-         // FETCH LAST APPROVED MEMBER BALANCE
+        // FETCH LAST APPROVED MEMBER BALANCE
 
-         let memData = await db_Select(
+        let memData = await db_Select(
           "balance",
           "bdccb.td_sb_trans",
           `tenant_id = '${tenant_id}'
@@ -946,7 +1213,7 @@ sbRouter.post("/reject_sb_transaction", async (req, res) => {
           AND member_id = '${m.member_id}'
           AND approval_flag = 'A'`,
           "trans_dt DESC",
-          1
+          1,
         );
 
         let member_balance = 0;
@@ -955,31 +1222,96 @@ sbRouter.post("/reject_sb_transaction", async (req, res) => {
           member_balance = memData.msg[0].balance;
         }
 
-         // UPDATE MEMBER MAIN TABLE
-           await saveRecord(
+        // UPDATE MEMBER MAIN TABLE
+        await saveRecord(
           "bdccb.td_sb",
           ["balance"],
           [member_balance],
-          ["tenant_id","branch_id","acc_no","shg_id","member_id","modified_by","modified_at","modified_id"],
-          [tenant_id,branch_id,m.sb_acc_no,shg_id,m.member_id,modified_by,datetime,modified_ip],
-          1
+          [
+            "tenant_id",
+            "branch_id",
+            "acc_no",
+            "shg_id",
+            "member_id",
+            "modified_by",
+            "modified_at",
+            "modified_ip",
+          ],
+          [
+            tenant_id,
+            branch_id,
+            m.sb_acc_no,
+            shg_id,
+            m.member_id,
+            modified_by,
+            datetime,
+            modified_ip,
+          ],
+          1,
         );
-     }
-   }
+      }
+    }
 
     return res.send({
       success: true,
-      msg: "Transaction Rejected Successfully"
+      msg: "Transaction Rejected Successfully",
     });
-
-  }catch (error) {
+  } catch (error) {
     console.log("Error while reject transaction:", error);
     return res.send({
       success: false,
       msg: "Internal server error",
-      errorCode: "SERVER_ERROR"
+      errorCode: "SERVER_ERROR",
     });
   }
 });
 
-module.exports = { sbRouter }
+// SAVINGS TRANSACTION SCREEN IN MOBILE APP
+sbRouter.post("/sb_trans_dtls_app", async (req, res) => {
+  try{
+  const {tenant_id,shg_id,from_dt,to_dt,approval_flag} = req.body;
+
+  var select = `a.trans_no,a.member_id,b.member_name,
+    CASE
+    WHEN a.dep_with_flag = 'D' THEN 'Deposit'
+    WHEN a.dep_with_flag = 'W' THEN 'Withdrawal'
+    ELSE ''
+    END AS dep_with_flag,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.balance,0) AS member_balance,a.remarks,
+    CASE 
+    WHEN a.approval_flag = 'U' THEN a.created_by
+    WHEN a.approval_flag = 'A' THEN a.approved_by
+    ELSE ''
+    END AS user_by,
+    CASE
+    WHEN a.approval_flag = 'U' THEN TO_CHAR(a.created_at, 'YYYY-MM-DD')
+    WHEN a.approval_flag = 'A' THEN TO_CHAR(a.approved_at, 'YYYY-MM-DD')
+    ELSE ''
+    END AS action_date`,
+  table_name = "bdccb.td_sb_trans a LEFT JOIN bdccb.md_member b ON a.member_id = b.member_code",
+  whr = `a.tenant_id = '${tenant_id}' AND a.shg_id = '${shg_id}' AND DATE(a.trans_dt) between '${from_dt}' AND '${to_dt}' AND a.approval_flag = '${approval_flag}'`,
+  order = `a.member_id,a.trans_dt,a.trans_no`;
+  var fetch_sb_member_transaction = await db_Select(select,table_name,whr,order);
+  if(fetch_sb_member_transaction.suc === 1 && fetch_sb_member_transaction.msg.length > 0){
+     return res.send({
+    success: true,
+    msg: "Member savings transaction details",
+    data: fetch_sb_member_transaction.msg
+  })
+  }else{
+     return res.send({
+    success: true,
+    msg: "Member savings transaction details not found",
+    data: []
+  })
+  }
+  }catch (error) {
+    console.log("Error while view savings transaction in mobile app:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
+module.exports = { sbRouter };
