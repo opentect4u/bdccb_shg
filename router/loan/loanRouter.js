@@ -1390,7 +1390,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
     /* ---------------- MAIN LOAN DETAILS ---------------- */
 
-    let select = `DISTINCT ON (a.loan_id) a.loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER(PARTITION BY a.loan_id) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.prn_amt,a.intt_amt,a.ovd_prn_amt,a.ovd_intt_amt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_at,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`;
+    let select = `DISTINCT ON (a.loan_id) a.loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER(PARTITION BY a.loan_id) AS disb_amt,a.period,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`;
 
     let table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id
       AND a.loan_id = b.loan_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id`;
@@ -1434,41 +1434,43 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
     /* ---------------- FINAL RESPONSE ---------------- */
 
-    let response = {
-      loan_id      : loan.loan_id || 0,
-      tenant_id    : loan.tenant_id || "",
-      branch_id    : loan.branch_id || "",
-      loan_acc_no  : loan.loan_acc_no || "",
-      loan_to      : loan.loan_to || "",
-      branch_shg_id: loan.branch_shg_id || "",
-      loan_to_name: loan.loan_to_name,
-      period       : loan.period || "",
-      curr_roi     : loan.curr_roi || "",
-      penal_roi    : loan.penal_roi || "",
-      disb_dt      : loan.disb_dt || "",
-      disb_amt     : loan.disb_amt || 0,
-      tot_grp      : loan.tot_grp || 0,
-      sanction_no  : loan.sanction_no || "",
-      sanction_dt  : loan.sanction_dt || "",
-      created_by   : loan.created_by || "",
-      ip_address   : loan.ip_address || "",
-      approved_by   : loan.approved_by || "",
-      approved_dt   : loan.approved_dt,
-
-      groups : grp_dtls.suc === 1
-      ? grp_dtls.msg.map(g => ({
-          grp_sb_acc_no : g.grp_sb_acc_no || "",
-          group_code    : g.group_code || "",
-          disb_amt      : g.disb_amt || 0
-        }))
-      : []
-    };
-
     return res.send({
-      success: true,
-      msg: "Fetch Society Disbursement Details",
-      data: response
-    });
+    success: true,
+    loan_id       : loan.loan_id || 0,
+    tran_id       : loan.tran_id || 0,
+    tenant_id     : loan.tenant_id || "",
+    branch_id     : loan.branch_id || "",
+    loan_acc_no   : loan.loan_acc_no || "",
+    loan_to       : loan.loan_to || "",
+    branch_shg_id : loan.branch_shg_id || "",
+    period        : loan.period || "",
+    curr_roi      : loan.curr_roi || "",
+    penal_roi     : loan.penal_roi || "",
+    disb_dt       : loan.disb_dt || "",
+    disb_amt      : loan.disb_amt || 0,
+    tot_grp       : loan.tot_grp || 0,
+    sanction_no   : loan.sanction_no || "",
+    sanction_dt   : loan.sanction_dt || "",
+    created_by    : loan.created_by || "",
+    ip_address    : loan.ip_address || "",
+
+    approved_by   : loan.approved_by || "",
+    approved_dt   : loan.approved_dt || "",
+
+    groups : grp_dtls.suc === 1
+    ? grp_dtls.msg.map(g => ({
+        grp_sb_acc_no : g.grp_sb_acc_no || "",
+        group_code    : g.group_code || "",
+        disb_amt      : g.disb_amt || 0
+      }))
+    : []
+});
+
+    // return res.send({
+    //   success: true,
+    //   msg: "Fetch Society Disbursement Details",
+    //   data: response
+    // });
 
   } catch (error) {
 
