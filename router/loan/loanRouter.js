@@ -1383,45 +1383,309 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
 });
 
 // fetch societu disbursement
+// loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
+//   try {
+
+//     const { branch_id, approval_status, loan_to, from_dt, to_dt} = req.body;
+
+//     /* ---------------- MAIN LOAN DETAILS ---------------- */
+
+//     let select = `a.loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER(PARTITION BY a.loan_id) AS disb_amt,a.period,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`;
+
+//     let table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id
+//       AND a.loan_id = b.loan_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id`;
+
+//     let whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' AND a.fund_type = 'B'`;
+//     if (from_dt && to_dt) {
+//          whr += `AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+//       }
+
+//     let order = `a.loan_id,b.trans_id DESC`;
+
+//     let loan_dtls = await db_Select(select,table_name,whr,order);
+
+//     if (!(loan_dtls.suc === 1 && loan_dtls.msg.length > 0)) {
+//       return res.send({
+//         success: true,
+//         msg: "No data found"
+//       });
+//     }
+
+//     /* ---------------- FINAL RESPONSE ARRAY ---------------- */
+
+//     let response = [];
+
+//     for (const loan of loan_dtls.msg) {
+
+//       /* ---------------- GROUP DETAILS ---------------- */
+
+//       let grp_select = `
+//         DISTINCT ON (a.group_code)
+
+//         c.sb_ac_no AS grp_sb_acc_no,
+//         a.group_code,
+//         c.group_name,
+//         a.disb_amt
+//       `;
+
+//       let grp_table = `
+//         bdccb.td_loan a
+
+//         LEFT JOIN bdccb.md_group c
+//         ON a.group_code = c.group_code
+//       `;
+
+//       let grp_whr = `
+//         a.loan_id = '${loan.loan_id}'
+//         AND a.loan_acc_no = '${loan.loan_acc_no}'
+//       `;
+
+//       let grp_order = `
+//         a.group_code
+//       `;
+
+//       let grp_dtls = await db_Select(
+//         grp_select,
+//         grp_table,
+//         grp_whr,
+//         grp_order
+//       );
+
+//       response.push({
+
+//         loan_id       : loan.loan_id || 0,
+//         tenant_id     : loan.tenant_id || "",
+//         branch_id     : loan.branch_id || "",
+//         loan_acc_no   : loan.loan_acc_no || "",
+//         loan_to       : loan.loan_to || "",
+//         branch_shg_id : loan.branch_shg_id || "",
+//         loan_to_name : loan.loan_to_name || "",
+//         period        : loan.period || "",
+//         curr_roi      : loan.curr_roi || "",
+//         penal_roi     : loan.penal_roi || "",
+//         disb_dt       : loan.disb_dt || "",
+//         disb_amt      : loan.disb_amt || 0,
+//         tot_grp       : loan.tot_grp || 0,
+//         sanction_no   : loan.sanction_no || "",
+//         sanction_dt   : loan.sanction_dt || "",
+//         created_by    : loan.created_by || "",
+//         ip_address    : loan.ip_address || "",
+
+//         approval_status : loan.approval_status || "",
+
+//         approved_by : loan.approval_status === 'A'
+//           ? loan.approved_by || ""
+//           : "",
+
+//         approved_dt : loan.approval_status === 'A'
+//           ? loan.approved_dt || ""
+//           : "",
+
+//         groups : grp_dtls.suc === 1
+//         ? grp_dtls.msg.map(g => ({
+
+//             grp_sb_acc_no : g.grp_sb_acc_no || "",
+//             group_code    : g.group_code || "",
+//             group_anme    : g.group_namr || "",
+//             disb_amt      : g.disb_amt || 0
+
+//           }))
+//         : []
+
+//       });
+
+//     }
+
+//     /* ---------------- RETURN RESPONSE ---------------- */
+
+//     return res.send({
+//       success: true,
+//       msg: "Fetch Society Disbursement Details",
+//       data: response
+//     });
+
+//   } catch (error) {
+
+//     console.error(error);
+
+//     return res.send({
+//       success: false,
+//       msg: "Internal Server Error"
+//     });
+
+//   }
+// });
+
 loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
+
   try {
 
-    const { branch_id, approval_status, loan_to, from_dt, to_dt} = req.body;
+    const {
+      branch_id,
+      approval_status,
+      loan_to,
+      from_dt,
+      to_dt
+    } = req.body;
 
     /* ---------------- MAIN LOAN DETAILS ---------------- */
 
-    let select = `DISTINCT ON (a.loan_id) a.loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.loan_to,a.branch_shg_id,c.branch_name AS loan_to_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) OVER(PARTITION BY a.loan_id) AS disb_amt,a.period,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,a.curr_prn,a.curr_intt,a.ovd_prn,a.ovd_intt,a.tot_grp,b.trans_type,b.approval_status,a.created_by,a.created_dt,b.approved_by approved_id,e.user_name approved_by,b.approved_dt,a.ip_address`;
+    let select = `
+      a.loan_id,
+      a.tenant_id,
+      a.branch_id,
+      a.loan_acc_no,
+      a.loan_to,
+      a.branch_shg_id,
 
-    let table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions b ON a.tenant_id = b.tenant_id
-      AND a.loan_id = b.loan_id AND a.branch_shg_id = b.branch_shg_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id`;
+      c.branch_name AS loan_to_name,
 
-    let whr = `a.branch_id = '${branch_id}' AND b.approval_status = '${approval_status}' AND a.loan_to = '${loan_to}' AND b.trans_type = 'D' AND a.fund_type = 'B'`;
+      a.period,
+      a.curr_roi,
+      a.penal_roi,
+
+      TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,
+
+      a.disb_amt,
+
+      a.period,
+
+      TO_CHAR(a.rep_start_dt,'YYYY-MM-DD') AS rep_start_dt,
+      TO_CHAR(a.rep_end_dt,'YYYY-MM-DD') AS rep_end_dt,
+
+      a.sanction_no,
+      TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,
+
+      a.curr_prn,
+      a.curr_intt,
+      a.ovd_prn,
+      a.ovd_intt,
+
+      a.tot_grp,
+
+      b.trans_type,
+      b.approval_status,
+
+      a.created_by,
+      a.created_dt,
+
+      b.approved_by AS approved_id,
+      e.user_name AS approved_by,
+
+      TO_CHAR(b.approved_dt,'YYYY-MM-DD') AS approved_dt,
+
+      a.ip_address
+    `;
+
+    let table_name = `
+      bdccb.td_loan a
+
+      LEFT JOIN bdccb.td_loan_transactions b
+      ON a.tenant_id = b.tenant_id
+      AND a.loan_id = b.loan_id
+      AND a.branch_shg_id = b.branch_shg_id
+
+      LEFT JOIN public.md_branch c
+      ON a.branch_shg_id = c.branch_id
+
+      LEFT JOIN bdccb.md_user e
+      ON b.approved_by = e.user_id
+    `;
+
+    let whr = `
+      a.branch_id = '${branch_id}'
+      AND b.approval_status = '${approval_status}'
+      AND a.loan_to = '${loan_to}'
+      AND b.trans_type = 'D'
+      AND a.fund_type = 'B'
+    `;
+
     if (from_dt && to_dt) {
-         whr += `AND b.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
-      }
 
-    let order = `a.loan_id,b.trans_id DESC`;
-
-    let loan_dtls = await db_Select(select,table_name,whr,order);
-
-    if (!(loan_dtls.suc === 1 && loan_dtls.msg.length > 0)) {
-      return res.send({
-        success: true,
-        msg: "No data found"
-      });
+      whr += `
+        AND b.trans_dt::date
+        BETWEEN '${from_dt}'
+        AND '${to_dt}'
+      `;
     }
 
-    /* ---------------- FINAL RESPONSE ARRAY ---------------- */
+    let order = `
+      a.loan_acc_no,
+      a.loan_id
+    `;
 
-    let response = [];
+    let loan_dtls = await db_Select(
+      select,
+      table_name,
+      whr,
+      order
+    );
+
+    if (!(loan_dtls.suc === 1 && loan_dtls.msg.length > 0)) {
+
+      return res.send({
+        success: true,
+        msg: "No data found",
+        data: []
+      });
+
+    }
+
+    /* ---------------- GROUP BY LOAN ACCOUNT NO ---------------- */
+
+    let groupedData = {};
 
     for (const loan of loan_dtls.msg) {
 
-      /* ---------------- GROUP DETAILS ---------------- */
+      /* ---------- CREATE MAIN OBJECT ---------- */
+
+      if (!groupedData[loan.loan_acc_no]) {
+
+        groupedData[loan.loan_acc_no] = {
+
+          tenant_id     : loan.tenant_id || "",
+          branch_id     : loan.branch_id || "",
+          loan_acc_no   : loan.loan_acc_no || "",
+          loan_to       : loan.loan_to || "",
+          branch_shg_id : loan.branch_shg_id || "",
+          loan_to_name  : loan.loan_to_name || "",
+
+          period        : loan.period || "",
+          curr_roi      : loan.curr_roi || "",
+          penal_roi     : loan.penal_roi || "",
+
+          disb_dt       : loan.disb_dt || "",
+
+          disb_amt      : 0,
+
+          tot_grp       : loan.tot_grp || 0,
+
+          sanction_no   : loan.sanction_no || "",
+          sanction_dt   : loan.sanction_dt || "",
+
+          created_by    : loan.created_by || "",
+
+          ip_address    : loan.ip_address || "",
+
+          approval_status : loan.approval_status || "",
+
+          approved_by : loan.approval_status === 'A'
+            ? loan.approved_by || ""
+            : "",
+
+          approved_dt : loan.approval_status === 'A'
+            ? loan.approved_dt || ""
+            : "",
+
+          groups : []
+
+        };
+
+      }
+
+      /* ---------- GROUP DETAILS ---------- */
 
       let grp_select = `
-        DISTINCT ON (a.group_code)
-
         c.sb_ac_no AS grp_sb_acc_no,
         a.group_code,
         c.group_name,
@@ -1437,7 +1701,6 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
       let grp_whr = `
         a.loan_id = '${loan.loan_id}'
-        AND a.loan_acc_no = '${loan.loan_acc_no}'
       `;
 
       let grp_order = `
@@ -1451,57 +1714,48 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
         grp_order
       );
 
-      response.push({
+      /* ---------- TOTAL DISBURSE AMOUNT ---------- */
 
-        loan_id       : loan.loan_id || 0,
-        tenant_id     : loan.tenant_id || "",
-        branch_id     : loan.branch_id || "",
-        loan_acc_no   : loan.loan_acc_no || "",
-        loan_to       : loan.loan_to || "",
-        branch_shg_id : loan.branch_shg_id || "",
-        loan_to_name : loan.loan_to_name || "",
-        period        : loan.period || "",
-        curr_roi      : loan.curr_roi || "",
-        penal_roi     : loan.penal_roi || "",
-        disb_dt       : loan.disb_dt || "",
-        disb_amt      : loan.disb_amt || 0,
-        tot_grp       : loan.tot_grp || 0,
-        sanction_no   : loan.sanction_no || "",
-        sanction_dt   : loan.sanction_dt || "",
-        created_by    : loan.created_by || "",
-        ip_address    : loan.ip_address || "",
+      groupedData[loan.loan_acc_no].disb_amt =
+        Number(groupedData[loan.loan_acc_no].disb_amt)
+        + Number(loan.disb_amt || 0);
 
-        approval_status : loan.approval_status || "",
+      /* ---------- PUSH GROUPS ---------- */
 
-        approved_by : loan.approval_status === 'A'
-          ? loan.approved_by || ""
-          : "",
+      if (grp_dtls.suc === 1) {
 
-        approved_dt : loan.approval_status === 'A'
-          ? loan.approved_dt || ""
-          : "",
+        grp_dtls.msg.forEach(g => {
 
-        groups : grp_dtls.suc === 1
-        ? grp_dtls.msg.map(g => ({
+          groupedData[loan.loan_acc_no].groups.push({
+
+            loan_id       : loan.loan_id || 0,
 
             grp_sb_acc_no : g.grp_sb_acc_no || "",
+
             group_code    : g.group_code || "",
-            group_anme    : g.group_namr || "",
+
+            group_name    : g.group_name || "",
+
             disb_amt      : g.disb_amt || 0
 
-          }))
-        : []
+          });
 
-      });
+        });
+
+      }
 
     }
 
     /* ---------------- RETURN RESPONSE ---------------- */
 
     return res.send({
+
       success: true,
+
       msg: "Fetch Society Disbursement Details",
-      data: response
+
+      data: Object.values(groupedData)
+
     });
 
   } catch (error) {
@@ -1509,11 +1763,15 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
     console.error(error);
 
     return res.send({
+
       success: false,
+
       msg: "Internal Server Error"
+
     });
 
   }
+
 });
 
 // FETCH PACS DETAILS FOR APPROVE
