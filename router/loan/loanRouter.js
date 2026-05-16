@@ -1532,6 +1532,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
     let select = `
       a.loan_id,
+      b.trans_id,
       a.tenant_id,
       a.branch_id,
       a.loan_acc_no,
@@ -1547,8 +1548,6 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,
 
       a.disb_amt,
-
-      a.period,
 
       TO_CHAR(a.rep_start_dt,'YYYY-MM-DD') AS rep_start_dt,
       TO_CHAR(a.rep_end_dt,'YYYY-MM-DD') AS rep_end_dt,
@@ -1607,6 +1606,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
         BETWEEN '${from_dt}'
         AND '${to_dt}'
       `;
+
     }
 
     let order = `
@@ -1631,17 +1631,17 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
     }
 
-    /* ---------------- GROUP BY LOAN ACCOUNT NO ---------------- */
+    /* ---------------- GROUPED RESPONSE ---------------- */
 
-    let groupedData = {};
+    let response = {};
 
     for (const loan of loan_dtls.msg) {
 
       /* ---------- CREATE MAIN OBJECT ---------- */
 
-      if (!groupedData[loan.loan_acc_no]) {
+      if (!response[loan.loan_acc_no]) {
 
-        groupedData[loan.loan_acc_no] = {
+        response[loan.loan_acc_no] = {
 
           tenant_id     : loan.tenant_id || "",
           branch_id     : loan.branch_id || "",
@@ -1716,8 +1716,8 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
       /* ---------- TOTAL DISBURSE AMOUNT ---------- */
 
-      groupedData[loan.loan_acc_no].disb_amt =
-        Number(groupedData[loan.loan_acc_no].disb_amt)
+      response[loan.loan_acc_no].disb_amt =
+        Number(response[loan.loan_acc_no].disb_amt)
         + Number(loan.disb_amt || 0);
 
       /* ---------- PUSH GROUPS ---------- */
@@ -1726,7 +1726,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
         grp_dtls.msg.forEach(g => {
 
-          groupedData[loan.loan_acc_no].groups.push({
+          response[loan.loan_acc_no].groups.push({
 
             loan_id       : loan.loan_id || 0,
 
@@ -1746,7 +1746,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
     }
 
-    /* ---------------- RETURN RESPONSE ---------------- */
+    /* ---------------- FINAL RESPONSE ---------------- */
 
     return res.send({
 
@@ -1754,7 +1754,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 
       msg: "Fetch Society Disbursement Details",
 
-      data: Object.values(groupedData)
+      data: Object.values(response)
 
     });
 
