@@ -1025,7 +1025,7 @@ loanRouter.post("/save_disbursement", async (req, res) => {
     // CASE 1: loan_to = 'S' → GROUP LEVEL INSERT
     // =========================================================
 
- if (loan_to === 'S') {
+ if (loan_to == 'P' || loan_to === 'S') {
 for (const group_code in groupMap) {
 
   let groupData = groupMap[group_code];
@@ -1136,7 +1136,8 @@ for (const group_code in groupMap) {
 // =========================================================
     // CASE 2: loan_to = 'P' → MEMBER LEVEL ONLY
     // =========================================================
-    if (loan_to === 'P' || loan_to === 'S') {
+    // if (loan_to === 'P' || loan_to === 'S') {
+    if (loan_to === 'S') {
     for (const group_code in groupMap) {
 
   let groupData = groupMap[group_code];
