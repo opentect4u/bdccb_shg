@@ -1859,13 +1859,13 @@ try{
 const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
 // console.log(req.body);
 
-var select = "a.group_code,b.group_name,COUNT(DISTINCT a.member_code) AS tot_member, COALESCE(a.disb_amt),0) AS tot_outstanding,c.approval_status,a.loan_id",
+var select = "a.group_code,b.group_name,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id",
 table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id",
 whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'`;
 if (from_dt && to_dt) {
-  whr += `AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+  whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
 }
-whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
+// whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
