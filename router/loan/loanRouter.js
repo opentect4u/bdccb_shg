@@ -2381,7 +2381,7 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
 // APPROVE BRANCH DISBURSEMENT VIA SOCIETY
 loanRouter.post("/approve_pacs_dib_via_branch", async (req, res) => {
   try{
-  const {ccb_loan_id,tenant_id,group_code,branch_id,loan_acc_no,tot_outstanding,loan_trans_id,transaction_id} = req.body;
+  const {ccb_loan_id,tenant_id,group_code,branch_id,loan_acc_no,tot_outstanding,loan_trans_id,transaction_id,created_by,ip_address} = req.body;
 
   const mem_table_tran = "bdccb.td_loan_transactions";
   const mem_columns_tran = ["curr_prn","approval_status","approved_by","approved_dt","ip_address"];
