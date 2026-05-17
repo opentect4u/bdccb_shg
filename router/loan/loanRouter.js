@@ -1859,7 +1859,7 @@ try{
 const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
 // console.log(req.body);
 
-var select = "a.group_code,b.group_name,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
+var select = "a.group_code,a.tenant_id,b.group_name,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
 table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id LEFT JOIN bdccb.td_loan_ccb_trans d ON a.loan_id = d.loan_id",
 whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'`;
 if (from_dt && to_dt) {
@@ -2254,71 +2254,120 @@ loanRouter.post("/accept_shg_disbursement", async (req, res) => {
 //     }
 // });
 
-loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
-  try{
-   const { loan_id, trans_id, group_code, member_reject, created_by, ip_address, reject_remarks } = req.body;
-  //  console.log(req.body,'delete');
+// loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
+//   try{
+//    const { loan_id, trans_id, group_code, member_reject, created_by, ip_address, reject_remarks } = req.body;
+//   //  console.log(req.body,'delete');
    
 
-     if (!member_reject || member_reject.length === 0) {
-      return res.send({
-        success: true,
-        msg: "No member data found"
-      });
-    }
+//      if (!member_reject || member_reject.length === 0) {
+//       return res.send({
+//         success: true,
+//         msg: "No member data found"
+//       });
+//     }
   
-    let loan_ids = Array.isArray(loan_id) ? loan_id : loan_id.split(',').map(x => x.trim());
-  let trans_ids = Array.isArray(trans_id) ? trans_id : trans_id.split(',').map(x => x.trim());
-  let group_codes = Array.isArray(group_code) ? group_code : group_code.split(',').map(x => x.trim());
+//     let loan_ids = Array.isArray(loan_id) ? loan_id : loan_id.split(',').map(x => x.trim());
+//   let trans_ids = Array.isArray(trans_id) ? trans_id : trans_id.split(',').map(x => x.trim());
+//   let group_codes = Array.isArray(group_code) ? group_code : group_code.split(',').map(x => x.trim());
+
+//    let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+   
+//   if (member_reject && member_reject.length > 0) {
+//     // Loop & update each member
+//     for (let mem of member_reject) {
+ 
+//         // delete from member trans
+//       await deleteRecord(
+//         "bdccb.td_loan_member_trans",
+//         ["loan_id","trans_id","trans_type"],
+//         [mem.loan_id, mem.trans_id,'D']
+//       );
+
+//       // delete from member
+//       await deleteRecord(
+//         "bdccb.td_loan_member",
+//         ["loan_id","member_code"],
+//         [mem.loan_id, mem.member_id]
+//       );
+//     }
+//   for (let i = 0; i < loan_ids.length; i++) {
+
+//       // delete from loan transactions
+//       await deleteRecord(
+//         "bdccb.td_loan_transactions",
+//         ["loan_id","trans_id","trans_type"],
+//         [loan_ids[i], trans_ids[i],'D']
+//       );
+
+//       // delete from loan
+//       await deleteRecord(
+//         "bdccb.td_loan",
+//         ["loan_id","group_code"],
+//         [loan_ids[i], group_codes[i]]
+//       );
+//     }
+
+//     return res.send({
+//       success: true,
+//       msg: "Disbursement Rejected Successfully"
+//     });
+//   }else{
+//    return res.send({
+//    success: true,
+//    msg: "Member details not found for reject",
+//    data: []
+//    })
+//   }
+//   } catch (error) {
+//     console.error("Error in while reject pacs disbursement:", error);
+//     return res.send({
+//     success: false,
+//     msg: "Internal server error",
+//     errorCode: "SERVER_ERROR"
+//     });
+//     }
+// });
+
+// REJECT PACS DISBURSEMENT VIA BRANCH
+loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
+  try{
+   const { ccb_loan_id, tenant_id, loan_trans_id, transaction_id, group_code, loan_acc_no, tot_outstanding} = req.body;
+  //  console.log(req.body,'delete');
 
    let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
    
-  if (member_reject && member_reject.length > 0) {
-    // Loop & update each member
-    for (let mem of member_reject) {
- 
-        // delete from member trans
-      await deleteRecord(
-        "bdccb.td_loan_member_trans",
-        ["loan_id","trans_id","trans_type"],
-        [mem.loan_id, mem.trans_id,'D']
-      );
-
-      // delete from member
-      await deleteRecord(
-        "bdccb.td_loan_member",
-        ["loan_id","member_code"],
-        [mem.loan_id, mem.member_id]
-      );
-    }
-  for (let i = 0; i < loan_ids.length; i++) {
-
       // delete from loan transactions
       await deleteRecord(
         "bdccb.td_loan_transactions",
-        ["loan_id","trans_id","trans_type"],
-        [loan_ids[i], trans_ids[i],'D']
+        ["loan_id","trans_id","tenant_id","loan_ac_no","trans_type","dr_amt"],
+        [ccb_loan_id,loan_trans_id,tenant_id,loan_acc_no,'D',tot_outstanding]
       );
 
       // delete from loan
       await deleteRecord(
         "bdccb.td_loan",
-        ["loan_id","group_code"],
-        [loan_ids[i], group_codes[i]]
+        ["loan_id","tenant_id","loan_acc_no","disb_amt","group_code"],
+        [ccb_loan_id,tenant_id,loan_acc_no,tot_outstanding,group_code]
       );
-    }
 
+      // delete from loan ccb transactions
+      await deleteRecord(
+        "bdccb.td_loan_ccb_trans",
+        ["loan_id","trans_id","tenant_id","loan_ac_no","trans_type","dr_amt"],
+        [ccb_loan_id,transaction_id,tenant_id,loan_acc_no,'D',tot_outstanding]
+      );
+
+      // delete from loan ccb
+      await deleteRecord(
+        "bdccb.td_loan_ccb",
+        ["loan_id","tenant_id","loan_acc_no","disb_amt","group_code"],
+        [ccb_loan_id,tenant_id,loan_acc_no,tot_outstanding,group_code]
+      );
     return res.send({
       success: true,
       msg: "Disbursement Rejected Successfully"
     });
-  }else{
-   return res.send({
-   success: true,
-   msg: "Member details not found for reject",
-   data: []
-   })
-  }
   } catch (error) {
     console.error("Error in while reject pacs disbursement:", error);
     return res.send({
@@ -2328,6 +2377,7 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
     });
     }
 });
+
 
 // REJECT DISBURSEMENT this is not used
 // loanRouter.post("/reject_disbursement", async (req, res) => {
