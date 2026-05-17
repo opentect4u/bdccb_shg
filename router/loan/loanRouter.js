@@ -2445,12 +2445,14 @@ loanRouter.post("/fetch_member_dt", async (req, res) => {
   if(fetch_member.suc > 0 && fetch_member.msg.length > 0){
   return res.send({
     success: true,
-    msg: "Fetch member name"
+    msg: "Fetch member name",
+    data: fetch_member.msg
   });
   }else{
   return res.send({
       success: true,
-      msg: "Unable to fetch member name"
+      msg: "Unable to fetch member name",
+      data: []
   });
   }
   }catch (error) {
