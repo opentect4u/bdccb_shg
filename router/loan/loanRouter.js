@@ -1592,8 +1592,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
       ON b.approved_by = e.user_id
     `;
 
-    let whr = `
-      AND b.approval_status = '${approval_status}'
+    let whr = `b.approval_status = '${approval_status}'
       AND a.loan_to = '${loan_to}'
       AND b.trans_type = 'D'
       AND a.fund_type = 'B'
