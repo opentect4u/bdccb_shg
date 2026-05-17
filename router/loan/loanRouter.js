@@ -1865,7 +1865,7 @@ whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.t
 if (from_dt && to_dt) {
   whr += `AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
 }
-// whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
+whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
