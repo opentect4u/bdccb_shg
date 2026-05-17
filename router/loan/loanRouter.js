@@ -1273,10 +1273,11 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
     let instl_date = await genDate(disb_dt, period, pay_mode);
     const startDate = instl_date.emtStart;
     const endDate = instl_date.emiEnd;
+    const isEdit = groups.some(x => x.loan_id > 0);
 
     for (const group of groups) {
 
-    let loan_code = await loanCode(branch_id);
+    let loan_code = isEdit ? group.loan_id : await loanCode(branch_id);
     let trans_id = await transaction_id();
     let transacs_id = await transactions_id();
 
@@ -1286,91 +1287,118 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
     // ================== td_loan ==================
     var table = "bdccb.td_loan";
 
-    var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+    var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
 
-  var values = [
+  var values = isEdit ? [period, curr_roi, penal_roi, disb_dt, group.disb_amt, startDate, endDate, tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address] : [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
     tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
   ];
 
-  let result = await saveRecord(table, columns, values, [], [], 0);
+  var whereColumns = isEdit ? ["loan_id","tenant_id","branch_id","branch_shg_id","group_code"] : [];
+
+  var whereValues = isEdit ? [group.loan_id,tenant_id,branch_id,branch_shg_id,group.group_code] : [];
+
+  var flag = isEdit ? 1 : 0;
+
+  let result = await saveRecord(table, columns, values, whereColumns, whereValues, flag);
 
   if (!result || result.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Loan save failed for society level" + group.group_code
+      msg: isEdit ? "Loan edit failed for society level" + group.group_code : "Loan save failed for society level" + group.group_code
     });
   }
 
   // ================== td_loan_transactions ==================
   var table_trn = "bdccb.td_loan_transactions";
 
-  var columns_trn = [
+  var columns_trn = isEdit ? ["dr_amt","modified_by","modified_dt","ip_address"] : [
     "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
     "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
     "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
     "approval_status","created_by","created_dt","ip_address"
   ];
 
-  var values_trn = [
+  var values_trn = isEdit ? [group.disb_amt, created_by, datetime, ip_address] : [
     disb_dt, trans_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
     "D", group.disb_amt, 0, 0, 0, 0, 0, 0, 0, 0, 0, "U", created_by, datetime, ip_address];
-  let trans_result = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+  
+  var where_trn = isEdit ? ["tenant_id","branch_shg_id","loan_id"] : [];  
+
+  var wherevalues_trn = isEdit ? [tenant_id,branch_shg_id,group.loan_id] : [];  
+
+  var flag_trn = isEdit ? 1 : 0;  
+
+  let trans_result = await saveRecord(table_trn, columns_trn, values_trn, where_trn, wherevalues_trn, flag_trn);
 
   if (!trans_result || trans_result.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Transaction save failed in society level" + group.group_code
+      msg: isEdit ? "Transaction edit failed in society level" + group.group_code : "Transaction save failed in society level" + group.group_code
     });
   }
 
   // ================== td_loan_ccb ==================
   var table = "bdccb.td_loan_ccb";
 
-  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+  var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
 
-  var values = [
+  var values = isEdit ? [period, curr_roi, penal_roi, disb_dt, group.disb_amt, startDate, endDate, tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address] : [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
     tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
   ];
 
-  let result_ccb = await saveRecord(table, columns, values, [], [], 0);
+  var whereColumns = isEdit ? ["loan_id","tenant_id","branch_id","branch_shg_id","group_code"] : [];
+
+  var whereValues = isEdit ? [group.loan_id,tenant_id,branch_id,branch_shg_id,group.group_code] : [];
+
+  var flag = isEdit ? 1 : 0;
+
+  let result_ccb = await saveRecord(table, columns, values, whereColumns, whereValues, flag);
 
   if (!result_ccb || result_ccb.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Loan save failed while disburse branch to soc" + group.group_code
+      msg: isEdit ? "Loan edit failed while disburse branch to soc" + group.group_code : "Loan save failed while disburse branch to soc" + group.group_code
     });
   }
 
   // ================== td_loan_ccb_trans ==================
   var table_trn = "bdccb.td_loan_ccb_trans";
 
-  var columns_trn = [
+  var columns_trn = isEdit ? ["dr_amt","modified_by","modified_dt","ip_address"
+  ] : [
     "trans_dt","trans_id","tenant_id","loan_to","branch_shg_id","loan_id","loan_ac_no",
     "trans_type","dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
     "ovd_prn_recov","ovd_intt_recov","curr_prn","curr_intt","ovd_prn","ovd_intt",
     "approval_status","created_by","created_dt","ip_address"
   ];
 
-  var values_trn = [
+  var values_trn = isEdit ? [group.disb_amt, created_by, datetime, ip_address] : [
     disb_dt, transacs_id, tenant_id, loan_to, branch_shg_id, loan_code, loan_acc_no || null,
     "D", group.disb_amt, 0, 0, 0, 0, 0, 0, 0, 0, 0, "U", created_by, datetime, ip_address];
-  let trans_result_ccb = await saveRecord(table_trn, columns_trn, values_trn, [], [], 0);
+
+  var where_trn = isEdit ? ["tenant_id","branch_shg_id","loan_id"] : [];  
+
+  var wherevalues_trn = isEdit ? [tenant_id,branch_shg_id,group.loan_id] : [];  
+
+  var flag_trn = isEdit ? 1 : 0;  
+
+  let trans_result_ccb = await saveRecord(table_trn, columns_trn, values_trn, where_trn, wherevalues_trn, flag_trn);
 
   if (!trans_result_ccb || trans_result_ccb.suc !== 1) {
     return res.send({
       success: false,
-      msg: "Transaction save failed while disburse branch to society" + group.group_code
+      msg: isEdit ? "Transaction edit failed while disburse branch to society" + group.group_code : "Transaction save failed while disburse branch to society" + group.group_code
     });
   }
 }
 
     return res.send({
       success: true,
-      msg: loan_id > 0 ? "Disbursement edit Done Successfully"  : "Disbursement Done Successfully",
+      msg: isEdit ? "Disbursement edit Done Successfully"  : "Disbursement Done Successfully",
     });
   } catch (error) {
     console.error("Error in while save disbursement:", error);
