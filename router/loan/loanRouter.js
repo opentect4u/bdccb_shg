@@ -2432,7 +2432,7 @@ loanRouter.post("/approve_pacs_dib_via_branch", async (req, res) => {
 });
 
 // AFTER AFTER BRANCH LEVEL SOCIETY DISBURSEMENT SHOW MEMBER DETAILS
-loanRouter.post("/fetch member_dt", async (req, res) => {
+loanRouter.post("/fetch_member_dt", async (req, res) => {
   try{
   const {tenant_id,group_code} = req.body;
 
