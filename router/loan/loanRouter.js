@@ -2378,6 +2378,57 @@ loanRouter.post("/reject_pacs_disbursement", async (req, res) => {
     }
 });
 
+// APPROVE BRANCH DISBURSEMENT VIA SOCIETY
+loanRouter.post("/approve_pacs_dib_via_branch", async (req, res) => {
+  try{
+  const {ccb_loan_id,tenant_id,group_code,branch_id,loan_acc_no,tot_outstanding,loan_trans_id,transaction_id} = req.body;
+
+  const mem_table_tran = "bdccb.td_loan_transactions";
+  const mem_columns_tran = ["curr_prn","approval_status","approved_by","approved_dt","ip_address"];
+  const mem_values_tran = [tot_outstanding ,"A",created_by, datetime,ip_address];
+  const mem_whereColumns_tran = ["loan_id","tenant_id","branch_shg_id","loan_ac_no","trans_id","trans_type"];
+  const mem_whereValues_tran = [ccb_loan_id,tenant_id,branch_id,loan_acc_no,loan_trans_id,'D'];
+  const mem_flag_tran = 1;
+  await saveRecord(mem_table_tran,mem_columns_tran,mem_values_tran,mem_whereColumns_tran,mem_whereValues_tran,mem_flag_tran);
+  
+  const mem_tables = "bdccb.td_loan";
+  const mem_columnss = ["curr_prn","modified_by","modified_dt","ip_address"];
+  const mem_valuess = [tot_outstanding,created_by,datetime,ip_address];
+  const mem_whereColumnss = ["loan_id","tenant_id","branch_shg_id","loan_acc_no","group_code"];
+  const mem_whereValuess = [ccb_loan_id,tenant_id,branch_id,loan_acc_no,group_code];
+  const mem_flags = 1;
+  await saveRecord(mem_tables,mem_columnss,mem_valuess,mem_whereColumnss,mem_whereValuess,mem_flags); 
+
+  const mem_table_trans = "bdccb.td_loan_ccb_trans";
+  const mem_columns_trans = ["curr_prn","approval_status","approved_by","approved_dt","ip_address"];
+  const mem_values_trans = [tot_outstanding,"A",created_by,datetime,ip_address];
+  const mem_whereColumns_trans = ["loan_id","tenant_id","branch_shg_id","loan_ac_no","trans_id","trans_type"];
+  const mem_whereValues_trans = [ccb_loan_id,tenant_id,branch_id,loan_acc_no,transaction_id,'D'];
+  const mem_flag_trans = 1;
+  await saveRecord(mem_table_trans,mem_columns_trans,mem_values_trans,mem_whereColumns_trans,mem_whereValues_trans,mem_flag_trans);
+
+  const mem_tables1 = "bdccb.td_loan_ccb";
+  const mem_columnss1 = ["curr_prn","modified_by","modified_dt","ip_address"];
+  const mem_valuess1 = [tot_outstanding,created_by, datetime,ip_address];
+  const mem_whereColumnss1 = ["loan_id","tenant_id","branch_shg_id","loan_acc_no","group_code"];
+  const mem_whereValuess1 = [ccb_loan_id,tenant_id,branch_id,loan_acc_no,group_code];
+  const mem_flags1 = 1;
+  await saveRecord(mem_tables1,mem_columnss1,mem_valuess1,mem_whereColumnss1,mem_whereValuess1,mem_flags1); 
+    
+  return res.send({
+      success: true,
+      msg: "SHG Disbursement Accepted Successfully"
+    });
+  }catch (error) {
+    console.error("Error in while approve pacs disbursement via branch:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+    }
+})
+
 
 // REJECT DISBURSEMENT this is not used
 // loanRouter.post("/reject_disbursement", async (req, res) => {
