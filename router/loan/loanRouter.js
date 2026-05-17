@@ -1857,7 +1857,7 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 try{
 const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
-// console.log(req.body);
+console.log(req.body);
 
 var select = "a.group_code,b.group_name,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id",
 table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id",
