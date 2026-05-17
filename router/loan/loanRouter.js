@@ -2383,6 +2383,8 @@ loanRouter.post("/approve_pacs_dib_via_branch", async (req, res) => {
   try{
   const {ccb_loan_id,tenant_id,group_code,branch_id,loan_acc_no,tot_outstanding,loan_trans_id,transaction_id,created_by,ip_address} = req.body;
 
+   let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+   
   const mem_table_tran = "bdccb.td_loan_transactions";
   const mem_columns_tran = ["curr_prn","approval_status","approved_by","approved_dt","ip_address"];
   const mem_values_tran = [tot_outstanding ,"A",created_by, datetime,ip_address];
@@ -2427,7 +2429,7 @@ loanRouter.post("/approve_pacs_dib_via_branch", async (req, res) => {
     errorCode: "SERVER_ERROR"
     });
     }
-})
+});
 
 
 // REJECT DISBURSEMENT this is not used
