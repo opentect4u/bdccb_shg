@@ -1877,7 +1877,7 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
 
    // SOCIETY DETAILS
    let society_select = `a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt, (
-        SELECT COALESCE(SUM(disb_amt),0)
+        SELECT COALESCE(SUM(dr_amt),0)
         FROM bdccb.td_loan_member_trans
         WHERE loan_id = a.loan_id
         AND trans_type = 'D'
