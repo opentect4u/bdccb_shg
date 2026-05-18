@@ -1859,7 +1859,7 @@ try{
 const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
 // console.log(req.body);
 
-var select = "a.group_code,a.tenant_id,b.group_name,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
+var select = "a.group_code,a.tenant_id,b.group_name,b.sb_ac_no,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
 table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id LEFT JOIN bdccb.td_loan_ccb_trans d ON a.loan_id = d.loan_id",
 whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'`;
 if (from_dt && to_dt) {
@@ -1869,19 +1869,48 @@ if (from_dt && to_dt) {
 order = null;
 var fetch_data = await db_Select(select, table_name, whr, order);
 
+ //ADD SOCIETY DETAILS + MEMBER DETAILS INSIDE fetch_data
+
 if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
+ for (let i = 0; i < fetch_data.msg.length; i++) {
+   let loan_id = fetch_data.msg[i].ccb_loan_id;
+
+   // SOCIETY DETAILS
+   let society_select = `a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt, (
+        SELECT COALESCE(SUM(disb_amt),0)
+        FROM bdccb.td_loan_member_trans
+        WHERE loan_id = a.loan_id
+        AND trans_type = 'D'
+      ) AS disb_amt,a.sanction_no, TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
+   let society_table = `bdccb.td_loan_member a`;
+   let society_whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}'`;
+   let society_data = await db_Select(society_select,society_table,society_whr,null);
+
+  // SAVE ONLY ONE OBJECT
+  fetch_data.msg[i].society_details = society_data.suc === 1 ? society_data.msg[0] : [];
+   
+  // MEMBER DETAILS
+
+  let member_select = `lm.loan_id AS member_loan_id,lm.member_code,m.member_name,m.member_account_no,COALESCE(lmt.disb_amt,0) AS disb_amt`;
+  let member_table = `bdccb.td_loan_member lm LEFT JOIN bdccb.td_loan_member_trans lmt ON lm.loan_id = lmt.loan_id LEFT JOIN bdccb.md_member m ON lm.member_code = m.member_code`;
+  let member_whr = `lm.ccb_loan_id = '${loan_id}' AND lmt.trans_type = 'D' AND lmt.approval_status = '${approval_status}'`;
+  let member_data = await db_Select(member_select,member_table,member_whr,null);
+
+  fetch_data.msg[i].member_details = member_data.suc === 1 ? member_data.msg : [];
+  }
+
   return res.send({
-    success: true,
-    msg: "Fetch unapprove disbursement details",
-    data: fetch_data.msg,
+  success: true,
+  msg: "Fetch unapprove disbursement details",
+  data: fetch_data.msg,
   });
-} else {
+  } else {
   return res.send({
-    success: true,
-    msg: "No unapprove disbursement details found",
-    data: [],
+  success: true,
+  msg: "No unapprove disbursement details found",
+  data: [],
   });
-}
+  }
 }catch (error) {
     console.error("Error in while fetch unapprove disbursement details:", error);
     return res.send({
@@ -2463,7 +2492,7 @@ loanRouter.post("/fetch_member_dt", async (req, res) => {
     errorCode: "SERVER_ERROR"
     });
     }
-})
+});
 
 // REJECT DISBURSEMENT this is not used
 // loanRouter.post("/reject_disbursement", async (req, res) => {
