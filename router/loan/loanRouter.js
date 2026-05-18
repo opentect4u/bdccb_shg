@@ -1887,7 +1887,7 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
    let society_data = await db_Select(society_select,society_table,society_whr,null);
 
   // SAVE ONLY ONE OBJECT
-  fetch_data.msg[i].society_details = society_data.suc === 1 ? society_data.msg[0] : [];
+  fetch_data.msg[i].society_details = society_data.suc === 1 ? society_data.msg : [];
    
   // MEMBER DETAILS
 
