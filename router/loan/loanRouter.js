@@ -1879,7 +1879,7 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
    let society_select = `a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt, (
         SELECT COALESCE(SUM(dr_amt),0)
         FROM bdccb.td_loan_member_trans
-        WHERE loan_id = a.loan_id
+        WHERE ccb_loan_id = a.ccb_loan_id
         AND trans_type = 'D'
       ) AS disb_amt,a.sanction_no,TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
    let society_table = `bdccb.td_loan_member a`;
