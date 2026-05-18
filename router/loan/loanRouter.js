@@ -1854,84 +1854,347 @@ loanRouter.post("/fetch_society_disbursement_dtls", async (req, res) => {
 //   }
 // });
 
-loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
-try{
-const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
-// console.log(req.body);
+//comment off 18.05.2026
+// loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
+// try{
+// const { branch_id, tenant_id, from_dt, to_dt, approval_status } = req.body;
+// // console.log(req.body);
 
-var select = "a.group_code,a.tenant_id,b.group_name,b.sb_ac_no,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
-table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id LEFT JOIN bdccb.td_loan_ccb_trans d ON a.loan_id = d.loan_id",
-whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'
-AND NOT EXISTS (
-  SELECT 1
-  FROM bdccb.td_loan_member_trans mt
-  WHERE mt.ccb_loan_id = a.loan_id
-  AND mt.trans_type = 'D'
-  AND COALESCE(mt.approval_status,'U') = 'A'
-) < 
- (
-  SELECT COUNT(*)
-  FROM bdccb.td_loan_member lm
-  WHERE lm.ccb_loan_id = a.loan_id
-)`;
-if (from_dt && to_dt) {
-  whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
-}
-// whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
-order = null;
-var fetch_data = await db_Select(select, table_name, whr, order);
+// var select = "a.group_code,a.tenant_id,b.group_name,b.sb_ac_no,a.loan_acc_no,COALESCE(a.disb_amt,0) AS tot_outstanding,c.approval_status,a.loan_id AS ccb_loan_id,c.trans_id AS loan_trans_id,d.trans_id AS transaction_id",
+// table_name = "bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id LEFT JOIN bdccb.td_loan_ccb_trans d ON a.loan_id = d.loan_id",
+// whr = `a.branch_shg_id = '${branch_id}' AND a.tenant_id = '${tenant_id}' AND c.trans_type = 'D' AND c.approval_status = '${approval_status}' AND a.fund_type = 'B'
+// `;
+// if (from_dt && to_dt) {
+//   whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
+// }
+// // whr += `GROUP BY a.group_code,b.group_name,c.approval_status,a.loan_id`;
+// order = null;
+// var fetch_data = await db_Select(select, table_name, whr, order);
 
- //ADD SOCIETY DETAILS + MEMBER DETAILS INSIDE fetch_data
+//  //ADD SOCIETY DETAILS + MEMBER DETAILS INSIDE fetch_data
 
-if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
- for (let i = 0; i < fetch_data.msg.length; i++) {
-   let loan_id = fetch_data.msg[i].ccb_loan_id;
+// if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
+//  for (let i = 0; i < fetch_data.msg.length; i++) {
+//    let loan_id = fetch_data.msg[i].ccb_loan_id;
 
-   // SOCIETY DETAILS
-   let society_select = `a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt, (
-        SELECT COALESCE(SUM(dr_amt),0)
-        FROM bdccb.td_loan_member_trans
-        WHERE ccb_loan_id = a.ccb_loan_id
-        AND trans_type = 'D'
-      ) AS disb_amt,a.sanction_no,TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
-   let society_table = `bdccb.td_loan_member a`;
-   let society_whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' GROUP BY  a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.sanction_no,a.sanction_dt,a.society_acc_no`;
-   let society_data = await db_Select(society_select,society_table,society_whr,null);
+//    // SOCIETY DETAILS
+//    let society_select = `a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt, (
+//         SELECT COALESCE(SUM(dr_amt),0)
+//         FROM bdccb.td_loan_member_trans
+//         WHERE ccb_loan_id = a.ccb_loan_id
+//         AND trans_type = 'D'
+//       ) AS disb_amt,a.sanction_no,TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
+//    let society_table = `bdccb.td_loan_member a`;
+//    let society_whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' GROUP BY  a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.sanction_no,a.sanction_dt,a.society_acc_no`;
+//    let society_data = await db_Select(society_select,society_table,society_whr,null);
 
-  // SAVE ONLY ONE OBJECT
-  fetch_data.msg[i].society_details = society_data.suc === 1 && society_data.msg.length > 0
-    ? society_data.msg[0]
-    : {};
+//   // SAVE ONLY ONE OBJECT
+//   fetch_data.msg[i].society_details = society_data.suc === 1 && society_data.msg.length > 0
+//     ? society_data.msg[0]
+//     : {};
    
-  // MEMBER DETAILS
+//   // MEMBER DETAILS
 
-  let member_select = `lm.loan_id AS member_loan_id,lm.member_code,m.member_name,m.member_account_no,COALESCE(lmt.dr_amt,0) AS disb_amt`;
-  let member_table = `bdccb.td_loan_member lm LEFT JOIN bdccb.td_loan_member_trans lmt ON lm.loan_id = lmt.loan_id LEFT JOIN bdccb.md_member m ON lm.member_code = m.member_code`;
-  let member_whr = `lm.ccb_loan_id = '${loan_id}' AND lmt.trans_type = 'D' AND lmt.approval_status = '${approval_status}'`;
-  let member_data = await db_Select(member_select,member_table,member_whr,null);
+//   let member_select = `lm.loan_id AS member_loan_id,lm.member_code,m.member_name,m.member_account_no,COALESCE(lmt.dr_amt,0) AS disb_amt`;
+//   let member_table = `bdccb.td_loan_member lm LEFT JOIN bdccb.td_loan_member_trans lmt ON lm.loan_id = lmt.loan_id LEFT JOIN bdccb.md_member m ON lm.member_code = m.member_code`;
+//   let member_whr = `lm.ccb_loan_id = '${loan_id}' AND lmt.trans_type = 'D' AND lmt.approval_status = '${approval_status}'`;
+//   let member_data = await db_Select(member_select,member_table,member_whr,null);
 
-  fetch_data.msg[i].member_details = member_data.suc === 1 ? member_data.msg : [];
-  }
+//   fetch_data.msg[i].member_details = member_data.suc === 1 ? member_data.msg : [];
+//   }
 
-  return res.send({
-  success: true,
-  msg: "Fetch unapprove disbursement details",
-  data: fetch_data.msg,
-  });
-  } else {
-  return res.send({
-  success: true,
-  msg: "No unapprove disbursement details found",
-  data: [],
-  });
-  }
-}catch (error) {
-    console.error("Error in while fetch unapprove disbursement details:", error);
+//   return res.send({
+//   success: true,
+//   msg: "Fetch unapprove disbursement details",
+//   data: fetch_data.msg,
+//   });
+//   } else {
+//   return res.send({
+//   success: true,
+//   msg: "No unapprove disbursement details found",
+//   data: [],
+//   });
+//   }
+// }catch (error) {
+//     console.error("Error in while fetch unapprove disbursement details:", error);
+//     return res.send({
+//       success: false,
+//       msg: "Internal server error",
+//       errorCode: "SERVER_ERROR",
+//     });
+//   }
+// });
+
+loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
+  try {
+
+    const {
+      branch_id,
+      tenant_id,
+      from_dt,
+      to_dt,
+      approval_status
+    } = req.body;
+
+    // MAIN QUERY
+
+    let select = `
+      DISTINCT
+      a.group_code,
+      a.tenant_id,
+      b.group_name,
+      b.sb_ac_no,
+      a.loan_acc_no,
+      COALESCE(a.disb_amt,0) AS tot_outstanding,
+      c.approval_status,
+      a.loan_id AS ccb_loan_id,
+      c.trans_id AS loan_trans_id,
+      d.trans_id AS transaction_id
+    `;
+
+    let table_name = `
+      bdccb.td_loan a
+
+      LEFT JOIN bdccb.md_group b
+      ON a.group_code = b.group_code
+
+      LEFT JOIN bdccb.td_loan_transactions c
+      ON a.loan_id = c.loan_id
+
+      LEFT JOIN bdccb.td_loan_ccb_trans d
+      ON a.loan_id = d.loan_id
+
+      LEFT JOIN bdccb.td_loan_member lm
+      ON a.loan_id = lm.ccb_loan_id
+
+      LEFT JOIN bdccb.td_loan_member_trans lmt
+      ON lm.loan_id = lmt.loan_id
+      AND lmt.trans_type = 'D'
+    `;
+
+    // IMPORTANT LOGIC:
+    // SHOW RECORD IF MEMBER DISBURSEMENT STILL PENDING
+
+    let whr = `
+      a.branch_shg_id = '${branch_id}'
+      AND a.tenant_id = '${tenant_id}'
+      AND c.trans_type = 'D'
+      AND a.fund_type = 'B'
+
+       AND (
+
+            (
+              '${approval_status}' = 'U'
+              AND (
+                    lmt.approval_status = 'U'
+                    OR lmt.trans_id IS NULL
+                  )
+            )
+
+            OR
+
+            (
+              '${approval_status}' = 'A'
+              AND lmt.approval_status = 'A'
+            )
+
+      )
+    `;
+
+    // if (from_dt && to_dt) {
+    //   whr += `
+    //     AND c.trans_dt::date
+    //     BETWEEN '${from_dt}' AND '${to_dt}'
+    //   `;
+    // }
+
+    if (from_dt && to_dt) {
+  whr += `
+    AND (
+          lmt.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'
+          OR c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'
+    )
+  `;
+}
+
+    let order = null;
+
+    let fetch_data = await db_Select(
+      select,
+      table_name,
+      whr,
+      order
+    );
+
+    // =========================
+    // DATA FOUND
+    // =========================
+
+    if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
+
+      for (let i = 0; i < fetch_data.msg.length; i++) {
+
+        let loan_id = fetch_data.msg[i].ccb_loan_id;
+
+        // =========================
+        // SOCIETY DETAILS
+        // =========================
+
+        let society_select = `
+          a.loan_acc_no,
+          a.period,
+          a.curr_roi,
+          a.penal_roi,
+          TO_CHAR(a.disb_dt,'YYYY-MM-DD') AS disb_dt,
+
+          (
+            SELECT COALESCE(SUM(dr_amt),0)
+            FROM bdccb.td_loan_member_trans
+            WHERE ccb_loan_id = a.ccb_loan_id
+            AND trans_type = 'D'
+          ) AS disb_amt,
+
+          a.sanction_no,
+          TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,
+          a.society_acc_no
+        `;
+
+        let society_table = `
+          bdccb.td_loan_member a
+        `;
+
+        let society_whr = `
+          a.ccb_loan_id = '${loan_id}'
+          AND a.tenant_id = '${tenant_id}'
+
+          GROUP BY
+          a.loan_id,
+          a.loan_acc_no,
+          a.period,
+          a.curr_roi,
+          a.penal_roi,
+          a.disb_dt,
+          a.sanction_no,
+          a.sanction_dt,
+          a.society_acc_no
+        `;
+
+        let society_data = await db_Select(
+          society_select,
+          society_table,
+          society_whr,
+          null
+        );
+
+        fetch_data.msg[i].society_details =
+          society_data.suc === 1 &&
+          society_data.msg.length > 0
+            ? society_data.msg[0]
+            : {};
+
+        // =========================
+        // MEMBER DETAILS
+        // =========================
+
+        let member_select = `
+          lm.loan_id AS member_loan_id,
+          lm.member_code,
+          m.member_name,
+          m.member_account_no,
+          COALESCE(lmt.dr_amt,0) AS disb_amt,
+          COALESCE(lmt.approval_status,'U') AS approval_status
+        `;
+
+        let member_table = `
+          bdccb.td_loan_member lm
+
+          LEFT JOIN bdccb.td_loan_member_trans lmt
+          ON lm.loan_id = lmt.loan_id
+          AND lmt.trans_type = 'D'
+
+          LEFT JOIN bdccb.md_member m
+          ON lm.member_code = m.member_code
+        `;
+
+        let member_whr = `
+          lm.ccb_loan_id = '${loan_id}'
+
+          AND (
+
+                (
+                  '${approval_status}' = 'U'
+                  AND (
+                        lmt.approval_status = 'U'
+                        OR lmt.trans_id IS NULL
+                      )
+                )
+
+                OR
+
+                (
+                  '${approval_status}' = 'A'
+                  AND lmt.approval_status = 'A'
+                )
+
+          )
+        `;
+
+         if (from_dt && to_dt) {
+
+          member_whr += `
+            AND (
+                  lmt.trans_dt::date
+                  BETWEEN '${from_dt}' AND '${to_dt}'
+
+                  OR
+
+                  lmt.trans_id IS NULL
+            )
+          `;
+        }
+
+        let member_data = await db_Select(
+          member_select,
+          member_table,
+          member_whr,
+          null
+        );
+
+        fetch_data.msg[i].member_details =
+          member_data.suc === 1
+            ? member_data.msg
+            : [];
+      }
+
+      return res.send({
+        success: true,
+        msg: "Fetch unapprove disbursement details",
+        data: fetch_data.msg,
+      });
+
+    } else {
+
+      return res.send({
+        success: true,
+        msg: "No unapprove disbursement details found",
+        data: [],
+      });
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Error in while fetch unapprove disbursement details:",
+      error
+    );
+
     return res.send({
       success: false,
       msg: "Internal server error",
       errorCode: "SERVER_ERROR",
     });
+
   }
 });
 
