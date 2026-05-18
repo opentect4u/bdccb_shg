@@ -1868,6 +1868,11 @@ AND NOT EXISTS (
   WHERE mt.ccb_loan_id = a.loan_id
   AND mt.trans_type = 'D'
   AND COALESCE(mt.approval_status,'U') = 'A'
+) < 
+ (
+  SELECT COUNT(*)
+  FROM bdccb.td_loan_member lm
+  WHERE lm.ccb_loan_id = a.loan_id
 )`;
 if (from_dt && to_dt) {
   whr += ` AND c.trans_dt::date BETWEEN '${from_dt}' AND '${to_dt}'`;
