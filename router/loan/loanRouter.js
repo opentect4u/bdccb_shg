@@ -1881,9 +1881,9 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
         FROM bdccb.td_loan_member_trans
         WHERE loan_id = a.loan_id
         AND trans_type = 'D'
-      ) AS disb_amt,a.sanction_no, TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
+      ) AS disb_amt,a.sanction_no,TO_CHAR(a.sanction_dt,'YYYY-MM-DD') AS sanction_dt,a.society_acc_no`;
    let society_table = `bdccb.td_loan_member a`;
-   let society_whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}'`;
+   let society_whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' GROUP BY  a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.sanction_no,a.sanction_dt,a.society_acc_no`;
    let society_data = await db_Select(society_select,society_table,society_whr,null);
 
   // SAVE ONLY ONE OBJECT
@@ -1891,7 +1891,7 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
    
   // MEMBER DETAILS
 
-  let member_select = `lm.loan_id AS member_loan_id,lm.member_code,m.member_name,m.member_account_no,COALESCE(lmt.disb_amt,0) AS disb_amt`;
+  let member_select = `lm.loan_id AS member_loan_id,lm.member_code,m.member_name,m.member_account_no,COALESCE(lmt.dr_amt,0) AS disb_amt`;
   let member_table = `bdccb.td_loan_member lm LEFT JOIN bdccb.td_loan_member_trans lmt ON lm.loan_id = lmt.loan_id LEFT JOIN bdccb.md_member m ON lm.member_code = m.member_code`;
   let member_whr = `lm.ccb_loan_id = '${loan_id}' AND lmt.trans_type = 'D' AND lmt.approval_status = '${approval_status}'`;
   let member_data = await db_Select(member_select,member_table,member_whr,null);
