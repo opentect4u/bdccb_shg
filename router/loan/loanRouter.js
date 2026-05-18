@@ -2761,6 +2761,8 @@ loanRouter.post("/fetch_member_dt", async (req, res) => {
 loanRouter.post("/save_society_level_disburse", async (req, res) => {
 try{
 const {ccb_loan_id,tenant_id,loan_to,branch_shg_id,loan_acc_no,period,curr_roi,penal_roi,disb_dt,sanction_no,sanction_dt,society_acc_no,members,created_by,ip_address} = req.body;
+console.log(req.body,'soc');
+
 
 let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
 var pay_mode = "Monthly";
