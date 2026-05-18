@@ -2139,20 +2139,6 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
           )
         `;
 
-         if (from_dt && to_dt) {
-
-          member_whr += `
-            AND (
-                  lmt.trans_dt::date
-                  BETWEEN '${from_dt}' AND '${to_dt}'
-
-                  OR
-
-                  lmt.trans_id IS NULL
-            )
-          `;
-        }
-
         let member_data = await db_Select(
           member_select,
           member_table,
