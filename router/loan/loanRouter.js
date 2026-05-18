@@ -1887,7 +1887,7 @@ if (fetch_data.suc === 1 && fetch_data.msg.length > 0) {
    let society_data = await db_Select(society_select,society_table,society_whr,null);
 
   // SAVE ONLY ONE OBJECT
-  fetch_data.msg[i].society_details = society_data.suc === 1 ? society_data.msg : [];
+  fetch_data.msg[i].society_details = society_data.suc === 1 ? society_data.msg[0] : {};
    
   // MEMBER DETAILS
 
@@ -2486,6 +2486,131 @@ loanRouter.post("/fetch_member_dt", async (req, res) => {
   }
   }catch (error) {
     console.error("Error in while fetch member name after approve society level disbursement:", error);
+    return res.send({
+    success: false,
+    msg: "Internal server error",
+    errorCode: "SERVER_ERROR"
+    });
+    }
+});
+
+// SUBMIT MEMBER WISE DISBURSEMENT FROM SOCIETY LEVEL
+loanRouter.post("/save_society_level_disburse", async (req, res) => {
+try{
+const {ccb_loan_id,tenant_id,loan_to,branch_shg_id,loan_acc_no,period,curr_roi,penal_roi,disb_dt,sanction_no,sanction_dt,society_acc_no,members,created_by,ip_address} = req.body;
+
+let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
+var pay_mode = "Monthly";
+
+let instl_date = await genDate(disb_dt, period, pay_mode);
+const startDate = instl_date.emtStart;
+const endDate = instl_date.emiEnd;
+
+// fetch branch id
+let branchData = await db_Select(
+  "branch_jurisdiction_id",
+  "public.md_branch",
+  `branch_id='${branch_shg_id}'`,
+  null
+);
+
+if (branchData.suc !== 1 || branchData.msg.length === 0) {
+  return res.send({
+    success: false,
+    msg: "Branch not found"
+  });
+}
+
+let branch_id = branchData.msg[0].branch_jurisdiction_id;
+
+ if (!members || members.length === 0) {
+      return res.send({
+        success: false,
+        msg: "Members data not found"
+      });
+  }
+
+
+for (const mem of members) {
+
+let mem_trans_id = await member_transaction_id();
+
+// ✅ loanMemberId logic (same as yours)
+let lastLoan = await db_Select(
+      "MAX(loan_id) as max_id",
+      "bdccb.td_loan_member",
+      `member_code='${mem.member_id}'`,
+      null
+);
+
+let nextSeq = 1;
+
+if (lastLoan.suc === 1 && lastLoan.msg[0].max_id) {
+  let lastId = lastLoan.msg[0].max_id.toString();
+  let lastSeq = parseInt(lastId.slice(-2));
+  nextSeq = lastSeq + 1;
+}
+
+let seq = String(nextSeq).padStart(2, "0");
+let loanMemberId = `${mem.member_id}${seq}`;
+
+// ================== td_loan_member ==================
+    const table1 = "bdccb.td_loan_member";
+
+    const columns1 = [
+      "loan_id","ccb_loan_id","tenant_id","branch_id","loan_acc_no","loan_to",
+      "branch_shg_id","group_code","member_code","period","curr_roi","penal_roi",
+      "disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt",
+      "prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt",
+      "tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address",
+      "society_acc_no","society_roi","society_penal_roi","fund_type"
+    ];
+
+    const values1 = [
+      loanMemberId, ccb_loan_id, tenant_id, branch_id, loan_acc_no, loan_to,
+      branch_shg_id, mem.group_code, mem.member_id,
+      period, curr_roi, penal_roi, disb_dt, mem.disburse_amt,
+      pay_mode, startDate, endDate,
+      mem.disburse_amt,0,0,0,0, sanction_no, sanction_dt,created_by, datetime, ip_address,society_acc_no,
+      loan_to == 'P' ? curr_roi : '0',
+      loan_to == 'P' ? penal_roi : '0', 'B'
+    ];
+    
+    const whereColumns1 = [];
+    const whereValues1 = [];
+    const flag1 = 0;
+    await saveRecord(table1, columns1, values1, whereColumns1, whereValues1, flag1);
+
+    // ================== td_loan_member_trans ==================
+    const table2 = "bdccb.td_loan_member_trans";
+
+    const columns2 = [
+      "trans_date","trans_id","loan_id","ccb_loan_id","tenant_id","branch_id",
+      "loan_to","branch_shg_id","loan_acc_no","trans_type",
+      "dr_amt","cr_amt","curr_prn_recov","curr_intt_recov",
+      "ovd_prn_recov","ovd_intt_recov",
+      "curr_prn","curr_intt","ovd_prn","ovd_intt",
+      "approval_status","approved_by","approved_dt","created_by","created_dt","ip_address"
+    ];
+
+    const values2 = [
+      disb_dt, mem_trans_id, loanMemberId, ccb_loan_id, tenant_id, branch_id,
+      loan_to, branch_shg_id, loan_acc_no,
+      'D', mem.disburse_amt, 0,
+      0,0,0,0,mem.disburse_amt,0,0,0,'A',created_by, datetime,created_by, datetime, ip_address
+    ];
+    const whereColumns2 = [];
+    const whereValues2 = [];
+    const flag2 = 0;
+    await saveRecord(table2, columns2, values2, whereColumns2, whereValues2, flag2);
+  }
+    
+ return res.send ({
+  success : true,
+  msg: "Society level disbursement done successfully"
+ })
+}catch (error) {
+    console.error("Error in while save society level disbursement:", error);
     return res.send({
     success: false,
     msg: "Internal server error",
