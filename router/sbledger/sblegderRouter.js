@@ -146,7 +146,7 @@ sbledgerRouter.post("/fetch_grp_sb_details", async (req, res) => {
     WHEN a.dep_with_flag = 'W' THEN 'Withdrawal'
     ELSE ''
     END AS dep_with_flag,COALESCE(a.dr_amt,0) AS dr_amt,COALESCE(a.cr_amt,0) AS cr_amt,COALESCE(a.balance,0) AS balance,a.remarks,a.approval_flag,a.approved_by,TO_CHAR(a.approved_at, 'YYYY-MM-DD') AS approved_at`,
-    table_name1 = "bdccb.td_deposit_trans a",
+    table_name1 = "bdccb.td_deposit_trans a LEFT JOIN bdccb.md_group b ON a.shg_id = b.group_code",
     whr1 = `a.tenant_id = '${tenant_id}' AND ${branchCondition} AND a.shg_id = '${shg_id}'`,
     order1 = `a.trans_dt,a.trans_no`;
     var fetch_gp_sb_dtls_trans = await db_Select(select1,table_name1,whr1,order1);
