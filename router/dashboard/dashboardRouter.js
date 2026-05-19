@@ -154,6 +154,7 @@ dashboardRouter.post("/dashboard_grp_loan_bal", async (req, res) => {
     const {emp_id,tenant_id} = req.body;
     let parts = emp_id.split("-");
     let group_codes = parts[2];
+    
     var select = "a.group_code,a.group_name,b.loan_to",
     table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
     whr = `a.group_code = '${group_codes}'`,
@@ -178,10 +179,21 @@ dashboardRouter.post("/dashboard_grp_loan_bal", async (req, res) => {
     var fetch_loan_amount = await db_Select(select1,table_name1,whr1,order1);
 
     if(fetch_loan_amount.suc === 1 && fetch_loan_amount.msg.length > 0){
-      return res.send({
-      success: true,
-      msg: `Fetch loan balance of ${group_name} group`,
-      data: fetch_loan_amount.msg,
+
+      // FETCH SB BALANCE
+    var select2 ="COALESCE(balance,0) AS sb_balance";
+    var table_name2 = "bdccb.td_deposit";
+    var whr2 = `tenant_id = '${tenant_id}' AND shg_id = '${group_code}'`;
+    var order2 = null;
+    var fetch_sb_balance = await db_Select(select2,table_name2,whr2,order2);
+
+    fetch_loan_amount.msg[0].sb_balance = (fetch_sb_balance.suc === 1 && fetch_sb_balance.msg.length > 0) ? fetch_sb_balance.msg[0].sb_balance
+      : 0;
+    
+    return res.send({
+    success: true,
+    msg: `Fetch loan and sb balance of ${group_name} group`,
+    data: fetch_loan_amount.msg,
       })
     }else{
       return res.send({
