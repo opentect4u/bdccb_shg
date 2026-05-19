@@ -2184,6 +2184,30 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
   }
 });
 
+loanRouter.post("/check_grp_status", async (req, res) => {
+  try{
+  const {tenant_id,group_code} = req.body;
+
+  var select = "b.approval_status",
+  table_name = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+  whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND b.trans_type = 'D' AND b.approval_status = 'A'`,
+  order = null;
+  var check_grp_status = await db_Select(select,table_name,whr,order);
+  return res.send({
+    success: true,
+    approved: check_grp_status.suc === 1 && check_grp_status.msg.length > 0 ? true : false
+    });
+  }catch (error) {
+    console.error(
+    "Error in while fetch unapprove disbursement details:",error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
 // loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 // try{
 // const { branch_id, tenant_id } = req.body;
