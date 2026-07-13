@@ -623,7 +623,8 @@ groupRouter.post("/add_group", async (req, res) => {
         }else{ 
               const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
               const branch_cd = Number(pacs_id) === 111 ? branch_code : pacs_id;
-              const user_id = `${blockId}-${branch_cd}-${grp_code}`;
+              // const user_id = `${blockId}-${branch_cd}-${grp_code}`;
+              const user_id = `${grp_code}`;
               const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
               const values3 = group_code > 0 ? [user_id,phone,created_by,datetime,ip_address] :[user_id, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
               const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
