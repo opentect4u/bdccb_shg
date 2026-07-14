@@ -12,8 +12,9 @@ const member_trans_id = async () => {
 groupRecoveryRouter.post("/fetch_loan_details", async (req, res) => {
     try{
     const {tenant_id,branch_id,emp_id} = req.body;
-     let parts = emp_id.split("-");
-    let group_codes = parts[2];
+    //  let parts = emp_id.split("-");
+    // let group_codes = parts[2];
+    let group_codes = emp_id;
     
 
     var select = "DISTINCT a.group_code,a.group_name,b.loan_to",
