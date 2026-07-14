@@ -152,8 +152,8 @@ try{
 dashboardRouter.post("/dashboard_grp_loan_bal", async (req, res) => {
   try{
     const {emp_id,tenant_id} = req.body;
-    let parts = emp_id.split("-");
-    let group_codes = parts[2];
+    // let parts = emp_id.split("-");
+    let group_codes = emp_id;
     
     var select = "a.group_code,a.group_name,b.loan_to",
     table_name = "bdccb.md_group a LEFT JOIN bdccb.td_loan_member b ON a.group_code = b.group_code",
