@@ -531,6 +531,43 @@ loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
 }
 });
 
+// CHECK IF RECOVERY EXISTS FOR A GROUP
+loanRouter.post("/check_group_recovery", async (req, res) => {
+  try {
+    const { group_code } = req.body;
+    
+    // Check td_loan_transactions
+    const rec_select = "COUNT(b.trans_id) AS recovery_count";
+    const rec_table = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id";
+    const rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R'`;
+    const rec_check = await db_Select(rec_select, rec_table, rec_whr, null);
+    
+    // Check td_loan_member_trans
+    const mem_rec_select = "COUNT(b.trans_id) AS recovery_count";
+    const mem_rec_table = "bdccb.td_loan_member a INNER JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id";
+    const mem_rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R'`;
+    const mem_rec_check = await db_Select(mem_rec_select, mem_rec_table, mem_rec_whr, null);
+    
+    let recovery_exists = false;
+    if ((rec_check.suc === 1 && rec_check.msg[0].recovery_count > 0) || 
+        (mem_rec_check.suc === 1 && mem_rec_check.msg[0].recovery_count > 0)) {
+        recovery_exists = true;
+    }
+
+    return res.send({
+       success: true,
+       recovery_exists: recovery_exists
+    });
+  } catch (error) {
+    console.error("Error in check_group_recovery:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
+});
+
 // FETCH MEMBER DETAILS BASED ON SHG
 loanRouter.post("/fetch_member_name", async (req, res) => {
 try{
