@@ -143,7 +143,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
  groupRouter.get("/fetch_grp_dtls_code", async (req, res) => {
       try{
           const {group_code} = req.query;
-          var select = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id",
+          var select = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id,a.economic_activity",
           table_name = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
           whr = `a.group_code = '${group_code}' AND a.delete_flag = 'N'`,
           order = null;
@@ -218,7 +218,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
       try{
           const {group_code} = req.query;
 
-          var select1 = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id",
+          var select1 = "a.group_code,a.branch_code,a.group_name,a.phone1,a.sahayika_id,a.group_addr,b.branch_name,d.sahayika_name,e.dist_name,f.block_name,g.ps_name,h.post_name,i.gp_name,j.vill_name,a.dist_id,a.block_id,a.ps_id,a.po_id,a.gp_id,a.village_id,a.pin_no,a.sb_ac_no,a.direct_indirect_flag,a.pacs_id,a.economic_activity",
           table_name1 = "bdccb.md_group a LEFT JOIN public.md_branch b ON a.branch_code = b.branch_id LEFT JOIN bdccb.md_sahayika d ON a.sahayika_id = d.sahayika_id LEFT JOIN public.md_district e ON a.dist_id = e.dist_code LEFT JOIN public.md_block f ON a.block_id = f.block_id LEFT JOIN public.md_police_station g ON a.ps_id = g.ps_id LEFT JOIN public.md_postoffice h ON a.po_id = h.po_id LEFT JOIN public.md_gp i ON a.gp_id = i.gp_id LEFT JOIN public.md_village j ON a.village_id = j.vill_id",
           whr1 = `a.group_code = '${group_code}' AND a.delete_flag = 'N'`,
           order1 = null;
@@ -226,7 +226,7 @@ groupRouter.post("/fetch_group_details", async (req, res) => {
 
 
 
-          var select = "member_code, branch_id, member_name, gender,gurdian_name, tenant_id, address, phone_no,aadhar_no, pan_no,  religion, caste, occupation,gp_leader_flag, asst_gp_leader_flag, member_account_no, ifsc",
+          var select = "member_code, branch_id, member_name, gender,gurdian_name, tenant_id, address, phone_no,aadhar_no, pan_no,  religion, caste, occupation,gp_leader_flag, asst_gp_leader_flag, member_account_no, ifsc,economic_activity",
           table_name = "bdccb.md_member",
           whr = `group_code = '${group_code}' AND delete_flag = 'N'`,
           order = null;
@@ -564,7 +564,7 @@ groupRouter.get("/checkaddhar", async (req, res) => {
 // save / edit group
 groupRouter.post("/add_group", async (req, res) => {
     try {
-      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,saving_acc_no,created_by,ip_address,pacs_id } = req.body;
+      const { group_code,tenant_id,branch_code,group_name,phone1,sahayika_id,group_addr,dist_id,block_id,ps_id,po_id,gp_id,village_id,pin_no,saving_acc_no,created_by,ip_address,pacs_id,economic_activity } = req.body;
       // console.log(req.body,'datagrp');
      
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -607,8 +607,8 @@ groupRouter.post("/add_group", async (req, res) => {
       const pin = pin_no ? pin_no.toString() : null;
  
       const table = "bdccb.md_group";
-      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","pacs_id"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id"];
-      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,pacs_id] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',date,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id];
+      const columns = group_code > 0 ? ["branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","modified_by","modified_at","ip_address","pacs_id","economic_activity"] : ["group_code","branch_code","group_name","phone1","sahayika_id","group_addr","dist_id","block_id","ps_id","po_id","gp_id","village_id","pin_no","sb_ac_no","open_close_flag","grp_open_dt","delete_flag","created_by","created_at","ip_address","direct_indirect_flag","pacs_id","economic_activity"];
+      const values = group_code > 0 ? [branch_code,group_name || null,phone,sahayikaId,group_addr.replace(/'/g, "''"),distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,created_by,datetime,ip_address,pacs_id,economic_activity] : [grp_code,branch_code,group_name,phone,sahayikaId,group_addr ? group_addr.replace(/'/g, "''") : null,distId,blockId,psId,poId,gpId,villageId,pin,saving_acc_no,'O',date,'N',created_by,datetime,ip_address,direct_indirect_flag,pacs_id,economic_activity];
       const whereColumns = group_code > 0 ? ["group_code"] : [];
       const whereValues = group_code > 0 ? [group_code] : [];
       const flag = group_code > 0 ? 1 : 0;
@@ -623,7 +623,8 @@ groupRouter.post("/add_group", async (req, res) => {
         }else{ 
               const hashedDefaultPassword = await bcrypt.hash('bdccb1234', 10);
               const branch_cd = Number(pacs_id) === 111 ? branch_code : pacs_id;
-              const user_id = `${blockId}-${branch_cd}-${grp_code}`;
+              // const user_id = `${blockId}-${branch_cd}-${grp_code}`;
+              const user_id = `${grp_code}`;
               const columns3 = group_code > 0 ? ["user_id","phone_mobile","modified_by","modified_at","modified_ip"] :["user_id","tenant_id","brn_code","user_type","user_name","phone_mobile","active_flag","password","created_by","created_at","ip_address","shg_id"];
               const values3 = group_code > 0 ? [user_id,phone,created_by,datetime,ip_address] :[user_id, tenant_id, branch_code, 'S',group_name, phone, 'Y', hashedDefaultPassword, created_by, datetime, ip_address,grp_code];
               const whereColumns3 = group_code > 0 ? ["shg_id"] : [];
@@ -772,7 +773,7 @@ groupRouter.post("/add_group", async (req, res) => {
   //ADD MEMBER
     groupRouter.post("/add_member", async (req, res) => {
     try {
-      const { group_code,tenant_id,branch_code,members,created_by,ip_address,pacs_id} = req.body;
+      const { group_code,tenant_id,branch_code,members,created_by,ip_address,pacs_id,economic_activity} = req.body;
       console.log(req.body,'datagrp');
       let datetime = new Date().toISOString().slice(0, 19).replace('T', ' ');
       // member validation
@@ -794,8 +795,8 @@ groupRouter.post("/add_group", async (req, res) => {
       member_code++;
 
       const table1 = "bdccb.md_member";
-      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc"];
-      const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null];
+      const columns1 = memb.member_id > 0 ? ["branch_id","member_name","gender","gurdian_name","address","phone_no","aadhar_no","religion","caste","modified_by","modified_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc","economic_activity"] : ["member_code","branch_id","group_code","member_name","gender","gurdian_name","tenant_id","address","phone_no","aadhar_no","religion","caste","delete_flag","approval_status","created_by","created_at","ip_address","gp_leader_flag","asst_gp_leader_flag","member_account_no","ifsc","economic_activity"];
+      const values1 = memb.member_id > 0 ? [direct_indirect_flag == 'I' ? pacs_id : branch_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null,memb.economic_activity || null] : [member_code,direct_indirect_flag == 'I' ? pacs_id : branch_code,grp_code,memb.member_name.toUpperCase() || null,memb.gender || null,memb.father_hus_name || null,tenant_id,memb.address.replace(/'/g, "''") || null,memb.phone_no || null,memb.aadhar_no || null,memb.religion || null,casteValue,'N','A',created_by,datetime,ip_address,memb.gp_leader_flag,memb.asst_gp_leader_flag,memb.sb_acc_no || null,memb.ifsc || null,memb.economic_activity || null];
       const whereColumns1 = memb.member_id > 0 ? ["member_code","group_code","tenant_id"] : [];
       const whereValues1 = memb.member_id > 0 ? [memb.member_id,group_code,tenant_id] : [];
       const flag1 = memb.member_id > 0 ? 1 : 0;

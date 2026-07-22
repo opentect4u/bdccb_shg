@@ -109,12 +109,17 @@ ccb_recovRouter.post("/fetch_loan_dtls_based_ccbacc_no", async (req, res) => {
 // SUBMIT RECOVERY IN CCB LEVEL
 ccb_recovRouter.post("/submit_ccb_recovery", async (req, res) => {
   try{
-  const {ccb_loan_id,tenant_id,branch_id,branch_shg_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,ccb_recov,created_by,ip_address} = req.body;
+  const {ccb_loan_id,tenant_id,branch_id,branch_shg_id,loan_acc_no,loan_to,loan_outstanding,prn_amt,intt_amt,ccb_recov,created_by,ip_address,trn_dt} = req.body;
   console.log(req.body,'ccb_recov');
   
 
-  let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
-  let date = new Date().toISOString().slice(0, 10);
+  let current_datetime = new Date();
+  current_datetime.setMinutes(current_datetime.getMinutes() - current_datetime.getTimezoneOffset());
+  let datetime = current_datetime.toISOString().slice(0, 19).replace("T", " ");
+
+  let dateObj = trn_dt ? new Date(trn_dt) : new Date();
+  dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
+  let date = dateObj.toISOString().slice(0, 10);
 
   for (const dt of ccb_recov) { 
     let ccb_trans_id = await ccb_tran_id();
@@ -1598,6 +1603,35 @@ ccb_recovRouter.post("/fetch_indivitual_shg_member_loan", async (req, res) => {
     });
   }
 
+});
+
+// CHECK IF RECOVERY ALREADY EXISTS ON A SPECIFIC DATE
+ccb_recovRouter.post("/check_recovery_date", async (req, res) => {
+  try {
+    const { ccb_loan_id, trans_date } = req.body;
+    
+    // Check td_loan_transactions
+    const rec_select = "COUNT(trans_id) AS cnt";
+    const rec_table = "bdccb.td_loan_transactions";
+    const rec_whr = `loan_id = '${ccb_loan_id}' AND trans_dt = '${trans_date}' AND trans_type = 'I'`;
+    const rec_check = await db_Select(rec_select, rec_table, rec_whr, null);
+    
+    let recovery_exists = false;
+    if (rec_check.suc === 1 && rec_check.msg[0].cnt > 0) {
+        recovery_exists = true;
+    }
+
+    return res.send({
+       success: true,
+       recovery_exists: recovery_exists
+    });
+  } catch (error) {
+    console.error("Error in check_recovery_date:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error"
+    });
+  }
 });
 
 module.exports = {ccb_recovRouter}

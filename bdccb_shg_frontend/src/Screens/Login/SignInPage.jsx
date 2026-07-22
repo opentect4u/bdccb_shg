@@ -1,0 +1,658 @@
+import React, { useState, useEffect, useRef } from "react"
+import { useFormik } from "formik"
+import * as Yup from "yup"
+import { NavLink, useNavigate } from "react-router-dom"
+import LOGO from "../../Assets/Images/ssvws_crop-round.png"
+import axios from "axios"
+import { Select, Spin } from "antd"
+import { LoadingOutlined } from "@ant-design/icons"
+import { url, url_bdccb } from "../../Address/BaseUrl"
+import { Message } from "../../Components/Message"
+import { generateRandomAlphanumeric } from "../../Utils/generateRandomAlphanumeric"
+import { routePaths } from "../../Assets/Data/Routes"
+import { useSocket } from "../../Context/SocketContext"
+import ArrowBackIcon from "@mui/icons-material/ArrowBack"
+import Visibility from "@mui/icons-material/Visibility"
+import VisibilityOff from "@mui/icons-material/VisibilityOff"
+import coverPhoto from "../../Assets/Images/ssvws_cover_1.jpg"
+import localforage from 'localforage';
+
+
+import CryptoJS from "crypto-js";
+import TDInputTemplateBr from "../../Components/TDInputTemplateBr"
+import Radiobtn from "../../Components/Radiobtn"
+
+const listOfBranch = [
+	{
+		label: "Branch",
+		value: "B",
+	},
+	{
+		label: "Society",
+		value: "P",
+	}
+]
+
+const DialogBox = React.lazy(() => import("../../Components/DialogBox"))
+const SignInPage = () => {
+	const navigate = useNavigate()
+	const { connectSocket } = useSocket()
+	const [loading, setLoading] = useState(false)
+	const [userTypeId, setUserTypeId] = useState(0)
+	const [branches, setBranches] = useState([])
+	const [sessionId, setSessionId] = useState("")
+	const [visible, setVisible] = useState(false)
+	const [showPassword, setShowPassword] = useState(false);
+	const [machineIP, setMachineIP] = useState("")
+
+	// const [captchaAnswer, setCaptchaAnswer] = useState("");
+	// const [inputAnswer, setInputAnswer] = useState("");
+
+	// const num1 = Math.floor(Math.random() * 10);
+  	// const num2 = Math.floor(Math.random() * 10);
+
+	const [num1, setNum1] = useState(0);
+	const [num2, setNum2] = useState(0);
+	const [inputAnswer, setInputAnswer] = useState("");
+	const [loginMessage, setLoginMessage] = useState("");
+	const [loginUserType, setLoginUserType] = useState("");
+	const [branch_Society, setBranch_Society] = useState("B")
+
+	// Store controller persistently
+	const abortControllerRef = useRef(null);
+
+	const SECRET_KEY = 'S!YSN@ESR#GAI$CSS%OYF^TVE&KAS&OWL*UNT(ISO)NTS_PSR+IIT=ESL/IKM*IST!EAD@'
+
+	const onChange = (e) => {
+		console.log("radio1 checked", e)
+		setBranch_Society(e)
+	}
+
+	useEffect(()=>{
+		// setCaptchaAnswer(num1 + num2);
+		setNum1(Math.floor(Math.random() * 10) + 1);
+    	setNum2(Math.floor(Math.random() * 10) + 1);
+	},[])
+
+
+	useEffect(()=>{
+		getPublicIP();
+	},[loading])
+
+	const getPublicIP = async () => {
+	try {
+	const res = await axios.get("https://api.ipify.org?format=json");
+	setMachineIP(res.data.ip)
+	console.log("Public IP: ", res.data.ip);
+	} catch (err) {
+	console.error(err);
+	}
+	};
+
+	useEffect(() => {
+		setSessionId(generateRandomAlphanumeric(15))
+	}, [])
+
+	// const encryptPassword = (password) => {
+	// return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+	// };
+
+	const encryptText = (text) => {
+	return CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
+	};
+
+
+
+	const formik = useFormik({
+		initialValues: { user_id: "", password: "", brnch: "" },
+		// validationSchema: Yup.object({
+		// 	user_id: Yup.string().required("User ID is required"),
+		// 	password: Yup.string().required("Password is required"),
+		// 	brnch: Yup.string().test(
+		// 		"branch-required",
+		// 		"Branch is required",
+		// 		(value) => {
+		// 			if ([2,4, 10, 11].includes(userTypeId)) return Boolean(value)
+		// 			return true
+		// 		}
+		// 	),
+		// }),
+		validationSchema: Yup.object({
+		user_id: Yup.string().required("User ID is required"),
+		password: Yup.string().required("Password is required"),
+		brnch: Yup.string().when("user_id", {
+			is: (val) => val === "9999",
+			then: (schema) => schema.required("Branch is required"),
+			otherwise: (schema) => schema.notRequired(),
+		}),
+		}),
+		validateOnMount: true,
+		
+		
+		onSubmit: async (values) => {
+
+			const hashedPassword = encryptText(values?.password);
+			// console.log(hashedPassword , 'hashedPassword');
+			
+			setLoading(true)
+			// const creds = {
+			// 	emp_id: values?.user_id,
+			// 	// password: values?.password,
+			// 	password: hashedPassword,
+			// 	myIP: machineIP,
+			// 	app_version: "0",
+			// 	flag: "W",
+			// 	session_id: sessionId,
+			// 	in_out_flag:"I",
+			// 	branch_code:values?.brnch
+			// }
+
+			const creds = {
+				username: values?.user_id,
+				password: values?.password,
+				user_type: loginUserType,
+				branch_id: loginUserType === 'H' ? formik.values.brnch : '',
+			}
+			
+			
+			
+			if (parseInt(inputAnswer) === num1 + num2) {
+			// console.log(creds, 'credscreds');
+			handleSignIn(creds, "login")
+			} else {
+			Message("error", "CAPTCHA incorrect, try again.")
+			}
+			
+
+			setLoading(false)
+		},
+	})
+
+	const handleSignIn = async (creds, api_name) =>{
+
+			// forceClearSession()
+			await axios
+			.post(`${url_bdccb}/${api_name}`, creds)
+			.then((res) => {
+
+				var userDtls = res?.data?.user_dtls
+
+				if (res?.data?.success) {
+					// console.log(res?.data, 'ggggggggggggggggg', res?.data?.success, 'ok');
+					Message('success', res?.data?.msg)
+					
+					localStorage.setItem("session_id", sessionId)
+					localStorage.setItem("server_token", res?.data?.token)
+					localStorage.setItem("refresh_token", res?.data?.refresh_token)
+					localStorage.setItem("user_details", JSON.stringify(userDtls))
+
+					localforage.setItem('tokenDetails', {
+					'token': res?.data?.token,
+					}).then(() => {
+					}).catch((err) => {
+					console.error('Save error:', err);
+					});
+					
+					// Initialize socket connection with employee ID
+					connectSocket(userDtls.emp_id)
+					
+					navigate(routePaths.BM_HOME)
+				} else {
+					// console.log(res?.data, 'ggggggggggggggggg', res?.data?.msg, 'error');
+					Message("error", res?.data?.msg)
+				}
+			})
+			.catch((err) => {
+				// Message("error", "Some error on server while logging in...")
+			})
+	}
+
+	const forceClearSession = async () => {
+		const creds = {
+			emp_id: formik.values.user_id,
+			modified_by: formik.values.user_id,
+		}
+		try {
+			const res = await axios.post(`${url}/clear_session`, creds)
+			if (res.data.suc === 1) {
+				// Message("success", "Active sessions cleared successfully!")
+				formik.handleSubmit()
+			} else {
+				// console.error("Session clearing failed", res.data.msg)
+			}
+		} catch (err) {
+			console.error(err)
+		}
+	}
+
+	const handleUserBlur__ = async (e) => {
+		formik.handleBlur(e)
+		if (e.target.value) {
+			// if (abortControllerRef.current) {
+			// 		abortControllerRef.current.abort();
+			// }
+			// const controller = new AbortController();
+			// abortControllerRef.current = controller; ,{ signal: controller.signal }
+			setLoading(true)
+			try {
+				const res = await axios.post(`${url}/fetch_emp_type`, {emp_id: e.target.value})
+				const id = res.data.msg[0]?.id || 0;
+				setUserTypeId(id)
+				if ([2,10, 11].includes(id)) {
+					const brnRes = await axios.post(`${url}/fetch_brn_assign`, {
+						emp_id: e.target.value,
+					})
+					if (brnRes.data.suc === 1)
+						setBranches(
+							brnRes.data.msg.map((item) => ({
+								code: item.code,
+								name: `${item.name} (${item.code})`,
+							}))
+						)
+					else {
+						setBranches([])
+						Message("error", "No branch assigned to this user!")
+					}
+				}
+				else if(id == 4){
+					// If user id is 4 (Super Admin), fetch all branches
+					axios
+					// .get(`${url}/admin/fetch_branch`)
+					.get(`${url}/fetch_branch`)
+					.then((res) => {
+						if (res.data.suc === 1){
+								setBranches(
+								res.data.msg.map((item) => ({
+									code: item.branch_code,
+									name: `${item.branch_name} (${item.branch_code})`,
+								}))
+							)
+						}
+						else {
+							setBranches([])
+							Message("error", "No branch available!")
+						}
+					})
+					.catch(console.error)
+				}
+			} catch (err) {
+				console.error(err);
+				if (axios.isCancel(err)) {
+					console.log('Request was cancelled');
+				} else if (err.name === 'CanceledError') {
+					console.log('Request was aborted (AbortController)');
+				} else {
+					console.error('Error fetching user type:', err);
+				}
+			} finally {
+				setLoading(false);
+				// abortControllerRef.current = null; // Clear the controller reference
+			}
+		}
+		else {
+			setUserTypeId(0);
+			setBranches([]);
+			formik.setFieldValue("brnch", "");
+		}
+	}
+
+	const handleUserBlur = async (e) => {
+		
+		// console.log('res.data', 'fffffffffffffffffffffff', formik.values.user_id);
+
+		const creds = {
+			emp_id: formik.values.user_id,
+			// modified_by: formik.values.user_id,
+		}
+		try {
+			const res = await axios.post(`${url_bdccb}/dashboard/fetch_emp_type`, creds)
+			
+			if (res?.data?.success) {
+				// Message("success", "Active sessions cleared successfully!")
+				// formik.handleSubmit()
+				setLoginUserType(res?.data?.data[0]?.user_type || "")
+				if(res?.data?.data[0]?.user_type === 'H'){
+					getBranchList()
+				}
+			} else {
+				// console.error("Session clearing failed", res.data.msg)
+			}
+		} catch (err) {
+			console.error(err)
+		}
+		
+	}
+
+
+	const getBranchList = async (e) => {
+		setLoading(true)
+
+		setBranches([])
+
+		// const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios.get(`${url_bdccb}/dashboard/fetch_brn_soc_name`, {
+			params: {select_type: branch_Society}
+		})
+		.then((res) => {
+
+		if (res?.data?.success) {
+
+		console.log(res?.data?.data, 'fffffffffffffffffffffff', formik.values.user_id);
+		setBranches(res.data.data.map((item) => ({
+		code: item.branch_id,
+		name: `${item.branch_name} (${item.branch_id})`,
+		}))
+		)
+		
+
+		} else {
+		// console.log("QQQQQQQQQQQQQQQQ", res?.data)
+		// Message('error', res?.data?.msg)
+		navigate(routePaths.LANDING)
+		localStorage.clear()
+		}
+
+		})
+		.catch((err) => {
+		console.log("?????????????????????", err)
+		})
+
+		setLoading(false)
+		
+	}
+
+	useEffect(() => {
+	
+	getBranchList()
+		
+	}, [branch_Society])
+
+	return (
+		<div className="flex items-center justify-center min-h-screen bg-slate-800 p-4">
+			<div className="relative bg-white rounded-3xl shadow-xl overflow-hidden max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2">
+				<div className="p-8 md:p-12 lg:p-16 z-10">
+					<div className="flex justify-between items-center mb-10">
+						<div className="flex items-center">
+							<div className="w-12 h-12 bg-white border border-sky-100 rounded-full mr-2">
+								<img
+									src={LOGO}
+									alt="Logo"
+									className="w-full h-full rounded-full"
+								/>
+							</div>
+							<span className="font-semibold text-slate-600 text-2xl">
+								BDCCB
+							</span>
+						</div>
+						<nav className="hidden md:flex space-x-6">
+							{/* <a
+								href={"/"}
+								rel="noreferrer"
+								className="text-gray-600 hover:text-blue-600"
+							>
+								<ArrowBackIcon />
+							</a> */}
+							{/* <NavLink
+								to={"/"}
+								rel="noreferrer"
+								className="text-gray-600 hover:text-blue-600"
+							>
+								<ArrowBackIcon />
+							</NavLink> */}
+							
+							{/* <NavLink
+								className="text-gray-600 hover:text-blue-600"
+								to={'https://ssvws.opentech4u.co.in/payroll'}
+								target="_blank"
+							>
+								Payroll
+							</NavLink>
+							<NavLink
+								className="text-gray-600 hover:text-blue-600"
+								to={'https://ssvws.opentech4u.co.in/ssvws_fin'}
+								target="_blank"
+							>
+								Finance
+							</NavLink> */}
+						</nav>
+					</div>
+
+					<div className="mb-8">
+						<h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+							Start from here
+						</h3>
+						<h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+							Sign into loan.
+						</h1>
+					</div>
+
+					<form onSubmit={formik.handleSubmit} className="space-y-6" autoComplete="off">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<label
+									htmlFor="user_id"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									User ID
+								</label>
+								<input
+									id="user_id"
+									name="user_id"
+									type="text"
+									onChange={formik.handleChange}
+									onBlur={handleUserBlur}
+									value={formik.values.user_id}
+									className="w-full px-4 py-2 bg-slate-100 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+									placeholder="9999"
+								/>
+								{formik.touched.user_id && formik.errors.user_id && (
+									<div className="text-red-500 text-sm">
+										{formik.errors.user_id}
+									</div>
+								)}
+							</div>
+							<div>
+								<label
+									htmlFor="password"
+									className="block text-sm font-medium text-gray-700 mb-1"
+								>
+									Password
+								</label>
+								<div className="relative">
+									<input
+										id="password"
+										name="password"
+										type={showPassword ? "text" : "password"}
+										onChange={formik.handleChange}
+										onBlur={formik.handleBlur}
+										value={formik.values.password}
+										className="w-full px-4 py-2 pr-10 bg-slate-100 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+										placeholder="••••••••"
+									/>
+									<div
+										className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+										onClick={() => setShowPassword((prev) => !prev)}
+									>
+										{showPassword ? (
+											<VisibilityOff className="text-slate-700" />
+										) : (
+											<Visibility className="text-slate-700" />
+										)}
+									</div>
+								</div>
+								{formik.touched.password && formik.errors.password && (
+									<div className="text-red-500 text-sm">
+										{formik.errors.password}
+									</div>
+								)}
+							</div>
+						</div>
+
+						{/* {[2, 4, 10, 11].includes(userTypeId) && ( */}
+						
+						{/* {JSON.stringify(branches, 2)} */}
+
+						
+						
+						{loginUserType && loginUserType === 'H' && (
+							<>
+							<div className="radio_login">
+							<Radiobtn
+							data={listOfBranch}
+							val={branch_Society}
+							onChangeVal={(value) => {
+							onChange(value)
+							}}
+							/>
+							</div>
+
+							<div>
+								<label
+									htmlFor="brnch"
+									className="block text-sm font-medium text-slate-700 mb-1"
+								>
+									Choose Branches / Society
+								</label>
+								{/* <select
+									id="brnch"
+									name="brnch"
+									onChange={formik.handleChange}
+									onBlur={formik.handleBlur}
+									value={formik.values.brnch}
+									className="w-full px-4 py-2 bg-slate-100 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+								>
+									<option value="" disabled>
+										Select a branch
+									</option>
+									{branches.map((opt) => (
+										<option key={opt.code} value={opt.code}>
+											{opt.name}
+										</option>
+									))}
+								</select> */}
+								{formik.touched.brnch && formik.errors.brnch && (
+									<div className="text-red-500 text-sm">
+										{formik.errors.brnch}
+									</div>
+								)}
+
+								<Select
+								showSearch
+								placeholder="Select a branch"
+								value={formik.values.brnch || undefined}
+								style={{ width: "100%" }}
+								optionFilterProp="children"
+								name="brnch"
+
+								// ✅ When selecting
+								onChange={(value) => {
+								formik.setFieldValue("brnch", value);
+								}}
+
+								// ✅ Formik touch
+								onBlur={() => formik.setFieldTouched("brnch", true)}
+
+								// 🔍 Search filter
+								filterOption={(input, option) =>
+								option?.children?.toLowerCase().includes(input.toLowerCase())
+								}
+								>
+								<Select.Option value="" disabled>
+								Select Branches / Society
+								</Select.Option>
+
+								{branches.map((opt) => (
+								<Select.Option key={opt.code} value={opt.code}>
+								{opt.name}
+								</Select.Option>
+								))}
+								</Select>
+
+							</div>
+
+						</>
+						)}
+						{/* )} */}
+
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div style={{display:'flex', alignItems:'center'}}>
+						<label>
+						CAPTCHA: {num1} + {num2} =
+						</label>
+						</div>
+						<div>
+						<input
+						type="number"
+						value={inputAnswer}
+						onChange={(e) => setInputAnswer(e.target.value)}
+						required
+						className="w-full px-4 py-2 pr-10 bg-slate-100 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+						/>
+						</div>
+						</div>
+
+		<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<Spin indicator={<LoadingOutlined spin />} spinning={loading}>
+							<button
+								type="submit"
+								disabled={!formik.isValid || loading}
+								className="w-full px-6 py-3 bg-pink-600 text-white rounded-lg
+								 hover:bg-pink-800 transition-colors focus:outline-none focus:ring-2
+								  focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+								  disabled:opacity-50 disabled:cursor-not-allowed
+								  disabled:hover:bg-pink-600 disabled:transition-none"
+							>
+								Sign In
+							</button>
+							</Spin>
+							<button
+							type="submit"
+							// disabled={!formik.isValid || loading}
+							className="w-full px-6 py-3 bg-blue-800 text-white rounded-lg
+							hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2
+							focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+							disabled:opacity-50 disabled:cursor-not-allowed
+							disabled:hover:bg-pink-600 disabled:transition-none"
+							onClick={() => navigate("/signup")}
+							>
+								Registration
+							</button>
+							</div>
+						
+					</form>
+				</div>
+
+				<DialogBox
+					flag={6}
+					visible={visible}
+					onPress={() => setVisible(false)}
+					onPressYes={forceClearSession}
+					onPressNo={() => setVisible(false)}
+				/>
+
+				{/* <div className="absolute top-0 bottom-0 lg:left-auto lg:right-0 w-full lg:w-1/2 h-full lg:flex hidden items-center justify-center pointer-events-none z-30 rotate-180">
+					<svg
+						className="absolute inset-y-0 left-0 h-full w-full wavy-pattern text-white"
+						viewBox="0 0 200 400"
+						preserveAspectRatio="none"
+						fill="currentColor"
+					>
+						<path d="M150,0 C100,250 200,500 150,750 S100,1000 150,1000 L300,1000 L300,0 Z" />
+					</svg>
+				</div> */}
+
+				<div className="relative hidden lg:block">
+					<img
+						src={coverPhoto}
+						alt="Scenic view"
+						className="absolute inset-y-0 right-0 h-full w-auto object-cover rounded-r-3xl"
+					/>
+					{/* <div className="absolute inset-0 bg-white opacity-10 rounded-r-3xl" /> */}
+				</div>
+			</div>
+		</div>
+	)
+}
+
+export default SignInPage

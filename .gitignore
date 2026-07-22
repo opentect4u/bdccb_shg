@@ -7,3 +7,5 @@ db
 /assets/uploads/
 config
 iisnode
+/bdccb_shg_frontend/node_modules
+/bdccb_shg_frontend/build
