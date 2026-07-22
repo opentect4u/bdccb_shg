@@ -1,0 +1,1051 @@
+// FOR BDCCB 
+import React, { useEffect, useRef, useState } from "react"
+import "../LoanForm/LoanForm.css"
+import { useParams } from "react-router"
+import BtnComp from "../../Components/BtnComp"
+import VError from "../../Components/VError"
+import TDInputTemplate from "../../Components/TDInputTemplate"
+import { useNavigate } from "react-router-dom"
+import { ErrorMessage, Field, FieldArray, Form, Formik, useFormik } from "formik"
+import * as Yup from "yup"
+import axios from "axios"
+import { Message } from "../../Components/Message"
+import { url, url_bdccb } from "../../Address/BaseUrl"
+import {
+	Spin,
+	Button,
+	Popconfirm,
+	Tag,
+	Timeline,
+	Divider,
+	Typography,
+	List,
+	Select,
+	Modal,
+} from "antd"
+import {
+	LoadingOutlined,
+	InfoCircleFilled,
+	CheckCircleOutlined,
+} from "@ant-design/icons"
+import FormHeader from "../../Components/FormHeader"
+import { routePaths } from "../../Assets/Data/Routes"
+import { useLocation } from "react-router"
+import Sidebar from "../../Components/Sidebar"
+import DialogBox from "../../Components/DialogBox"
+import TDInputTemplateBr from "../../Components/TDInputTemplateBr"
+import TimelineComp from "../../Components/TimelineComp"
+import {
+	PendingActionsOutlined,
+	DeleteOutline,
+	InfoOutlined,
+} from "@mui/icons-material"
+import { Checkbox } from "antd"
+import { DataTable } from "primereact/datatable"
+import Column from "antd/es/table/Column"
+import { Toast } from "primereact/toast"
+import AlertComp from "../../Components/AlertComp"
+import { Map } from "lucide-react"
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api"
+import { getLocalStoreTokenDts } from "../../Components/getLocalforageTokenDts"
+// import { format } from "date-fns"
+import { saveMasterData } from "../../services/masterService"
+import Radiobtn from "../../Components/Radiobtn"
+
+const weaker_section = [
+	{
+		label: "Yes",
+		value: "Y",
+	},
+	{
+		label: "No",
+		value: "N",
+	},
+]
+
+const groupLeader = [
+	{
+		label: "Yes",
+		value: "Y",
+	},
+	{
+		label: "No",
+		value: "N",
+	},
+]
+
+
+
+const mapOptions = {
+  disableDefaultUI: true,
+  gestureHandling: 'none',
+  zoomControl: false,
+  draggable: false,
+  scrollwheel: false,
+  disableDoubleClickZoom: true,
+};
+const formatINR = (num) =>
+	new Intl.NumberFormat("en-IN", {
+		style: "currency",
+		currency: "INR",
+		minimumFractionDigits: 2,
+	}).format(num || 0)
+
+	const form_validationSchema = Yup.object({
+		member_from: Yup.string().required("** This field is mandatory"),
+		member_to: Yup.string().required("** This field is mandatory").test('not-same', 'From and To cannot be the same', function (value) {
+      		return value !== this.parent.member_from;
+    	}),
+	})
+function MemberGroupExtendedForm({ groupDataArr }) {
+// 	const markers = [
+//   { id: 1, position: { lat: 40.748817, lng: -73.985428 }, title: 'Empire State Building' },
+//   { id: 2, position: { lat: 40.689247, lng: -74.044502 }, title: 'Statue of Liberty' },
+//   { id: 3, position: { lat: 40.706192, lng: -74.009160 }, title: 'Wall Street' },
+// ];
+// const center = {
+//   lat: 40.748817,
+//   lng: -73.985428,
+// };
+const containerStyle = {
+  width: '100%',
+  height: '400px',
+};
+	const params = useParams()
+	const [loading, setLoading] = useState(false)
+	const location = useLocation()
+	const  loanAppData  = location.state || {}
+	const navigate = useNavigate()
+	const userDetails = JSON.parse(localStorage.getItem("user_details"))
+
+	const [districts, setDistricts] = useState(
+			userDetails[0]?.district_list?.map((item, i) => ({
+			code: item?.dist_code,
+			name: item?.dist_name,
+			}))
+		)
+	// const [masterData, setMasterData] = useState({
+	// 		dist_id: "", block_id: "", gp_id:"" , ps_id:"", po_id:"", village_id:"", branch_code: ""
+	// 	})
+	
+	const [blocks, setBlocks] = useState(() => [])
+	const [gpList, setGPList] = useState(() => [])
+	const [policeStation, setPoliceStation] = useState(() => [])
+	const [postOffice, setPostOffice] = useState(() => [])
+	const [gpName, setGpName] = useState(() => [])
+	const [villName, setVillName] = useState(() => [])
+	const [branch, setBranch] = useState(() => [])
+
+	const [groupData, setGroupData] = useState(() => [])
+	const [dobDate, setDOBDate] = useState(loanAppData?.dob)
+
+	const [visible, setVisible] = useState(() => false)
+	// console.log(loanAppData, "loanAppDataloanAppDataloanAppDataloanAppData", groupDataArr)
+	const [radioWeaker, setRadioWeaker] = useState("Y")
+	const [radioLeader, setRadioLeader] = useState("Y")
+	const [groupList, setGroupList] = useState(() => [])
+
+	const initialValues = {
+		g_group_name: "",
+		member_name: "",
+		gender: "",
+		dob: "",
+		g_address: "",
+		gurdian_name: "",
+		g_pin: "",
+		g_phone1: "",
+		aadhar_no: "",
+		pan_no: "",
+		voter_id: "",
+		caste: "",
+		education: "",
+		occupation: "",
+		religion: "",
+	}
+	const [formValues, setValues] = useState(initialValues)
+
+	const validationSchema = Yup.object({
+		member_name: Yup.string().required("Member name is required"),
+		g_address: Yup.string().required("Address is required"),
+		g_group_name: Yup.string().required("Group Member is required"),
+	})
+
+
+
+	// const handleCancel = () => {
+	// 	setIsModalOpen(false);
+	// };
+
+
+	const onChange2 = (e) => {
+		console.log("radio1 checked", e)
+		setRadioWeaker(e)
+	}
+
+	const onChangeLeader = (e) => {
+		console.log("radio1 checked", e)
+		setRadioLeader(e)
+	}
+
+
+	// const searchBank_branch_IFSC = async (bank_code) => {
+	// const result = bankName.find(item => item.bank_code === bank_code);
+	// formik.setFieldValue('g_bank_branch', result?.bank_branch);
+	// formik.setFieldValue('g_ifsc', result?.ifsc);
+	// }
+
+	const toInputDate = (ddmmyyyy) => {
+  if (!ddmmyyyy) return "";
+
+  const [dd, mm, yyyy] = ddmmyyyy.split("-");
+  return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+};
+
+	const toAPIDate = (yyyymmdd) => {
+	if (!yyyymmdd) return "";
+	const [yyyy, mm, dd] = yyyymmdd.split("-");
+	return `${dd}-${mm}-${yyyy}`;
+	};
+
+	useEffect(() => {
+		if (params?.id > 0) {
+			fetchMemberGroups()
+		}
+
+		if (params?.id > 0) {
+
+		// const formattedDob = toInputDate(loanAppData?.dob);
+
+		// setValues({
+		// g_group_name: loanAppData?.group_name,
+		// member_name: loanAppData?.member_name,
+		// // g_group_type: "J",
+		// gender: loanAppData?.gender,
+		// dob: formattedDob,
+		// g_address: loanAppData?.address,
+		// gurdian_name: loanAppData?.gurdian_name,
+		// g_pin: loanAppData?.pin_no,
+		// g_phone1: loanAppData?.phone_no,
+		// aadhar_no: loanAppData?.aadhar_no,
+		// pan_no: loanAppData?.pan_no,
+		// voter_id: loanAppData?.voter_id,
+		// caste: loanAppData?.caste,
+		// education: loanAppData?.education,
+		// occupation: loanAppData?.occupation,
+		// religion: loanAppData?.religion,
+		// })
+
+		// setDOBDate(loanAppData?.dob)
+
+		}
+
+		fetchGroupsList()
+
+		console.log(userDetails[0], 'ggggggggggggggggg');
+		
+
+	}, [])
+
+	const [pendingValues, setPendingValues] = useState(null);
+
+	// wherever you open popup (e.g. on submit)
+	const handleOpenConfirm = (values) => {
+	setPendingValues(values);   // store formik values
+	setVisible(true);           // open dialog
+	};
+	
+	const onSubmit = async (values) => {
+		// setVisible(true)
+		// if (params?.id > 0) {
+		// 	editMember(values)
+		// }
+		handleOpenConfirm(values)
+			
+	}
+
+	
+
+	const formik = useFormik({
+		initialValues: +params.id > 0 ? formValues : initialValues,
+		onSubmit,
+		validationSchema,
+		validateOnChange: true,
+		validateOnBlur: true,
+		enableReinitialize: true,
+		validateOnMount: true,
+	})
+
+
+
+	const getClientIP = async () => {
+	const res = await fetch("https://api.ipify.org?format=json")
+	const data = await res.json()
+	return data.ip
+	}
+
+	const editMember = async (formData) => {
+				setLoading(true)
+
+				// const formattedDob = toInputDate(formData?.dob);
+			// console.log(formattedDob, 'gggggggggggggg', formData?.dob);
+			
+			// 	return
+			
+				const ip = await getClientIP()
+			
+				const creds = {
+				member_code: loanAppData?.member_code,
+				branch_id: userDetails[0]?.brn_code,
+				group_code: formData?.g_group_name,
+
+				member_name: formData?.member_name,
+				gender: formData?.gender,
+				dob: formData?.dob,
+				gurdian_name: formData?.gurdian_name,
+				tenant_id: userDetails[0]?.tenant_id,
+				address: formData?.g_address,
+				pin_no: formData?.g_pin,
+				phone_no: formData?.g_phone1,
+				aadhar_no: formData?.aadhar_no,
+				pan_no: formData?.pan_no,
+				voter_id: formData?.voter_id,
+				religion: formData?.religion,
+
+				caste: formData?.caste,
+				education: formData?.education,
+				occupation: formData?.occupation,
+				weaker_section: radioWeaker,
+				gp_leader_flag : radioLeader,
+				created_by: userDetails[0]?.emp_id,
+				ip_address: ip,
+				}
+
+
+
+				console.log(creds, 'credscredscredscreds', formData);
+				
+			
+				await saveMasterData({
+				endpoint: "member/save_member",
+				creds,
+				navigate,
+				successMsg: "Member details saved.",
+				onSuccess: () => navigate(-1),
+			
+				// 🔥 fully dynamic failure handling
+				failureRedirect: routePaths.LANDING,
+				clearStorage: true,
+				})
+			
+				setLoading(false)
+				}
+
+	const saveMemberData = async (formData) => {
+				setLoading(true)
+				const formattedDob = toInputDate(loanAppData?.dob);
+			
+				const ip = await getClientIP()
+			
+				const creds = {
+				branch_id: userDetails[0]?.brn_code,
+				group_code: formData?.g_group_name,
+
+				member_name: formData?.member_name,
+				gender: formData?.gender,
+				dob: formData?.dob,
+				gurdian_name: formData?.gurdian_name,
+				tenant_id: userDetails[0]?.tenant_id,
+				address: formData?.g_address,
+				pin_no: formData?.g_pin,
+				phone_no: formData?.g_phone1,
+				aadhar_no: formData?.aadhar_no,
+				pan_no: formData?.pan_no,
+				voter_id: formData?.voter_id,
+				religion: formData?.religion,
+
+				caste: formData?.caste,
+				education: formData?.education,
+				occupation: formData?.occupation,
+				gp_leader_flag : radioLeader,
+				weaker_section: radioWeaker,
+				created_by: userDetails[0]?.emp_id,
+				ip_address: ip,
+				}
+
+				console.log(creds, 'credscredscredscreds', formData);
+				
+			
+				await saveMasterData({
+				endpoint: "member/save_member",
+				creds,
+				navigate,
+				successMsg: "Member details saved.",
+				onSuccess: () => navigate(-1),
+			
+				// 🔥 fully dynamic failure handling
+				failureRedirect: routePaths.LANDING,
+				clearStorage: true,
+				})
+			
+				setLoading(false)
+				}
+
+
+const fetchMemberGroups = async () => {
+
+		// console.log(searchKeywords, 'search', userDetails[0]?.brn_code);
+		
+		setLoading(true)
+		const creds = {
+		member_name: params?.id,
+		branch_code: userDetails[0]?.brn_code,
+		}
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+		await axios.post(`${url_bdccb}/member/fetch_member_details`, creds, {
+		headers: {
+		Authorization: `${tokenValue?.token}`, // example header
+		"Content-Type": "application/json", // optional
+		},
+		})
+		.then((res) => {
+console.log(res?.data?.data, 'searchffffffffffffffffffff', params?.id, '', res?.data?.data[0]);
+	if(res?.data?.success){
+
+		const formattedDob = toInputDate(res?.data?.data[0]?.dob);
+		setRadioWeaker(res?.data?.data[0]?.weaker_section)
+		setRadioLeader(res?.data?.data[0]?.gp_leader_flag)
+	setValues({
+		g_group_name: res?.data?.data[0]?.group_code,
+		member_name: res?.data?.data[0]?.member_name,
+
+		// g_group_type: "J",
+		gender: res?.data?.data[0]?.gender,
+		dob: formattedDob,
+		g_address: res?.data?.data[0]?.address,
+		gurdian_name: res?.data?.data[0]?.gurdian_name,
+		g_pin: res?.data?.data[0]?.pin_no,
+		g_phone1: res?.data?.data[0]?.phone_no,
+		aadhar_no: res?.data?.data[0]?.aadhar_no,
+		pan_no: res?.data?.data[0]?.pan_no,
+		voter_id: res?.data?.data[0]?.voter_id,
+		caste: res?.data?.data[0]?.caste,
+		education: res?.data?.data[0]?.education,
+		occupation: res?.data?.data[0]?.occupation,
+		religion: res?.data?.data[0]?.religion,
+		})
+	} else {
+	navigate(routePaths.LANDING)
+	localStorage.clear()
+	}
+
+	})
+	.catch((err) => {
+	Message("error", "Some error occurred while searching...")
+	})
+	setLoading(false)
+	}
+
+
+const fetchGroupsList = async () => {
+
+		// console.log(searchKeywords, 'search', userDetails[0]?.brn_code);
+		
+		setLoading(true)
+		const creds = {
+		branch_code: userDetails[0]?.brn_code,
+		}
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+		await axios.post(`${url_bdccb}/member/fetch_group_list`, creds, {
+		headers: {
+		Authorization: `${tokenValue?.token}`, // example header
+		"Content-Type": "application/json", // optional
+		},
+		})
+		.then((res) => {
+
+	if(res?.data?.success){
+		console.log(res?.data?.data, 'searchffffffffffffffffffff', params?.id, '', userDetails[0]?.brn_code);
+		setGroupList(res?.data?.data.map(item => ({
+		code: item.group_code,
+		name: item.group_name
+		})))
+	// 	const formattedDob = toInputDate(res?.data?.data[0]?.dob);
+	// setValues({
+	// 	g_group_name: res?.data?.data[0]?.group_name,
+	// 	member_name: res?.data?.data[0]?.member_name,
+
+	// 	// g_group_type: "J",
+	// 	gender: res?.data?.data[0]?.gender,
+	// 	dob: formattedDob,
+	// 	g_address: res?.data?.data[0]?.address,
+	// 	gurdian_name: res?.data?.data[0]?.gurdian_name,
+	// 	g_pin: res?.data?.data[0]?.pin_no,
+	// 	g_phone1: res?.data?.data[0]?.phone_no,
+	// 	aadhar_no: res?.data?.data[0]?.aadhar_no,
+	// 	pan_no: res?.data?.data[0]?.pan_no,
+	// 	voter_id: res?.data?.data[0]?.voter_id,
+	// 	caste: res?.data?.data[0]?.caste,
+	// 	education: res?.data?.data[0]?.education,
+	// 	occupation: res?.data?.data[0]?.occupation,
+	// 	religion: res?.data?.data[0]?.religion,
+	// 	})
+	} else {
+	navigate(routePaths.LANDING)
+	localStorage.clear()
+	}
+
+	})
+	.catch((err) => {
+	Message("error", "Some error occurred while searching...")
+	})
+	setLoading(false)
+	}
+
+	const fetchBranch = async (dist_id) => {
+		setLoading(true)
+
+		// const creds = {
+		// 	prov_grp_code: 0,
+		// 	user_type: userDetails?.id,
+		// 	branch_code: userDetails?.brn_code,
+		// }
+
+			const tokenValue = await getLocalStoreTokenDts(navigate);
+		console.log({dist_id: dist_id, tenant_id: userDetails[0]?.tenant_id , branch_id: 0}, 'userDetailsuserDetailsuserDetails');
+		
+			await axios
+				.get(`${url_bdccb}/master/branch_list`, {
+					params: {
+					dist_id: dist_id, tenant_id: userDetails[0]?.tenant_id ,branch_id: 0
+					},
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+			.then((res) => {
+
+			// if(res?.data?.suc === 0){
+			// Message('error', res?.data?.msg)
+			// navigate(routePaths.LANDING)
+			// localStorage.clear()
+			// } else {
+			// setLoanApplications(res?.data?.msg)
+			// setCopyLoanApplications(res?.data?.msg)
+			// }
+			console.log(res?.data?.data, 'xxxxxxxxxxxxxxxxxxx');
+	
+			if(res?.data?.success){
+			setBranch(res?.data?.data?.map((item, i) => ({
+			code: item?.branch_id,
+			name: item?.branch_name,
+			})))
+			} else {
+			Message('error', res?.data?.msg)
+			navigate(routePaths.LANDING)
+			localStorage.clear()
+			}
+
+			})
+			.catch((err) => {
+				Message("error", "Some error occurred while fetching data!")
+				console.log("ERRR", err)
+			})
+		setLoading(false)
+	}
+
+
+	const handleChangeMaster = (e) => {
+  const { name, value } = e.target
+
+//   setMasterData((prev) => {
+//     const updated = {
+//       ...prev,
+//       [name]: value,
+//     }
+
+//     // when district changes
+//     if (name === "dist_id") {
+	
+// 	if(value.length > 0){
+// 		fetchBlock(value)
+// 		fetchPoliceStation(value)
+// 		fetchPosOffice(value)
+// 		fetchBranch(value)
+// 		console.log('load district');
+		
+// 	} else {
+// 		setBlocks([])
+// 		setPoliceStation([])
+// 		setPostOffice([])
+// 		setBranch([])
+// 		console.log('reset district');
+// 	}
+// 	updated.block_id = ""
+// 	updated.ps_id = ""
+// 	updated.po_id = ""
+// 	updated.gp_id = ""
+// 	updated.village_id = ""
+// 	updated.branch_code = ""
+
+//     }
+
+//     // when block changes → call API with latest values
+//     if (name === "block_id") {
+// 	if(updated.dist_id.length > 0 && value.length > 0){
+// 		console.log(value, 'valuevaluevaluevaluevalue');
+		
+// 	fetchGPList(updated.dist_id, value)
+// 	} else {
+// 	setGpName([])
+// 	}
+// 	updated.gp_id = ""
+// 	updated.village_id = ""
+//     }
+
+// 	if (name === "gp_id") {
+// 	if(updated.dist_id.length > 0 && value.length > 0 && updated.gp_id.length > 0){
+// 	fetchVillList(updated.dist_id, updated.block_id, updated.gp_id);
+// 	} else {
+// 	setGpName([])
+// 	}
+//     // updated.block_id = ""
+// 	// updated.block_id = ""
+// 	// updated.block_id = ""
+//     }
+
+//     return updated
+//   })
+}
+
+	return (
+		<>
+		{/* {
+			isOverdue === 'Y' && <AlertComp 
+			
+			msg={<p className="text-2xl font-normal"><span className="text-lg ">Loan Overdue Amount is </span>{formatINR(overDueAmt)}</p>} />
+		} */}
+			<Spin
+				indicator={<LoadingOutlined spin />}
+				size="large"
+				className="text-blue-800 dark:text-gray-400"
+				spinning={loading}
+			>	
+				{/* {(userDetails.id == 4 || userDetails.id == 3 || userDetails.id == 2 || userDetails.id == 13) && 
+				<Button htmlType="button" type="primary" icon={<Map />} onClick={() => showModal()} className="my-3">View Distance</Button>} */}
+				
+				<form onSubmit={formik.handleSubmit}>
+					<div className="flex justify-start gap-5">
+						<div className={"grid gap-4 sm:grid-cols-3 sm:gap-6 w-full mb-3"}>
+
+							
+							<div>
+								{/* <TDInputTemplateBr
+									placeholder="Group Name"
+									type="text"
+									label="Group Name"
+									name="g_group_name"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.g_group_name}
+									disabled={params?.id > 0 ? true : false} 
+									mode={1}
+								/> */}
+								
+{/* {JSON.stringify(formik.values.g_group_name, null, 2)} */}
+								<TDInputTemplateBr
+									placeholder="Group Name"
+									type="text"
+									label="Group Name"
+									name="g_group_name"
+									formControlName={formik.values.g_group_name} // Default to SHG
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									data={groupList}
+									mode={2}
+									// disabled={true}
+								/>
+								{formik.errors.g_group_name && formik.touched.g_group_name ? (
+									<VError title={formik.errors.g_group_name} />
+								) : null}
+							</div>
+
+							
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Member Name"
+									type="text"
+									label="Member Name"
+									name="member_name"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.member_name}
+									mode={1}
+								/>
+								{formik.errors.member_name && formik.touched.member_name ? (
+									<VError title={formik.errors.member_name} />
+								) : null}
+							</div>
+
+							<div className="radioBtn">
+								{/* {JSON.stringify(radioLeader, null, 2)} */}
+								<label for="gender" class="block mb-2 text-sm capitalize font-bold text-slate-800
+				 dark:text-gray-100"> Group Leader</label>
+				 
+									<Radiobtn
+									data={groupLeader}
+									val={radioLeader}
+									onChangeVal={(value) => {
+									onChangeLeader(value)
+									}}
+									/>
+									
+									</div>
+
+							<div>
+								
+
+								<TDInputTemplateBr
+									placeholder="Select Gender"
+									type="text"
+									label="Gender"
+									name="gender"
+									formControlName={formik.values.gender} // Default to SHG
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									data={[
+										// { code: "", name: "Select Gender" },
+										{ code: "M", name: "Male"},
+										{ code: "F", name: "Female"},
+									]}
+									mode={2}
+									// disabled={true}
+								/>
+
+								{formik.errors.gender && formik.touched.gender ? (
+									<VError title={formik.errors.gender} />
+								) : null}
+							</div>
+
+							<div>
+								{/* {formik.values.dob} {JSON.stringify(dobDate, null, 2)} */}
+
+							<TDInputTemplateBr
+							placeholder="DOB"
+							type="date"
+							label="DOB"
+							name="dob"
+							formControlName={formik.values.dob}   // 🔥 Formik value
+							handleChange={(e) => {
+								const val = e.target.value;
+								formik.setFieldValue("dob", val);    // keep Formik in sync
+								setDOBDate(val);                     // optional if you still need local
+							}}
+							handleBlur={formik.handleBlur}
+							mode={1}
+							/>
+							</div>
+
+							
+							</div>
+							</div>
+							<div className="flex justify-start gap-5 mb-3">
+							<div className={"grid gap-4 sm:grid-cols-1 sm:gap-6 w-full"}>
+								<div className="sm:col-span-2">
+								<TDInputTemplateBr
+									placeholder="Type Address..."
+									type="text"
+									label={`Address`}
+									name="g_address"
+									formControlName={formik.values.g_address}
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									mode={3}
+								/>
+								{formik.errors.g_address && formik.touched.g_address ? (
+									<VError title={formik.errors.g_address} />
+								) : null}
+								</div>
+							</div>
+							</div>
+							
+							<div className="flex justify-start gap-5">
+							<div className={"grid gap-4 sm:grid-cols-3 sm:gap-6 w-full"}>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Gurdian Name"
+									type="text"
+									label="Gurdian Name"
+									name="gurdian_name"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.gurdian_name}
+									mode={1}
+								/>
+								{formik.errors.gurdian_name && formik.touched.gurdian_name ? (
+									<VError title={formik.errors.gurdian_name} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="PIN No."
+									type="number"
+									label="PIN No."
+									name="g_pin"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.g_pin}
+									mode={1}
+								/>
+								{formik.errors.g_pin && formik.touched.g_pin ? (
+									<VError title={formik.errors.g_pin} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Mobile No."
+									type="number"
+									label="Mobile No. 1"
+									name="g_phone1"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.g_phone1}
+									mode={1}
+								/>
+								{formik.errors.g_phone1 && formik.touched.g_phone1 ? (
+									<VError title={formik.errors.g_phone1} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Aadhar No"
+									type="number"
+									label="Aadhar No"
+									name="aadhar_no"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.aadhar_no}
+									mode={1}
+								/>
+								{formik.errors.aadhar_no && formik.touched.aadhar_no ? (
+									<VError title={formik.errors.aadhar_no} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Pan No"
+									type="text"
+									label="Pan No"
+									name="pan_no"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.pan_no}
+									mode={1}
+								/>
+								{formik.errors.pan_no && formik.touched.pan_no ? (
+									<VError title={formik.errors.pan_no} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Voter Id"
+									type="text"
+									label="Voter Id"
+									name="voter_id"
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									formControlName={formik.values.voter_id}
+									mode={1}
+								/>
+								{formik.errors.voter_id && formik.touched.voter_id ? (
+									<VError title={formik.errors.voter_id} />
+								) : null}
+							</div>
+
+							<div>
+								
+
+								<TDInputTemplateBr
+								placeholder="Select Caste"
+								type="text"
+								label="Caste"
+								name="caste"
+								formControlName={formik.values.caste}
+								handleChange={formik.handleChange}
+								handleBlur={formik.handleBlur}
+								data={[
+									// { code: "", name: "Select Gender"},   // 🔥 default option
+									{ code: "General", name: "General" },
+									{ code: "SC", name: "SC" },
+									{ code: "ST", name: "ST" },
+									{ code: "OBCA", name: "OBCA" },
+									{ code: "OBCB", name: "OBCB" },
+									{ code: "Minority", name: "Minority" },
+									{ code: "Others", name: "Others" },
+									{ code: "OBC", name: "OBC" }
+								]}
+								mode={2}
+								/>
+
+								{formik.errors.caste && formik.touched.caste ? (
+									<VError title={formik.errors.caste} />
+								) : null}
+							</div>
+
+							<div>
+								
+
+								<TDInputTemplateBr
+								placeholder="Select Religion"
+								type="text"
+								label="Religion"
+								name="religion"
+								formControlName={formik.values.religion}
+								handleChange={formik.handleChange}
+								handleBlur={formik.handleBlur}
+								data={[
+									// { code: "", name: "Select Gender"},   // 🔥 default option
+									{ code: "Hinduism", name: "Hinduism" },
+									{ code: "Islam", name: "Islam" },
+									{ code: "Christianity", name: "Christianity" },
+									{ code: "Jainism", name: "Jainism" },
+									{ code: "Buddhism", name: "Buddhism" },
+									{ code: "Sikhism", name: "Sikhism" },
+									{ code: "Others", name: "Others" },
+								]}
+								mode={2}
+								/>
+
+								{formik.errors.religion && formik.touched.religion ? (
+									<VError title={formik.errors.religion} />
+								) : null}
+							</div>
+							
+							
+							<div>
+								
+
+								<TDInputTemplateBr
+								placeholder="Select Education"
+								type="text"
+								label="Education"
+								name="education"
+								formControlName={formik.values.education}
+								handleChange={formik.handleChange}
+								handleBlur={formik.handleBlur}
+								data={[
+									{ code: "Secondary", name: "Secondary" },
+									{ code: "Intermidiate", name: "Intermidiate" },
+									{ code: "Graduate", name: "Graduate" },
+									{ code: "Post Graduate", name: "Post Graduate" },
+									{ code: "Voccational", name: "Voccational" },
+									{ code: "Others", name: "Others" }
+								]}
+								mode={2}
+								/>
+
+								{formik.errors.education && formik.touched.education ? (
+									<VError title={formik.errors.education} />
+								) : null}
+							</div>
+
+
+							<div>
+								
+
+								<TDInputTemplateBr
+								placeholder="Select Occupation"
+								type="text"
+								label="Occupation"
+								name="occupation"
+								formControlName={formik.values.occupation}
+								handleChange={formik.handleChange}
+								handleBlur={formik.handleBlur}
+								data={[
+									{ code: "Business", name: "Business" },
+									{ code: "Agriculture", name: "Agriculture" },
+									{ code: "Service", name: "Service" },
+									{ code: "Housewife", name: "Housewife" },
+									{ code: "Others", name: "Others" }
+								]}
+								mode={2}
+								/>
+
+								{formik.errors.occupation && formik.touched.occupation ? (
+									<VError title={formik.errors.occupation} />
+								) : null}
+							</div>
+
+							
+
+							
+
+							<div className="radioBtn">
+								<label for="gender" class="block mb-2 text-sm capitalize font-bold text-slate-800
+				 dark:text-gray-100"> Weaker Section</label>
+				 
+									<Radiobtn
+									data={weaker_section}
+									val={radioWeaker}
+									onChangeVal={(value) => {
+									onChange2(value)
+									}}
+									/>
+									
+									</div>
+
+
+
+
+
+							
+					
+					{/* {JSON.stringify(villName, null, 2)} */}
+
+						</div>
+					</div>
+
+					
+
+					{/* {userDetails?.id != 3 &&  */}
+					<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
+					{/* } */}
+				</form>
+			</Spin>
+
+			<DialogBox
+				flag={4}
+				onPress={() => setVisible(!visible)}
+				visible={visible}
+				 onPressYes={() => {
+    if (pendingValues) {
+      if(params?.id > 0) {
+			editMember(pendingValues);
+		} else {
+			saveMemberData(pendingValues) 
+		}   // 🔥 pass values here
+    }
+    setVisible(false);
+  }}
+				onPressNo={() => setVisible(!visible)}
+			/>
+
+			
+
+			
+
+			
+
+			
+		</>
+	)
+}
+
+export default MemberGroupExtendedForm

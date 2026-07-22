@@ -1,0 +1,1343 @@
+import React, { useCallback, useEffect, useState } from "react"
+import Sidebar from "../../../Components/Sidebar"
+import axios from "axios"
+import { url } from "../../../Address/BaseUrl"
+import { Spin, Tooltip } from "antd"
+import {
+	LoadingOutlined,
+	SearchOutlined,
+	PrinterOutlined,
+	FileExcelOutlined,
+} from "@ant-design/icons"
+import Radiobtn from "../../../Components/Radiobtn"
+import TDInputTemplateBr from "../../../Components/TDInputTemplateBr"
+import { formatDateToYYYYMMDD } from "../../../Utils/formateDate"
+import DynamicTailwindTable from "../../../Components/Reports/DynamicTailwindTable"
+import {
+	branchwiseTxnReportHeader,
+	txnCoHeader,
+	txnFundHeader,
+	txnGrpHeader,
+	txnMembHeader,
+} from "../../../Utils/Reports/headerMap"
+import Select from "react-select"
+import { exportToExcel } from "../../../Utils/exportToExcel"
+import { printTableReport } from "../../../Utils/printTableReport"
+import { useCtrlP } from "../../../Hooks/useCtrlP"
+import { MultiSelect } from "primereact/multiselect"
+import { Message } from "../../../Components/Message"
+import { use } from "react"
+import { getLocalStoreTokenDts } from "../../../Components/getLocalforageTokenDts"
+import { routePaths } from "../../../Assets/Data/Routes"
+import { useNavigate } from "react-router"
+
+const options = [
+	{
+		label: "Both",
+		value: "B",
+	},
+	{
+		label: "Disbursement",
+		value: "D",
+	},
+	{
+		label: "Recovery",
+		value: "R",
+	},
+]
+
+const options2 = [
+	{
+		label: "Groupwise",
+		value: "G",
+	},
+	{
+		label: "Fundwise",
+		value: "F",
+	},
+	{
+		label: "CO-wise",
+		value: "C",
+	},
+	{
+		label: "Memberwise",
+		value: "M",
+	},
+	{
+		label: "Branchwise",
+		value: "B",
+	},
+]
+
+// Branchwise And Divisionwise options
+const brnchwis_divwise = [
+	{
+		label: "Branchwise",
+		value: "B",
+	},
+	{
+		label: "Divisionwise",
+		value: "D",
+	},
+]
+
+function LoanTransactionsMain() {
+	const [selectedColumns, setSelectedColumns] = useState(null);
+	const [md_columns, setColumns] = useState([]);
+	const userDetails = JSON.parse(localStorage.getItem("user_details")) || ""
+	const [loading, setLoading] = useState(false)
+
+	// Branchwise And Divisionwise options
+	const [searchBrnchDiv, setSearchBrnchDiv] = useState(() => "B")
+
+	const [searchType, setSearchType] = useState(() => "B")
+	const [searchType2, setSearchType2] = useState(() => "G")
+
+	const [fromDate, setFromDate] = useState()
+	const [toDate, setToDate] = useState()
+	const [reportData, setReportData] = useState(() => [])
+
+	const [funds, setFunds] = useState([])
+	const [selectedFund, setSelectedFund] = useState("")
+	const [cos, setCOs] = useState([])
+	const [selectedCO, setSelectedCO] = useState("")
+	const [branches, setBranches] = useState([])
+	const [selectedOptions, setSelectedOptions] = useState([])
+	const [selectedOptionsCondition, setSelectedOptionsCondition] = useState('')
+	const [selectedCOs, setSelectedCOs] = useState([])
+	const navigate = useNavigate()
+		
+	const [metadataDtls, setMetadataDtls] = useState(() =>
+		(userDetails?.id === 3 ||
+			userDetails?.id === 4 ||
+			userDetails?.id === 11) &&
+		userDetails?.brn_code == 100
+			? selectedOptions?.map((item, _) => `${item?.label}, `)
+			: userDetails?.branch_name
+	)
+
+	const onChange = (e) => {
+		console.log("radio1 checked", e)
+		setSearchType(e)
+	}
+
+	const onChange2 = (e) => {
+		console.log("radio1 checked", e)
+		setSearchType2(e)
+	}
+
+	// const onChange3BrnDiv = (e) => {
+	// 	console.log("radio1 checked", e)
+	// 	setBranches([]);
+	// 	setSearchBrnchDiv(e)
+	// 	getBranches(e) 
+	// }
+
+	// Branchwise And Divisionwise options
+	const onChange3BrnDiv = (e) => {
+	// RESET branch selection
+	setSelectedOptions([])
+	setSelectedOptionsCondition('no-data')
+
+	setSearchBrnchDiv(e)
+	getBranches(e)
+	}
+
+	const handleFetchTxnReportGroupwise = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+
+		const creds = {
+			from_dt: formatDateToYYYYMMDD(fromDate),
+			to_dt: formatDateToYYYYMMDD(toDate),
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+			tr_type: searchType,
+		}
+		console.log(creds, 'credscredscredscredscreds');
+		
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios
+			.post(`${url}/transaction_report_groupwise`, creds, {
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+			.then((res) => {
+				if(res?.data?.suc === 0){
+				// Message('error', res?.data?.msg)
+				navigate(routePaths.LANDING)
+				localStorage.clear()
+				} else {
+				if(res?.data?.transaction_group_data?.suc == 1){
+					if(res?.data?.transaction_group_data?.msg.length > 0){
+						setReportData(res?.data?.transaction_group_data?.msg)
+						populateColumns(res?.data?.transaction_group_data?.msg,txnGrpHeader);	
+					}
+					else{
+						Message('warning','No Data Available')
+					}
+
+				} else {
+					Message('error','Something went wrong, Please try again later')
+				}
+			}
+				
+				
+				
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err)
+				Message('error',err.message)
+			})
+
+		setLoading(false)
+	}
+
+	const getFunds = async () => {
+		setLoading(true)
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		axios
+			.get(`${url}/get_fund`, {
+		headers: {
+		Authorization: `${tokenValue?.token}`, // example header
+		"Content-Type": "application/json", // optional
+		},
+		})
+			.then((res) => {
+				
+				if(res?.data?.suc === 0){
+// Message('error', res?.data?.msg)
+navigate(routePaths.LANDING)
+localStorage.clear()
+} else {
+				setFunds(res?.data?.msg)
+}
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err)
+				setLoading(false)
+			})
+		setLoading(false)
+	}
+
+	const handleFundChange = (e) => {
+		const selectedId = e.target.value
+		setSelectedFund(selectedId)
+	}
+
+	const handleFetchTxnReportFundwise = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+		const selectedFunds = funds?.map((item, i) => item?.fund_id)
+
+		const creds = {
+			from_dt: formatDateToYYYYMMDD(fromDate),
+			to_dt: formatDateToYYYYMMDD(toDate),
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+			fund_id: selectedFund === "F" ? selectedFunds : [selectedFund],
+			tr_type: searchType,
+		}
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios
+			.post(`${url}/transaction_report_fundwise`, creds, {
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+
+			.then((res) => {
+				
+			if(res?.data?.suc === 0){
+			// Message('error', res?.data?.msg)
+			navigate(routePaths.LANDING)
+			localStorage.clear()
+			} else {
+
+			if(res?.data?.transaction_fund_data?.suc == 1){
+			if(res?.data?.transaction_fund_data?.msg.length > 0){
+			setReportData(res?.data?.transaction_fund_data?.msg)
+			populateColumns(res?.data?.transaction_fund_data?.msg,txnFundHeader);	
+			}
+			else{
+			Message('warning','No Data Available')
+			}
+			}
+			else{
+			Message('error','Something went wrong, Please try again later')
+			}
+
+			}
+			
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err);
+				Message('error',err.message)
+			})
+
+		setLoading(false)
+	}
+
+	const getCOs = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+
+		const creds = {
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+		}
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		axios
+			.post(`${url}/fetch_brn_co`, creds, {
+headers: {
+Authorization: `${tokenValue?.token}`, // example header
+"Content-Type": "application/json", // optional
+},
+})
+			.then((res) => {
+				if(res?.data?.suc === 0){
+// Message('error', res?.data?.msg)
+navigate(routePaths.LANDING)
+localStorage.clear()
+} else {
+				setCOs(res?.data?.msg)
+}
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err)
+				setLoading(false)
+			})
+		setLoading(false)
+	}
+
+	const handleCOChange = (e) => {
+		const selectedId = e.target.value
+		setSelectedCO(selectedId)
+	}
+
+	const handleFetchTxnReportCOwise = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+		const coCodes = selectedCOs?.map((item, i) => item?.value)
+		const allCos = cos?.map((item, i) => item?.co_id)
+
+		const creds = {
+			from_dt: formatDateToYYYYMMDD(fromDate),
+			to_dt: formatDateToYYYYMMDD(toDate),
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+			co_id:
+				coCodes?.length === 0
+					? selectedCO === "AC"
+						? allCos
+						: [selectedCO]
+					: coCodes,
+			tr_type: searchType,
+		}
+
+		// console.log("CREDSS", creds)
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios.post(`${url}/transaction_report_cowise`, creds, {
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+			.then((res) => {
+
+				if(res?.data?.suc === 0){
+        // Message('error', res?.data?.msg)
+		navigate(routePaths.LANDING)
+		localStorage.clear()
+		} else {
+
+				// console.log("RESSSSS======>>>>", res?.data)
+				if(res?.data?.transaction_co_data?.suc == 1){
+					if(res?.data?.transaction_co_data?.msg.length > 0){
+						setReportData(res?.data?.transaction_co_data?.msg)
+						populateColumns(res?.data?.transaction_co_data?.msg,txnCoHeader);	
+					}
+					else{
+						Message('warning','No Data Available')
+					}
+				}
+				else{
+					Message('error','Something went wrong, Please try again later')
+				}
+			}
+				
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err);
+				Message('error',err.message)
+			})
+
+		setLoading(false)
+	}
+
+	const handleFetchTxnReportBranchwise = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+
+		const creds = {
+			from_dt: formatDateToYYYYMMDD(fromDate),
+			to_dt: formatDateToYYYYMMDD(toDate),
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+			tr_type: searchType,
+		}
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios
+			.post(`${url}/transaction_report_branchwise`, creds, {
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+			.then((res) => {
+				
+			if(res?.data?.suc === 0){
+			// Message('error', res?.data?.msg)
+			navigate(routePaths.LANDING)
+			localStorage.clear()
+			} else {
+			if(res?.data?.transaction_branch_data?.suc == 1){
+			if(res?.data?.transaction_branch_data?.msg.length > 0){
+			setReportData(res?.data?.transaction_branch_data?.msg)
+			populateColumns(res?.data?.transaction_branch_data?.msg,branchwiseTxnReportHeader);	
+			}
+			else{
+			Message('warning','No Data Available')
+			}
+			}
+			else{
+			Message('error','Something went wrong, Please try again later')
+			}
+
+			}
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err);
+				
+				Message('warning',err.message)
+			})
+
+		setLoading(false)
+	}
+
+	const handleFetchTxnReportMemberwise = async () => {
+		setLoading(true)
+
+		const branchCodes = selectedOptions?.map((item, i) => item?.value)
+
+		const creds = {
+			from_dt: formatDateToYYYYMMDD(fromDate),
+			to_dt: formatDateToYYYYMMDD(toDate),
+			branch_code:
+				branchCodes?.length === 0 ? [userDetails?.brn_code] : branchCodes,
+			tr_type: searchType,
+		}
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		await axios
+			.post(`${url}/transaction_report_memberwise`, creds, {
+			headers: {
+			Authorization: `${tokenValue?.token}`, // example header
+			"Content-Type": "application/json", // optional
+			},
+			})
+			.then((res) => {
+				
+			if(res?.data?.suc === 0){
+			// Message('error', res?.data?.msg)
+			navigate(routePaths.LANDING)
+			localStorage.clear()
+			} else {
+
+			if(res?.data?.transaction_member_data?.suc == 1 ){
+			if(res?.data?.transaction_member_data?.msg.length > 0){
+			setReportData(res?.data?.transaction_member_data?.msg)
+			populateColumns(res?.data?.transaction_member_data?.msg,txnMembHeader);	
+			}
+			else{
+			Message('warning','No Data Available');
+			}
+			}
+			else{
+			Message('error','Something went wrong, Please try again later');
+			}
+
+			}
+				
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err);
+				Message('error',err.message);
+			})
+
+		setLoading(false)
+	}
+
+	
+
+	const getBranches = async (para) => {
+		// alert("selectedselectedselected")
+		setBranches([]);
+
+		// console.log(para, 'paraparaparaparaparaparaparapara');
+
+		// Branchwise And Divisionwise options
+		var apiUrl = ''
+
+		if(para === 'B'){
+			apiUrl = 'fetch_brnname_based_usertype'
+		}
+
+		if(para === 'D'){
+			apiUrl = 'fetch_divitionwise_branch'
+		}
+		
+		setLoading(true)
+		const creds = {
+			emp_id: userDetails?.emp_id,
+			user_type: userDetails?.id,
+		}
+
+		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		
+		// Branchwise And Divisionwise options
+		axios.post(`${url}/${apiUrl}`, para === 'B' ? creds : {}, {
+		headers: {
+		Authorization: `${tokenValue?.token}`, // example header
+		"Content-Type": "application/json", // optional
+		},
+		})
+			.then((res) => {
+				
+				if(res?.data?.suc === 0){
+				Message('error', res?.data?.msg)
+				navigate(routePaths.LANDING)
+				localStorage.clear()
+				} else {
+				setBranches(res?.data?.msg)
+				console.log(res?.data?.msg, 'paraparaparaparaparaparaparapara');
+				}
+
+			})
+			.catch((err) => {
+				console.log("ERRRR>>>", err)
+				setLoading(false)
+			})
+		setLoading(false)
+	}
+
+	// Branchwise And Divisionwise options
+	useEffect(() => {
+		getBranches(searchBrnchDiv) 
+	}, [])
+
+	const searchData = async () => {
+		
+
+		const date1 = new Date(fromDate);
+		const date2 = new Date(toDate);
+
+		const diffTime = Math.abs(date2 - date1);
+		const diffDays = diffTime / (1000 * 60 * 60 * 24); // convert ms → days
+
+		// Define thresholds
+		const ONE_MONTH_DAYS = 31;
+		const ONE_YEAR_DAYS = 365;
+
+		if(selectedOptionsCondition === 'all'){
+
+		if (diffDays <= ONE_MONTH_DAYS) {
+		if (searchType2 === "G" && fromDate && toDate) {
+			await handleFetchTxnReportGroupwise()
+		} else if (searchType2 === "F" && fromDate && toDate) {
+			await handleFetchTxnReportFundwise()
+		} else if (searchType2 === "C" && fromDate && toDate) {
+			await handleFetchTxnReportCOwise()
+		} else if (searchType2 === "M" && fromDate && toDate) {
+			await handleFetchTxnReportMemberwise()
+		} else if (searchType2 === "B" && fromDate && toDate) {
+			await handleFetchTxnReportBranchwise()
+		}
+
+		} else {
+		Message('error','For multiple branch date range must be within 1 month')
+		}
+
+		}
+
+		if(selectedOptionsCondition === 'single'){
+		// if (diffDays <= ONE_YEAR_DAYS && diffDays >= ONE_MONTH_DAYS) {
+		if (diffDays <= ONE_YEAR_DAYS) {
+
+		if (searchType2 === "G" && fromDate && toDate) {
+			await handleFetchTxnReportGroupwise()
+		} else if (searchType2 === "F" && fromDate && toDate) {
+			await handleFetchTxnReportFundwise()
+		} else if (searchType2 === "C" && fromDate && toDate) {
+			await handleFetchTxnReportCOwise()
+		} else if (searchType2 === "M" && fromDate && toDate) {
+			await handleFetchTxnReportMemberwise()
+		} else if (searchType2 === "B" && fromDate && toDate) {
+			await handleFetchTxnReportBranchwise()
+		}
+
+		} else {
+		Message('error','Period must be within 1 year')
+		}
+		}
+
+
+		
+		
+		// if (searchType2 === "G" && fromDate && toDate) {
+		// 	await handleFetchTxnReportGroupwise()
+		// } else if (searchType2 === "F" && fromDate && toDate) {
+		// 	await handleFetchTxnReportFundwise()
+		// } else if (searchType2 === "C" && fromDate && toDate) {
+		// 	await handleFetchTxnReportCOwise()
+		// } else if (searchType2 === "M" && fromDate && toDate) {
+		// 	await handleFetchTxnReportMemberwise()
+		// } else if (searchType2 === "B" && fromDate && toDate) {
+		// 	await handleFetchTxnReportBranchwise()
+		// }
+
+		
+	}
+
+	useEffect(() => {
+		setReportData([])
+		// setSelectedOptions([])
+		// setMetadataDtls(null)
+		if (searchType2 === "F") {
+			getFunds()
+		}
+		if (searchType2 === "C") {
+			getCOs()
+		}
+	}, [searchType, searchType2])
+
+	useEffect(() => {
+		setSelectedCOs([])
+		if (searchType2 === "C") {
+			getCOs()
+		}
+	}, [selectedOptions])
+
+	const fetchSearchTypeName = (searchType) => {
+		if (searchType === "M") {
+			return "Memberwise"
+		} else if (searchType === "G") {
+			return "Groupwise"
+		} else if (searchType === "F") {
+			return "Fundwise"
+		} else if (searchType === "C") {
+			return "CO-wise"
+		} else if (searchType === "B") {
+			return "Branchwise"
+		} else if (searchType === "D") {
+			return "Disbursement"
+		} else if (searchType === "R") {
+			return "Recovery"
+		}
+	}
+
+	const dataToExport = reportData
+
+	const headersToExport =
+		searchType2 === "G"
+			? txnGrpHeader
+			: searchType2 === "F"
+			? txnFundHeader
+			: searchType2 === "C"
+			? txnCoHeader
+			: searchType2 === "M"
+			? txnMembHeader
+			: branchwiseTxnReportHeader
+
+	const fileName = `Loan_Txn_${fetchSearchTypeName(
+		searchType2
+	)}_${new Date().toLocaleString("en-GB")}.xlsx`
+
+	// const dropdownOptions = branches?.map((branch) => ({
+	// 	value: branch.branch_assign_id,
+	// 	label: `${branch.branch_name} - ${branch.branch_assign_id}`,
+	// }))
+
+	// Branchwise And Divisionwise options
+	const dropdownOptions = branches?.map((item) => {
+		// console.log(item, 'selectedselectedselected', 'item');
+	if (searchBrnchDiv === "B") {
+		// Branchwise
+		return {
+			value: item.branch_assign_id,
+			label: `${item.branch_name} - ${item.branch_assign_id}`,
+		}
+	}
+
+	if (searchBrnchDiv === "D") {
+		// Divisionwise
+		return {
+			value: item.branch_code,
+			label: `${item.division}`,
+		}
+	}
+
+	return null
+	}).filter(Boolean)
+
+
+	// Branchwise And Divisionwise options
+	useEffect(() => {
+	setFromDate('')
+	setToDate('')
+
+	setReportData([])
+	setSelectedOptions([])
+	setSelectedOptionsCondition("no-data")
+	}, [searchBrnchDiv])
+
+
+	// const displayedOptions =
+	// 	selectedOptions.length === dropdownOptions.length
+	// 		? [{ value: "all", label: "All" }]
+	// 		: selectedOptions
+
+	const displayedOptions = selectedOptions.length === dropdownOptions.length ? selectedOptions : selectedOptions;
+
+	// const handleMultiSelectChange = (selected) => {
+	// 	console.log(selected, 'selectedselectedselected', selectedOptionsCondition, 'outside');
+		
+	// 	if (selected.some((option) => option.value === "all")) {
+	// 		setSelectedOptions(dropdownOptions)
+	// 		// console.log(selected, 'selectedselectedselected', 'all', selected.length);
+	// 		setSelectedOptionsCondition('all')
+			
+	// 	} else {
+	// 		setSelectedOptions(selected)
+	// 		if(selected.length > 1){
+	// 		// console.log(selected, 'selectedselectedselected', 'mutiple branch', selected.length);
+	// 		setSelectedOptionsCondition('all')
+	// 		}
+	// 		if(selected.length === 1){
+	// 		// console.log(selected, 'selectedselectedselected', 'single branch', selected.length);
+	// 		setSelectedOptionsCondition('single')
+	// 		}
+
+	// 		if(selected.length < 1){
+	// 		// console.log(selected, 'selectedselectedselected', 'mutiple branch', selected.length);
+	// 		setSelectedOptionsCondition('no-data')
+	// 		}
+	// 	}
+	// }
+
+
+	// Branchwise And Divisionwise options
+	const handleMultiSelectChange = (selected) => {
+		
+	// Normalize to array
+	const selectedArray = Array.isArray(selected)
+	? selected
+	: selected
+	? [selected]
+	: []
+	// console.log(selected, 'selectedselectedselected', selectedArray, 'outside');
+	setSelectedOptions(selectedArray)
+
+	if (selectedArray.length > 1) {
+	setSelectedOptionsCondition("all")
+	} else if (selectedArray.length === 1) {
+	setSelectedOptionsCondition("single")
+	} else {
+	setSelectedOptionsCondition("no-data")
+	}
+	}
+
+
+
+
+	useEffect(() => {
+
+	if (
+	// userDetails &&
+	(userDetails.id != 3 ||
+	userDetails.id != 4 ||
+	userDetails.id != 11) &&
+	userDetails.brn_code != 100
+	) {
+	console.log('selectedselectedselected' , 'unick single');
+	setSelectedOptionsCondition('single');
+
+
+	}
+	}, [userDetails]);
+
+	const dropdownCOs = cos?.map((branch) => ({
+		value: branch.co_id,
+		label: `${branch.emp_name} - ${branch.co_id}`,
+	}))
+
+	const displayedCOs =
+		selectedCOs.length === dropdownCOs.length
+			? [{ value: "all", label: "All" }]
+			: selectedCOs
+
+	const handleMultiSelectChangeCOs = (selected) => {
+		if (selected.some((option) => option.value === "all")) {
+			setSelectedCOs(dropdownCOs)
+		} else {
+			setSelectedCOs(selected)
+		}
+	}
+
+	const handlePrint = useCallback(() => {
+		printTableReport(
+			dataToExport,
+			headersToExport,
+			fileName?.split(",")[0],
+			[0, 2]
+		)
+	}, [dataToExport, headersToExport, fileName, printTableReport])
+
+	useCtrlP(handlePrint)
+	const populateColumns = (main_dt,headerExport) =>{
+				const columnToBeShown = Object.keys(main_dt[0]).map((key, index) => ({ header:headerExport[key], index }));
+				setColumns(columnToBeShown);
+				setSelectedColumns(columnToBeShown.map(el => el.index));
+	}
+	return (
+		<div>
+			<Sidebar mode={2} />
+			<Spin
+				indicator={<LoadingOutlined spin />}
+				size="large"
+				className="text-slate-800 dark:text-gray-400"
+				spinning={loading}
+			>
+				<main className="px-4 pb-5 bg-slate-50 rounded-lg shadow-lg h-auto my-10 mx-32">
+					<div className="flex flex-row gap-3 mt-20  py-3 rounded-xl">
+						<div className="text-3xl text-slate-700 font-bold">
+							LOAN TRANSACTIONS
+						</div>
+					</div>
+
+					<div className="text-slate-800 italic">
+						Branch:{" "}
+						{(userDetails?.id === 3 ||
+							userDetails?.id === 4 ||
+							userDetails?.id === 11) &&
+						userDetails?.brn_code == 100
+							? displayedOptions?.map((item, _) => `${item?.label}, `)
+							: userDetails?.branch_name}{" "}
+						from {fromDate} to {toDate}
+					</div>
+					
+					{userDetails?.brn_code == 100 && (
+						<div className="mb-0 flex justify-start gap-5 items-center">
+
+						<div>
+							<Radiobtn
+								data={brnchwis_divwise}
+								val={searchBrnchDiv}
+								onChangeVal={(value) => {
+									onChange3BrnDiv(value)
+								}}
+							/>
+						</div>
+						{/* {JSON.stringify(searchBrnchDiv, 2)} */}
+						
+					</div>
+					)}
+					
+
+					<div className="mb-2 flex justify-start gap-5 items-center">
+
+						<div>
+							<Radiobtn
+								data={options2}
+								val={searchType2}
+								onChangeVal={(value) => {
+									onChange2(value)
+								}}
+							/>
+						</div>
+						<div>
+							<Radiobtn
+								data={options}
+								val={searchType}
+								onChangeVal={(value) => {
+									onChange(value)
+								}}
+							/>
+						</div>
+					</div>
+
+
+					{(userDetails?.id === 3 ||
+						userDetails?.id === 4 ||
+						userDetails?.id === 11) &&
+						userDetails?.brn_code == 100 && (
+							<div className="w-[100%]">
+								<Select
+									// options={[{ value: "all", label: "All" }, ...dropdownOptions]}
+									options={[...dropdownOptions]}
+									// isMulti
+									isMulti={searchBrnchDiv === "B"}
+									// value={displayedOptions}
+									value={
+										searchBrnchDiv === "B"
+											? displayedOptions
+											: displayedOptions?.[0] || null
+									}
+									onChange={handleMultiSelectChange}
+									// placeholder="Select branches..."
+									placeholder={
+										searchBrnchDiv === "B"
+											? "Select branches..."
+											: "Select division..."
+									}
+									className="basic-multi-select"
+									classNamePrefix="select"
+									styles={{
+										control: (provided) => ({
+											...provided,
+											borderRadius: "8px",
+										}),
+										valueContainer: (provided) => ({
+											...provided,
+											borderRadius: "8px",
+										}),
+										singleValue: (provided) => ({
+											...provided,
+											color: "black",
+										}),
+										multiValue: (provided) => ({
+											...provided,
+											padding: "0.1rem",
+											backgroundColor: "#da4167",
+											color: "white",
+											borderRadius: "8px",
+										}),
+										multiValueLabel: (provided) => ({
+											...provided,
+											color: "white",
+										}),
+										multiValueRemove: (provided) => ({
+											...provided,
+											color: "white",
+											"&:hover": {
+												backgroundColor: "red",
+												color: "white",
+												borderRadius: "8px",
+											},
+										}),
+										placeholder: (provided) => ({
+											...provided,
+											fontSize: "0.9rem",
+										}),
+									}}
+								/>
+							</div>
+						)}
+
+					{searchType2 === "C" &&
+					(userDetails?.id === 3 ||
+						userDetails?.id === 4 ||
+						userDetails?.id === 11) &&
+					userDetails?.brn_code == 100 ? (
+						// <div>
+						// 	<TDInputTemplateBr
+						// 		placeholder="Select CO..."
+						// 		type="text"
+						// 		label="CO-wise"
+						// 		name="co_id"
+						// 		handleChange={handleCOChange}
+						// 		data={cos.map((dat) => ({
+						// 			code: dat.co_id,
+						// 			name: `${dat.emp_name}`,
+						// 		}))}
+						// 		mode={2}
+						// 		disabled={false}
+						// 	/>
+						// </div>
+						<div className="col-span-3 mx-auto w-[100%] pt-5">
+							<Select
+								options={[{ value: "all", label: "All" }, ...dropdownCOs]}
+								isMulti
+								value={displayedCOs}
+								onChange={handleMultiSelectChangeCOs}
+								placeholder="Select COs'..."
+								className="basic-multi-select"
+								classNamePrefix="select"
+								styles={{
+									control: (provided) => ({
+										...provided,
+										borderRadius: "8px",
+									}),
+									valueContainer: (provided) => ({
+										...provided,
+										borderRadius: "8px",
+									}),
+									singleValue: (provided) => ({
+										...provided,
+										color: "black",
+									}),
+									multiValue: (provided) => ({
+										...provided,
+										padding: "0.1rem",
+										backgroundColor: "#da4167",
+										color: "white",
+										borderRadius: "8px",
+									}),
+									multiValueLabel: (provided) => ({
+										...provided,
+										color: "white",
+									}),
+									multiValueRemove: (provided) => ({
+										...provided,
+										color: "white",
+										"&:hover": {
+											backgroundColor: "red",
+											color: "white",
+											borderRadius: "8px",
+										},
+									}),
+									placeholder: (provided) => ({
+										...provided,
+										fontSize: "0.9rem",
+									}),
+								}}
+							/>
+						</div>
+					) : (
+						searchType2 === "C" && (
+							<div>
+								<TDInputTemplateBr
+									placeholder="Select CO..."
+									type="text"
+									label="CO-wise"
+									name="co_id"
+									handleChange={handleCOChange}
+									data={[
+										{ code: "AC", name: "All COs" },
+										...cos.map((dat) => ({
+											code: dat.co_id,
+											name: `${dat.emp_name}`,
+										})),
+									]}
+									mode={2}
+									disabled={false}
+								/>
+							</div>
+						)
+					)}
+
+					<div className="grid grid-cols-2 gap-5 mt-5 items-end">
+						<div>
+							<TDInputTemplateBr
+								placeholder="From Date"
+								type="date"
+								label="From Date"
+								name="fromDate"
+								formControlName={fromDate}
+								handleChange={(e) => setFromDate(e.target.value)}
+								min={"1900-12-31"}
+								mode={1}
+							/>
+						</div>
+						<div>
+							<TDInputTemplateBr
+								placeholder="To Date"
+								type="date"
+								label="To Date"
+								name="toDate"
+								formControlName={toDate}
+								handleChange={(e) => setToDate(e.target.value)}
+								min={"1900-12-31"}
+								mode={1}
+							/>
+						</div>
+
+						{searchType2 === "F" && (
+							<div>
+								<TDInputTemplateBr
+									placeholder="Select Fund..."
+									type="text"
+									label="Fundwise"
+									name="fund_id"
+									handleChange={handleFundChange}
+									data={[
+										{ code: "F", name: "All funds" },
+										...funds.map((dat) => ({
+											code: dat.fund_id,
+											name: `${dat.fund_name}`,
+										})),
+									]}
+									mode={2}
+									disabled={false}
+								/>
+							</div>
+						)}
+						<div>
+							<button
+								className={`inline-flex items-center px-4 py-2 mt-0 ml-0 sm:mt-0 text-sm font-small text-center text-white border hover:border-green-600 border-teal-500 bg-teal-500 transition ease-in-out hover:bg-green-600 duration-300 rounded-full dark:focus:ring-primary-900`}
+								onClick={() => {
+									searchData()
+								}}
+								// disabled={
+								// 	(searchType2 === "F" &&
+								// 		(!fromDate ||
+								// 			!toDate ||
+								// 			selectedFund == "Select Fund..." ||
+								// 			selectedFund == "")) ||
+								// 	(searchType2 === "C" &&
+								// 		(!fromDate || !toDate || userDetails?.brn_code !== 100
+								// 			? selectedCO == "Select CO..." || selectedCO == ""
+								// 			: selectedCOs.length == 0))
+								// }
+							>
+								<SearchOutlined /> <span className={`ml-2`}>Search</span>
+							</button>
+						</div>
+					</div>
+					{
+						reportData.length > 0 && 	<MultiSelect value={selectedColumns} 
+							onChange={(e) => {
+								console.log(e.value)
+								setSelectedColumns(e.value)
+							}} options={md_columns} optionValue="index" optionLabel="header" 
+							filter placeholder="Choose Columns" maxSelectedLabels={3} className="w-full md:w-20rem mt-5" />
+					}			
+					{searchType2 === "M" && reportData.length > 0 && (
+						<>
+							<DynamicTailwindTable
+								data={reportData}
+								pageSize={50}
+								columnTotal={[18, 19,20,21]}
+								// colRemove={[13, 14]}
+								headersMap={txnMembHeader}
+								dateTimeExceptionCols={[0]}
+								colRemove={selectedColumns ? md_columns.map(el => {
+									  if(!selectedColumns.includes(el.index)){
+										return el.index
+									  }
+									  return false
+								}) : []}
+							/>
+						</>
+					)}
+
+					{/* Groupwise Results with Pagination */}
+					{searchType2 === "G" && reportData.length > 0 && (
+						<>
+							<DynamicTailwindTable
+								data={reportData}
+								pageSize={50}
+								columnTotal={[13,14, 15, 16,17]}
+								dateTimeExceptionCols={[0]}
+								headersMap={txnGrpHeader}
+								colRemove={selectedColumns ? md_columns.map(el => {
+									  if(!selectedColumns.includes(el.index)){
+										return el.index
+									  }
+									  return false
+								}) : []}
+							/>
+						</>
+					)}
+
+					{/* Fundwise Results with Pagination */}
+					{searchType2 === "F" && reportData.length > 0 && (
+						<>
+							<DynamicTailwindTable
+								data={reportData}
+								pageSize={50}
+								columnTotal={[15, 16, 17, 18,19]}
+								dateTimeExceptionCols={[0]}
+								headersMap={txnFundHeader}
+								colRemove={selectedColumns ? md_columns.map(el => {
+									  if(!selectedColumns.includes(el.index)){
+										return el.index
+									  }
+									  return false
+								}) : []}
+							/>
+						</>
+					)}
+
+					{/* COwise Results with Pagination */}
+					{searchType2 === "C" && reportData.length > 0 && (
+						<>
+							<DynamicTailwindTable
+								data={reportData}
+								pageSize={50}
+								columnTotal={[10, 11, 12,13,14]}
+								dateTimeExceptionCols={[0]}
+								headersMap={txnCoHeader}
+								colRemove={selectedColumns ? md_columns.map(el => {
+									  if(!selectedColumns.includes(el.index)){
+										return el.index
+									  }
+									  return false
+								}) : []}
+							/>
+						</>
+					)}
+
+					{/* Branchwise Results with Pagination */}
+					{searchType2 === "B" && reportData.length > 0 && (
+						<>
+							<DynamicTailwindTable
+								data={reportData}
+								pageSize={50}
+								columnTotal={[3, 4,5,6,7]}
+								headersMap={branchwiseTxnReportHeader}
+								colRemove={selectedColumns ? md_columns.map(el => {
+									  if(!selectedColumns.includes(el.index)){
+										return el.index
+									  }
+									  return false
+								}) : []}
+							/>
+						</>
+					)}
+
+					{/* ///////////////////////////////////////////////////////////////// */}
+
+					{reportData.length !== 0 && (
+						<div className="flex gap-4">
+							<Tooltip title="Export to Excel">
+								<button
+									onClick={() =>{
+										console.log(dataToExport, 'hhhhh', headersToExport);
+										// console.log(headersToExport);
+										let exportedDT = [...dataToExport];
+										const tot_debit =  exportedDT.reduce( ( sum , cur ) => sum + Number(cur.debit) , 0);
+										const tot_credit= exportedDT.reduce((sum,cur) => sum + Number(cur.credit) ,0)
+										const tot_prn_recov= exportedDT.reduce((sum,cur) => sum + Number(cur.prn_recov) ,0)
+										const tot_intt_recov= exportedDT.reduce((sum,cur) => sum + Number(cur.intt_recov) ,0)
+										const tot_curr_balance= exportedDT.reduce((sum,cur) => sum + Number(cur.curr_balance) ,0)
+										exportedDT.push({
+											branch_code:"TOTAL",
+											debit: tot_debit,
+											credit: tot_credit,
+											prn_recov: tot_prn_recov,
+											intt_recov: tot_intt_recov,
+											curr_balance:tot_curr_balance
+										})
+										const dt = md_columns.filter(el => selectedColumns.includes(el.index));
+										let header_export = {};
+										Object.keys(headersToExport).forEach(key =>{
+											if(dt.filter(ele => ele.header == headersToExport[key]).length > 0){
+												header_export = {
+													...header_export,
+													[key]:headersToExport[key]
+												}
+											}
+										});
+										exportToExcel(
+											exportedDT,
+											header_export,
+											fileName,
+											[0, 2]
+										)
+										}}
+									className="mt-5 justify-center items-center rounded-full text-green-900"
+								>
+									<FileExcelOutlined
+										style={{
+											fontSize: 30,
+										}}
+									/>
+								</button>
+							</Tooltip>
+							<Tooltip title="Print">
+								<button
+									onClick={() =>{
+										// printTableLoanTransactions(
+										// 	reportData,
+										// 	"Loan Transaction",
+										// 	searchType,
+										// 	searchType2,
+										// 	metadataDtls,
+										// 	fromDate,
+										// 	toDate
+										// )
+										let exportedDT = [...dataToExport];
+										const tot_debit =  exportedDT.reduce( ( sum , cur ) => sum + Number(cur.debit) , 0);
+										const tot_credit= exportedDT.reduce((sum,cur) => sum + Number(cur.credit) ,0)
+										const tot_prn_recov= exportedDT.reduce((sum,cur) => sum + Number(cur.prn_recov) ,0)
+										const tot_intt_recov= exportedDT.reduce((sum,cur) => sum + Number(cur.intt_recov) ,0)
+										const tot_curr_balance= exportedDT.reduce((sum,cur) => sum + Number(cur.curr_balance) ,0)
+										exportedDT.push({
+											debit: tot_debit,
+											credit: tot_credit,
+											prn_recov: tot_prn_recov,
+											intt_recov: tot_intt_recov,
+											curr_balance:tot_curr_balance
+										})
+										const dt = md_columns.filter(el => selectedColumns.includes(el.index));
+										let header_export = {};
+										Object.keys(headersToExport).forEach(key =>{
+											if(dt.filter(ele => ele.header == headersToExport[key]).length > 0){
+												header_export = {
+													...header_export,
+													[key]:headersToExport[key]
+												}
+											}
+										});
+										printTableReport(
+											exportedDT,
+											header_export,
+											fileName?.split(",")[0],
+											[0, 2]
+										)
+									}}
+									className="mt-5 justify-center items-center rounded-full text-pink-600"
+								>
+									<PrinterOutlined
+										style={{
+											fontSize: 30,
+										}}
+									/>
+								</button>
+							</Tooltip>
+						</div>
+					)}
+				</main>
+			</Spin>
+		</div>
+	)
+}
+
+export default LoanTransactionsMain
