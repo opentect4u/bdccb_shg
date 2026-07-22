@@ -1,0 +1,55 @@
+// FOR BDCCB 
+import React, { useEffect, useState } from "react"
+import "../LoanForm/LoanForm.css"
+import "./EditLoanFormBMStyles.css"
+import { useParams } from "react-router"
+import { useNavigate } from "react-router-dom"
+import { Spin } from "antd"
+import { LoadingOutlined } from "@ant-design/icons"
+import FormHeader from "../../Components/FormHeader"
+import { useLocation } from "react-router"
+import Sidebar from "../../Components/Sidebar"
+import GroupExtendedForm from "../Forms/GroupExtendedForm"
+import MemberExtendedForm_BDCCB from "../Forms/MemberExtendedForm_BDCCB"
+
+function AddMemberFormBM() {
+	const params = useParams()
+	const [loading, setLoading] = useState(false)
+	const location = useLocation()
+	const  loanAppData  = location.state || {}
+	const navigate = useNavigate()
+
+
+
+	return (
+		<>
+			<Sidebar mode={2} />
+			<section className="dark:bg-[#001529] flex justify-center align-middle p-5">
+
+				<div className=" p-5 w-full min-h-screen rounded-3xl">
+					<div className="w-auto mx-14 my-4">
+						<FormHeader
+							text={`${params?.id == 0 ? "Add Member" : "Edit/Preview Member"}`}
+							mode={2}
+						/>
+					</div>
+					<Spin
+						indicator={<LoadingOutlined spin />}
+						size="large"
+						className="text-blue-800 dark:text-gray-400"
+						spinning={loading}
+					>
+						<div className="card bg-white border-2 p-5 mx-16 shadow-lg rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
+							{/* {JSON.stringify(loanAppData, null, 2)} ccccccccccc */}
+							<MemberExtendedForm_BDCCB groupDataArr={loanAppData} />
+						</div>
+					</Spin>
+				</div>
+			</section>
+
+			
+		</>
+	)
+}
+
+export default AddMemberFormBM

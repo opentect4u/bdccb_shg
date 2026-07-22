@@ -1,0 +1,15 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "main",
+    "sayantika"
+  ],
+  "parent": {
+    "main": null,
+    "sayantika": "main"
+  },
+  "order": [
+    "main",
+    "sayantika"
+  ]
+}
