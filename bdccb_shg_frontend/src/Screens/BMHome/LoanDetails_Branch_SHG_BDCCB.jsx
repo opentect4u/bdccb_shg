@@ -14,10 +14,10 @@ function LoanDetails_Branch_SHG_BDCCB() {
 		<div>
 			<Sidebar mode={2} />
 
-			<section className="dark:bg-[#001529] flex justify-center align-middle p-5">
+			<section className="dark:bg-[#001529] flex justify-center align-middle p-2">
 
-				<div className=" p-5 w-full min-h-screen rounded-3xl">
-					<div className="w-auto mx-14 my-4">
+				<div className=" p-2 w-full min-h-screen rounded-3xl">
+					<div className="w-auto mx-2 my-4">
 						<FormHeader
 							text={`Loan Recovery Of SHG`}
 							mode={2}
@@ -29,7 +29,7 @@ function LoanDetails_Branch_SHG_BDCCB() {
 						className="text-blue-800 dark:text-gray-400"
 						spinning={loading}
 					> */}
-					<div className="card bg-white border-2 p-5 mx-16 shadow-lg rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
+					<div className="card bg-white border-2 p-5 mx-2 shadow-lg rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
 						{/* {JSON.stringify(loanAppData, null, 2)} ccccccccccc */}
 						<LoanDetailsBranchSHG />
 					</div>

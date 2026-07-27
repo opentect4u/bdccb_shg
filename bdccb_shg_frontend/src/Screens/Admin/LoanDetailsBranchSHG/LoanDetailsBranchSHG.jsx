@@ -370,6 +370,7 @@ function LoanDetailsBranchSHG() {
 		const member_list = formik.values.members.map(item => ({
 		loan_id: item.loan_id,
 		member_name: item.member_name,
+		mem_disb_amt: item.mem_disb_amt,
 		mem_amount: item.cr_amt,
 		mem_outstanding: item.mem_outstanding,
 		}));
@@ -382,6 +383,7 @@ function LoanDetailsBranchSHG() {
 
 		const creds = {
 		curr_prn : loanDetails[0]?.loan_outstanding,
+		disb_amt : loanDetails[0]?.disb_amt,
 		prn_amt: formik.values.principal_amount,
 		intt_amt : formik.values.interest_amount,
 		created_by: userDetails[0]?.emp_id,
@@ -451,6 +453,7 @@ function LoanDetailsBranchSHG() {
 		const member_list = formik.values.members.map(item => ({	
 		loan_id: item.loan_id,
 		member_name: item.member_name,
+		mem_disb_amt: item.mem_disb_amt,
 		mem_amount: item.cr_amt,
 		mem_outstanding: item.mem_outstanding,
 		calculated_interest: item.calculated_interest,
@@ -510,6 +513,7 @@ function LoanDetailsBranchSHG() {
 		
 		const member_list = formik.values.members.map(item => ({	
 		loan_id: item.loan_id,
+		mem_disb_amt: item.mem_disb_amt,
 		calculated_interest: item.calculated_interest,
 		curr_prn: item.mem_outstanding,
 		amount: item.cr_amt,
@@ -567,6 +571,7 @@ function LoanDetailsBranchSHG() {
 
 					const member_list = formik.values.members.map(item => ({	
 					loan_id: item.loan_id,
+					mem_disb_amt: item.mem_disb_amt,
 					calculated_interest: item.calculated_interest,
 					curr_prn: item.mem_outstanding,
 					amount: item.cr_amt,
@@ -1036,7 +1041,7 @@ function LoanDetailsBranchSHG() {
 
 						{/* <div>{JSON.stringify(formik.values.members, null, 2)}</div> */}
 
-						<div className="grid grid-cols-7 gap-5 mt-2">
+						<div className="grid grid-cols-8 gap-5 mt-2">
 							<div>
 							<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
 							dark:text-gray-100"> Loan ID</label>
@@ -1045,6 +1050,11 @@ function LoanDetailsBranchSHG() {
 							<div>
 							<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
 							dark:text-gray-100"> Member Name</label>
+							</div>
+
+							<div>
+							<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
+							dark:text-gray-100"> Disbursement Amount</label>
 							</div>
 
 							<div>
@@ -1077,7 +1087,7 @@ function LoanDetailsBranchSHG() {
 
 						{formik.values.members.map((member, index) => (
 
-						<div key={index} className="grid grid-cols-7 gap-5 mt-0">
+						<div key={index} className="grid grid-cols-8 gap-5 mt-0">
 
 						<div>
 						<TDInputTemplateBr
@@ -1098,6 +1108,17 @@ function LoanDetailsBranchSHG() {
 						// label="Member Name"
 						name={`members.${index}.member_name`}
 						formControlName={member.member_name}
+						disabled={true}
+						mode={1}
+						/>
+						</div>
+
+						<div>
+						<TDInputTemplateBr
+						placeholder="Disbursement Amount"
+						type="number"
+						name={`members.${index}.mem_disb_amt`}
+						formControlName={member.mem_disb_amt}
 						disabled={true}
 						mode={1}
 						/>
@@ -1191,9 +1212,16 @@ function LoanDetailsBranchSHG() {
 
 						))}
 
-						<div className="grid grid-cols-7 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
+						<div className="grid grid-cols-8 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
 							<div className="text-black font-semibold text-base">Total</div>
 							<div></div>
+							<div className="pl-3 text-base font-semibold">
+							{Math.round(formik.values.members.reduce(
+                            (sum, item) => sum + Number(item.mem_disb_amt || 0),
+                            0
+                            )
+							)}
+							</div>
 							<div className="pl-3 text-base">
 							{Math.round(formik.values.members.reduce(
                             (sum, item) => sum + Number(item.cr_amt || 0),
