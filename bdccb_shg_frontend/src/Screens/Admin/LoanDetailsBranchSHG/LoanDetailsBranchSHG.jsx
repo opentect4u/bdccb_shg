@@ -334,21 +334,23 @@ function LoanDetailsBranchSHG() {
 			return Message("error", "Transaction Date must be greater than or equal to Disbursement Date");
 		}
 
-		const princAmt = formik.values.principal_amount || 0
-		const intAmt = formik.values.interest_amount || 0	
-		console.log(Number(princAmt), 'ffffffffffffff', intAmt);
+		const princAmt = formik.values.principal_amount
+		const intAmt = formik.values.interest_amount
+		const princAmtNum = Number(princAmt)
+		const intAmtNum = Number(intAmt)
+		console.log(princAmtNum, 'ffffffffffffff', intAmtNum);
 		
-		// if(princAmt.length < 1 &&  intAmt.length < 1){
-		// 	return Message("error", "Principal amount or Interest amount cannot be empty")
-		// }
-
-		if(!princAmt || !intAmt){
+		if (princAmt === "" || princAmt === null || intAmt === "" || intAmt === null) {
 			return Message("error", "Principal amount or Interest amount cannot be empty")
+		}
+
+		if (Number.isNaN(princAmtNum) || Number.isNaN(intAmtNum)) {
+			return Message("error", "Principal amount or Interest amount must be valid numbers")
 		}
 
 		// 🔥 NEW VALIDATION
 		
-		if (princAmt + intAmt !== totalMemberAmount) {
+		if (princAmtNum + intAmtNum !== totalMemberAmount) {
 			return Message(
 				"error",
 				"Sum Of Principal And Interest Must Match With Total Deposited Amount"
@@ -422,8 +424,8 @@ function LoanDetailsBranchSHG() {
 					setValues({
 						...formValues,
 						transaction_date: formik.values?.transaction_date || new Date().toISOString().split("T")[0],
-						principal_amount: princAmt || "",
-    					interest_amount: intAmt || "",
+						principal_amount: princAmt ?? "",
+    					interest_amount: intAmt ?? "",
 						members: members
 						// members: {
 						// 	loan_id : res?.data?.data?.loan_id,
@@ -488,9 +490,9 @@ function LoanDetailsBranchSHG() {
 
 				setValues({
 				...formValues,
-				transaction_date: formik.values?.transaction_date || new Date().toISOString().split("T")[0],
-				principal_amount: formik.values?.principal_amount || "",
-				interest_amount: formik.values?.interest_amount || "",
+				transaction_date: formik.values?.transaction_date ?? new Date().toISOString().split("T")[0],
+				principal_amount: formik.values?.principal_amount ?? "",
+				interest_amount: formik.values?.interest_amount ?? "",
 				members: members
 				})
 
@@ -948,7 +950,7 @@ function LoanDetailsBranchSHG() {
 						handleChange={formik.handleChange}
 						handleBlur={formik.handleBlur}
 						// formControlName={loanDetails[0]?.principal_amount}
-						formControlName={formik.values.principal_amount || ""}
+						formControlName={formik.values.principal_amount ?? ""}
 						// disabled={true}
 						mode={1}
 						/>
@@ -966,7 +968,7 @@ function LoanDetailsBranchSHG() {
 						handleChange={formik.handleChange}
 						handleBlur={formik.handleBlur}
 						// formControlName={loanDetails[0]?.interest_amount}
-						formControlName={formik.values.interest_amount || ""}
+						formControlName={formik.values.interest_amount ?? ""}
 						// disabled={true}
 						mode={1}
 						/>

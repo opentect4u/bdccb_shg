@@ -31,6 +31,9 @@ import Tooltip from "@mui/material/Tooltip"
 import { useNavigate } from "react-router-dom"
 import DialogBox from "./DialogBox"
 import { routePaths } from "../Assets/Data/Routes"
+import { url, url_bdccb } from "../Address/BaseUrl"
+import axios from "axios"
+
 
 function MenusBr({ theme, data, data_ApprovPending }) {
 	console.log(data, "-------")
@@ -44,11 +47,42 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 	// const [getMenuShow, setMenuShow] = useState(localStorage.getItem("pendingApprove"))
 	const [getMenuShow, setMenuShow] = useState('')
 	const navigate = useNavigate()
+	
+	useEffect(() => {
+        loadMenu();
+    }, []);
 
 	const onClick = (e) => {
 		console.log("click ", e)
 		setCurrent(e.key)
 	}
+
+	 const loadMenu = async () => {
+        try {
+            const res = await axios.post(url_bdccb+"/dashboard/get_menu", {
+                user_type_id: 2
+            });
+
+            if (res.data.suc === 1) {
+                setMenuItems(convertMenu(res.data.msg));
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+	const convertMenu = (menus) => {
+    return menus.map(item => ({
+        key: item.key,
+        label: item.link
+            ? <Link to={item.link}>{item.label}</Link>
+            : item.label,
+        children: item.children
+            ? convertMenu(item.children)
+            : undefined
+    }));
+    };
+
 	// const menuIcons = {
 	//   LineChartOutlined: <LineChartOutlined />,
 	//   ImportOutlined: <ImportOutlined />,
@@ -539,10 +573,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 
 	}, [data])
 
-	// useEffect(() => {
-	//   setItems(items_all_user_copy)
-	//   // console.log(items_all_user_copy);
-	// }, []);
+	
 	const items_user_type_15 = [
 		{
 			key: "sub1",
@@ -2768,8 +2799,6 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 					// hidden: data?.approve_transaction == "Y" ? false : true,
 				},
 
-
-
 			],
 		},
 
@@ -2805,9 +2834,6 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
 		},
-
-
-
 		{
 			key: "sub3",
 			icon: <DeploymentUnitOutlined />,
@@ -2970,14 +2996,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 					label: <Link to={"/homebm/view-sb-ledger"}>SB A/C Ledger</Link>,
 				}
 			],
-		},
-		// {
-		// key: "sub6",
-		// icon: <LineChartOutlined />,
-		// label: <Link to={"/homebm/deposit"}>SB Deposit</Link>,
-		// },
-
-
+		}
 	]
 
 
@@ -3010,9 +3029,18 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			<Menu
 				onClick={onClick}
 				selectedKeys={[current]}
-				items={userDetails[0]?.user_type == 'B' ? items_bdccb : userDetails[0]?.user_type == 'P' ? items_bdccb_PACS : userDetails[0]?.user_type == 'H' ? items_bdccb_Supper_User : items_bdccb}
-				// disabled={getMenuShow === "yes" ? true : false}
-
+                items={
+					userDetails[0]?.user_type === 'B'
+						? items_bdccb
+						: userDetails[0]?.user_type === 'P'
+						? items_bdccb_PACS
+						: userDetails[0]?.user_type === 'H'
+						? userDetails[0]?.branch_type === 'P'
+						? items_bdccb_PACS
+						: items_bdccb
+						: items_bdccb
+					}
+                // items={menuItems}
 				mode="horizontal"
 				style={{
 					width: 1000,
@@ -3021,70 +3049,6 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 				}}
 				className="rounded-full items-center justify-center"
 			/>
-
-			{/* {getMenuShow && getMenuShow === "yes" ? (
-			
-
-			<>
-			{userDetails?.brn_code === "100" ? (
-			<Menu
-			onClick={onClick}
-			selectedKeys={[current]}
-			items={menuItems_PendingSSVWS}
-			// disabled={getMenuShow === "yes" ? true : false}
-			mode="horizontal"
-			style={{
-			width: 1000,
-			backgroundColor: "transparent",
-			border: "none",
-			}}
-			className="rounded-full items-center justify-center"
-			/>
-			) : (
-			
-			<Menu
-			onClick={onClick}
-			selectedKeys={[current]}
-			items={menuItems_ApprPend}
-			//   disabled={getMenuShow === "yes"}
-			mode="horizontal"
-			style={{
-			width: 1000,
-			backgroundColor: "transparent",
-			border: "none",
-			}}
-			className="rounded-full items-center justify-center"
-			/>
-			
-
-			)}
-			</>
-
-			
-
-			
-			) : (
-			<>
-			<Menu
-			onClick={onClick}
-			selectedKeys={[current]}
-			items={menuItems}
-			disabled={getMenuShow === "yes" ? true : false}
-
-			mode="horizontal"
-			style={{
-			width: 1000,
-			backgroundColor: "transparent",
-			border: "none",
-			}}
-			className="rounded-full items-center justify-center"
-			/>
-			</>
-			)} */}
-
-
-
-
 
 			<div className="flex">
 				<Tooltip title="Profile" placement="bottom">
