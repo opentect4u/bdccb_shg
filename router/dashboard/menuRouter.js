@@ -4,7 +4,7 @@ const express = require("express"),
 
 menuRouter.post("/get_menu", async (req, res) => {
   var user_type_id = req.body.user_type_id;
-  console.log(user_type_id);
+  console.log(user_type_id,'userssss');
   var select =
       'a.user_type_id, a.menu_id, b.menu_type, b.sl_no, b.key_id as "key", b.icon_name icon, b.link, b.label_name label, b.has_child, b.parent_id',
     table_name = "bdccb.td_user_menu a, bdccb.md_menu b",
@@ -19,7 +19,7 @@ menuRouter.post("/get_menu", async (req, res) => {
             'a.user_type_id, a.menu_id, b.menu_type, b.sl_no, b.key_id as "key", b.icon_name icon, b.link, b.label_name label, b.has_child, b.parent_id',
           table_name = "bdccb.td_user_menu a, bdccb.md_menu b",
           whr = `a.menu_id=b.id AND b.menu_type = 'C' AND a.user_type_id = ${user_type_id} AND b.parent_id = ${dt.menu_id} AND a.active_flag = 'Y' AND b.active_flag = 'Y'`,
-          order = "b.sl_no";
+          order = "b.key_id";
         var child_menu_list = await db_Select(select, table_name, whr, order);
         if (child_menu_list.suc > 0 && child_menu_list.msg.length > 0) {
           for (let cdt of child_menu_list.msg) {
@@ -27,8 +27,8 @@ menuRouter.post("/get_menu", async (req, res) => {
               var select =
                   'a.user_type_id, a.menu_id, b.menu_type, b.sl_no, b.key_id as "key", b.icon_name icon, b.link, b.label_name label, b.has_child, b.parent_id',
                 table_name = "bdccb.td_user_menu a, bdccb.md_menu b",
-                whr = `a.menu_id=b.id AND b.menu_type = 'C' AND a.user_type_id = ${user_type_id} AND b.parent_id = ${dt.menu_id} AND a.active_flag = 'Y' AND b.active_flag = 'Y'`,
-                order = "b.sl_no";
+                whr = `a.menu_id=b.id AND b.menu_type = 'C' AND a.user_type_id = ${user_type_id} AND b.parent_id = ${cdt.menu_id} AND a.active_flag = 'Y' AND b.active_flag = 'Y'`,
+                order = "b.key_id";
               var sub_child_menu_list = await db_Select(
                 select,
                 table_name,

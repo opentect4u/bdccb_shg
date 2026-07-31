@@ -60,13 +60,13 @@ function Sidebar({ mode = 0, reportProgress }) {
 			const newSocket = connectSocket(userDetails?.emp_id)
 			if (newSocket) {
 				console.log(newSocket, 'newSocketnewSocketnewSocket');
-				
+
 				newSocket.on('receive_notification', (data) => {
-				console.log("Received month end process update:", data)
-				// Message("success", "Month end details updated successfully")
-				MessageWithLink("success", "Your month end process is complete. To view the report,", "/homebm/overduereport", 'Click Here')
+					console.log("Received month end process update:", data)
+					// Message("success", "Month end details updated successfully")
+					MessageWithLink("success", "Your month end process is complete. To view the report,", "/homebm/overduereport", 'Click Here')
 				})
-				
+
 
 				// OLD use LocalStorage
 				// newSocket.on('loan_tns_repo_notification', async (data) => {
@@ -77,20 +77,20 @@ function Sidebar({ mode = 0, reportProgress }) {
 				// })
 
 				newSocket.on("loan_tns_repo_notification", async (data) => {
-				try {
-				await setItem("reportData", data?.msg?.msg);
-				await setItem("reportData_Url", data?.req_data);
-				await setItem("reportDataProgress", "done");
+					try {
+						await setItem("reportData", data?.msg?.msg);
+						await setItem("reportData_Url", data?.req_data);
+						await setItem("reportDataProgress", "done");
 
-				MessageWithLink(
-				"success",
-				"Your Loan Transactions Reports process is complete. To view the report,",
-				`${data?.req_data?.page_url}`,
-				"Click Here"
-				);
-				} catch (err) {
-				console.error("Failed saving to IndexedDB", err);
-				}
+						MessageWithLink(
+							"success",
+							"Your Loan Transactions Reports process is complete. To view the report,",
+							`${data?.req_data?.page_url}`,
+							"Click Here"
+						);
+					} catch (err) {
+						console.error("Failed saving to IndexedDB", err);
+					}
 				});
 
 
@@ -104,14 +104,21 @@ function Sidebar({ mode = 0, reportProgress }) {
 	useEffect(() => {
 		console.log("Socket connection status:", socket ? "Connected" : "Disconnected")
 	}, [socket])
-	
+
 	useEffect(() => {
 		// axios.post(url + "/menu/fetch_menu_permission_dtls", { user_type: userDetails?.id }).then((res) => {
 		// 	console.log(res?.data?.msg[0])
 		// 	setPermissions(res?.data?.msg[0])
-		// })
+		let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
+		let parsedId = 0;
+		if (uTypeChar === 'S') parsedId = 1;
+		else if (uTypeChar === 'H') parsedId = 2;
+		else if (uTypeChar === 'B') parsedId = 3;
+		else if (uTypeChar === 'P') parsedId = 4;
+		else parsedId = userDetails?.id || (Array.isArray(userDetails) ? userDetails[0]?.id : 0);
+
 		axios
-			.post(url + "/user_menu/get_menu", { user_type_id: userDetails?.id })
+			.post(url + "/dashboard/get_menu", { user_type_id: parsedId })
 			.then((res) => {
 				// console.log(res?.data?.msg)
 				var items_all_user1 = [
@@ -433,7 +440,7 @@ function Sidebar({ mode = 0, reportProgress }) {
 								label: (
 									<Link to={"/homebm/previous-loantxns"}>Previous Loan Transactions</Link>
 								),
-								
+
 							},
 							{
 								key: "sub6-5",
@@ -539,7 +546,7 @@ function Sidebar({ mode = 0, reportProgress }) {
 								),
 								// hidden: data?.demand_vs_collection == "Y" ? false : true,
 							},
-							
+
 							// {
 							//   key: "sub6-10",
 							//   icon: <BarChartOutlined />,
@@ -556,19 +563,25 @@ function Sidebar({ mode = 0, reportProgress }) {
 					var tempMenuData = items_all_user1.filter(
 						(item) => item.key == dt.key
 					)
-					if (dt.has_child != "N" && dt.children) {
-						if (dt.children.length > 0) {
-							var tempChildren = []
-							for (let child of dt.children) {
-								var tempChild = tempMenuData[0].children.filter(
-									(item) => item.key == child.key
-								)
-								tempChildren.push(tempChild[0])
+					if (tempMenuData.length > 0 && tempMenuData[0]) {
+						if (dt.has_child != "N" && dt.children) {
+							if (dt.children.length > 0) {
+								var tempChildren = []
+								for (let child of dt.children) {
+									if (tempMenuData[0].children) {
+										var tempChild = tempMenuData[0].children.filter(
+											(item) => item.key == child.key
+										)
+										if (tempChild.length > 0 && tempChild[0]) {
+											tempChildren.push(tempChild[0])
+										}
+									}
+								}
+								tempMenuData[0].children = tempChildren
 							}
-							tempMenuData[0].children = tempChildren
 						}
+						userMenuData.push(tempMenuData[0])
 					}
-					userMenuData.push(tempMenuData[0])
 				}
 				setPermissions(userMenuData)
 			})
@@ -638,7 +651,7 @@ function Sidebar({ mode = 0, reportProgress }) {
 							alt="Flowbite Logo"
 						/>
 					</div> */}
-					<MenusBr data={permissions} reportProgress={reportProgress} /> 
+					<MenusBr data={permissions} reportProgress={reportProgress} />
 					{/* <img className='absolute bottom-0 h-40 blur-1' src={sidebar2} alt="Flowbite Logo" /> */}
 				</div>
 				{/* <motion.img initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.5, type:'spring'
@@ -665,7 +678,7 @@ function Sidebar({ mode = 0, reportProgress }) {
 							: userDetails?.id == 11
 							? `Admin 2 - ${userDetails?.emp_name}`
 							: `HO User - ${userDetails?.emp_name} `} */}
-							{`${userDetails?.user_type} - ${userDetails?.emp_name}`}
+						{`${userDetails?.user_type} - ${userDetails?.emp_name}`}
 						({userDetails?.branch_name})
 					</div>
 					{/* <div className="italic mr-10">

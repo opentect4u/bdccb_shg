@@ -3,7 +3,7 @@ import Sidebar from "../../Components/Sidebar"
 import axios from "axios"
 import { url, url_bdccb } from "../../Address/BaseUrl"
 import { Message } from "../../Components/Message"
-import { Spin, Button, Tooltip } from "antd"
+import { Spin, Button, Tooltip, Select } from "antd"
 import { FileExcelOutlined, LoadingOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons"
 import GroupsTableViewBr from "../../Components/GroupsTableViewBr"
 import ViewLoanTableBr from "../../Components/ViewLoanTableBr_BDCCB"
@@ -34,6 +34,13 @@ const option_recovery = [
 	// }
 ]
 
+const option_recovery_HeadOffice = [
+	{
+		label: "Approved Recovery",
+		value: "A",
+	}
+]
+
 function RecoverySubmitStatusSHGBM_BDCCB() {
 	const userDetails = JSON.parse(localStorage.getItem("user_details")) || ""
 	const [loading, setLoading] = useState(false)
@@ -45,12 +52,16 @@ function RecoverySubmitStatusSHGBM_BDCCB() {
 	const [approvalStatus, setApprovalStatus] = useState("S")
 	const navigate = useNavigate()
 	const [loanType, setLoanType] = useState("U")
-	const [recoveryStatus, setRecoveryStatus] = useState("U")
+	const [recoveryStatus, setRecoveryStatus] = useState(userDetails[0]?.brn_code === '112' ? "A" : "U")
 
 	const today = new Date().toISOString().split("T")[0];
 
 	const [fromDate, setFromDate] = useState(today);
 	const [toDate, setToDate] = useState(today);
+
+	const [branches, setBranches] = useState([])
+	const [branch_Select, setBranch_Select] = useState("");
+
 const s2ab = (s) => {
 		const buf = new ArrayBuffer(s.length)
 		const view = new Uint8Array(buf)
@@ -91,23 +102,38 @@ const handleExportMembers = (loans) => {
 		setRecoveryStatus(e)
 	}
 
-	// const initialValues = {
-	
-	// 		sanction_dt: "",
-			
-	// 	}
-	// 	const [formValues, setValues] = useState(initialValues)
+	const getBranchList = async () => {
+		setLoading(true)
 
-	// 	const validationSchema = Yup.object({
-	// 			sanction_dt: Yup.mixed(),
-		
-	// 		})
-	
+		await axios.get(`${url_bdccb}/dashboard/fetch_brn_soc_name`, {
+		params: {select_type: userDetails[0]?.user_type === 'H' ? 'H' : userDetails[0]?.branch_type}
+		})
+		.then((res) => {
+			if (res?.data?.success) {
+				setBranches(res.data.data.map((item) => ({
+					code: item.branch_id,
+					name: `${item.branch_name} (${item.branch_id})`,
+				})))
+			} else {
+				navigate(routePaths.LANDING)
+				localStorage.clear()
+			}
+		})
+		.catch((err) => {
+		})
+		setLoading(false)
+	}
+
+	useEffect(() => {
+		if(userDetails[0]?.brn_code === '112'){
+			getBranchList()
+		}
+	}, [])
 
 	const fetchSearchedGroups = async () => {
 		setLoading(true)
 		const creds = {
-			branch_id: userDetails[0]?.brn_code ,
+			branch_id: userDetails[0]?.brn_code === '112' ? branch_Select : userDetails[0]?.brn_code ,
 			tenant_id: userDetails[0]?.tenant_id,
 			// from_dt: fromDate,
 			from_dt: recoveryStatus == 'A' ? fromDate : '',
@@ -196,7 +222,7 @@ const handleExportMembers = (loans) => {
 					<div className="flex flex-row gap-3 mt-20">
 						
 					<Radiobtn
-					data={option_recovery}
+					data={userDetails[0]?.brn_code === '112' ? option_recovery_HeadOffice : option_recovery}
 					val={recoveryStatus}
 					onChangeVal={(value) => {
 					onChange(value)
@@ -227,6 +253,40 @@ const handleExportMembers = (loans) => {
 					mode={1}
 					/>
 					</div>
+
+					{userDetails[0]?.brn_code === '112' &&(
+						<div className="mt-2 min-w-[250px]">
+						<label htmlFor="brnch" className="block text-sm font-medium text-slate-700 mb-1">
+						<strong>Choose Society</strong>
+						</label>
+
+						<Select
+						showSearch
+						placeholder="Select a society"
+						value={branch_Select || undefined}
+						style={{ width: "100%" }}
+						optionFilterProp="children"
+						onChange={(value) => {
+						setBranch_Select(value);
+						}}
+						filterOption={(input, option) =>
+						option?.children?.toLowerCase().includes(input.toLowerCase())
+						}
+						>
+						<Select.Option value="" disabled>
+						Select Branches / Society
+						</Select.Option>
+
+						{branches.map((opt) => (
+						<Select.Option key={opt.code} value={opt.code}>
+						{opt.name}
+						</Select.Option>
+						))}
+						</Select>
+
+						</div>
+					)}
+
 					<div className="mt-1">
 					<button
 						type="button"

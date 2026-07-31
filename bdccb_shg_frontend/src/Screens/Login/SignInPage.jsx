@@ -184,6 +184,16 @@ const SignInPage = () => {
 					localStorage.setItem("session_id", sessionId)
 					localStorage.setItem("server_token", res?.data?.token)
 					localStorage.setItem("refresh_token", res?.data?.refresh_token)
+					if (loginUserType === 'H' && formik.values.brnch && formik.values.brnch !== '112') {
+						localStorage.setItem("login_as_branch_society", branch_Society)
+						if (userDtls && userDtls.length > 0) {
+							userDtls[0].user_type = branch_Society; // 'B' or 'P'
+							userDtls[0].brn_code = formik.values.brnch;
+							userDtls[0].branch_type = branch_Society;
+						}
+					} else {
+						localStorage.removeItem("login_as_branch_society")
+					}
 					localStorage.setItem("user_details", JSON.stringify(userDtls))
 
 					localforage.setItem('tokenDetails', {

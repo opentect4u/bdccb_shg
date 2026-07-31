@@ -1741,7 +1741,7 @@ society_recovRouter.post("/ccb_fetch_soc_recov_dtls", async (req, res) => {
       ORDER BY loan_id, trans_id DESC   -- latest I row
     ) i ON a.loan_id = i.loan_id
      JOIN bdccb.md_group d ON a.group_code = d.group_code`,
-      whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.group_code = '${group_code}'`,
+      whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}'`,
       order = null;
     var fetch_ccb_loan_dtls = await db_Select(select, table_name, whr, order);
 

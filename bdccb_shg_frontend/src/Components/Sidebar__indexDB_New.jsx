@@ -71,51 +71,51 @@ function Sidebar({ mode = 0, reportProgress_G_, reportProgress_F_, reportProgres
 			const newSocket = connectSocket(userDetails?.emp_id)
 			if (newSocket) {
 				// console.log(newSocket, 'newSocketnewSocketnewSocket');
-				
+
 				newSocket.on('receive_notification', (data) => {
-				console.log("Received month end process update:", data)
-				// Message("success", "Month end details updated successfully")
-				MessageWithLink("success", "Your month end process is complete. To view the report,", "/homebm/overduereport", 'Click Here')
+					console.log("Received month end process update:", data)
+					// Message("success", "Month end details updated successfully")
+					MessageWithLink("success", "Your month end process is complete. To view the report,", "/homebm/overduereport", 'Click Here')
 				})
 
 				newSocket.on("loan_tns_repo_notification", async (data) => {
-				try {
-				await setItem("reportData", data?.msg?.msg);
-				await setItem("reportData_Url", data?.req_data);
-				await setItem("reportDataProgress", "done");
+					try {
+						await setItem("reportData", data?.msg?.msg);
+						await setItem("reportData_Url", data?.req_data);
+						await setItem("reportDataProgress", "done");
 
-				if(data?.req_data?.searchFor == 'Groupwise'){
-				localStorage.setItem("reportDataProgress_G", 'done')
-				setReportProgress_G('done')
-				}
+						if (data?.req_data?.searchFor == 'Groupwise') {
+							localStorage.setItem("reportDataProgress_G", 'done')
+							setReportProgress_G('done')
+						}
 
-				if(data?.req_data?.searchFor == 'Fundwise'){
-				localStorage.setItem("reportDataProgress_F", 'done')
-				setReportProgress_F('done')
-				}
-				
-				if(data?.req_data?.searchFor == 'CO-wise'){
-				localStorage.setItem("reportDataProgress_CO", 'done')
-				setReportProgress_CO('done')
-				}
-				if(data?.req_data?.searchFor == 'Memberwise'){
-				localStorage.setItem("reportDataProgress_M", 'done')
-				setReportProgress_M('done')
-				}
-				if(data?.req_data?.searchFor == 'Branchwise'){
-				localStorage.setItem("reportDataProgress_B", 'done')
-				setReportProgress_B('done')
-				}
+						if (data?.req_data?.searchFor == 'Fundwise') {
+							localStorage.setItem("reportDataProgress_F", 'done')
+							setReportProgress_F('done')
+						}
 
-				MessageWithLink(
-				"success",
-				"Your Loan Transactions Reports process is complete. To view the report,",
-				`${data?.req_data?.page_url}`,
-				"Click Here"
-				);
-				} catch (err) {
-				console.error("Failed saving to IndexedDB", err);
-				}
+						if (data?.req_data?.searchFor == 'CO-wise') {
+							localStorage.setItem("reportDataProgress_CO", 'done')
+							setReportProgress_CO('done')
+						}
+						if (data?.req_data?.searchFor == 'Memberwise') {
+							localStorage.setItem("reportDataProgress_M", 'done')
+							setReportProgress_M('done')
+						}
+						if (data?.req_data?.searchFor == 'Branchwise') {
+							localStorage.setItem("reportDataProgress_B", 'done')
+							setReportProgress_B('done')
+						}
+
+						MessageWithLink(
+							"success",
+							"Your Loan Transactions Reports process is complete. To view the report,",
+							`${data?.req_data?.page_url}`,
+							"Click Here"
+						);
+					} catch (err) {
+						console.error("Failed saving to IndexedDB", err);
+					}
 				});
 
 
@@ -125,494 +125,502 @@ function Sidebar({ mode = 0, reportProgress_G_, reportProgress_F_, reportProgres
 
 
 		}
-		}, [socket, userDetails, connectSocket])
+	}, [socket, userDetails, connectSocket])
 
 	// Debug socket status changes
 	useEffect(() => {
 		console.log(socket, "Socket connection status:", socket ? "Connected" : "Disconnected")
 	}, [socket])
-	
+
 	useEffect(() => {
 		// axios.post(url + "/menu/fetch_menu_permission_dtls", { user_type: userDetails?.id }).then((res) => {
 		// 	console.log(res?.data?.msg[0])
 		// 	setPermissions(res?.data?.msg[0])
 		// })
 		const getMenuAPI = async () => {
-		const tokenValue = await getLocalStoreTokenDts(navigate);
+			const tokenValue = await getLocalStoreTokenDts(navigate);
+			
+			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
+			let parsedId = 0;
+			if (uTypeChar === 'S') parsedId = 1;
+			else if (uTypeChar === 'H') parsedId = 2;
+			else if (uTypeChar === 'B') parsedId = 3;
+			else if (uTypeChar === 'P') parsedId = 4;
+			else parsedId = userDetails?.id || (Array.isArray(userDetails) ? userDetails[0]?.id : 0);
 
-		axios.post(url + "/user_menu/get_menu", { user_type_id: userDetails?.id }, {
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
-		},
-		})
-			.then((res) => {
-				
-				if(res?.data?.suc === 0){
-				Message('error', res?.data?.msg)
-				navigate(routePaths.LANDING)
-				localStorage.clear()
-				} else {
-				var items_all_user1 = [
-					{
-						key: "sub1",
-						icon: <LineChartOutlined />,
-						label: <Link to={"/homebm/"}>Dashboard</Link>,
-						// hidden: false,
-						children: [],
-					},
-					{
-						key: "sub2",
-						icon: <ContainerOutlined />,
-						label: "GRT",
-						// hidden: data?.grt == "Y" ? false : true,
-						children: [
+			axios.post(url + "/dashboard/get_menu", { user_type_id: parsedId }, {
+				headers: {
+					Authorization: `${tokenValue?.token}`, // example header
+					"Content-Type": "application/json", // optional
+				},
+			})
+				.then((res) => {
+
+					if (res?.data?.suc === 0) {
+						Message('error', res?.data?.msg)
+						navigate(routePaths.LANDING)
+						localStorage.clear()
+					} else {
+						var items_all_user1 = [
 							{
-								key: "sub2-1",
+								key: "sub1",
+								icon: <LineChartOutlined />,
+								label: <Link to={"/homebm/"}>Dashboard</Link>,
+								// hidden: false,
+								children: [],
+							},
+							{
+								key: "sub2",
 								icon: <ContainerOutlined />,
-								label: <Link to={"/homebm/grtappls/"}>Applications</Link>,
-								// hidden: data?.applications == "Y" ? false : true,
-							},
-							{
-								key: "sub2-4",
-								icon: <FileSearchOutlined />,
-								label: <Link to={"/homemis/searchmember/"}>Search Member</Link>,
-								// hidden: data?.search_member == "Y" ? false : true,
-							},
-						],
-					},
-					{
-						key: "sub3",
-						icon: <DeploymentUnitOutlined />,
-						label: "Groups",
-						// hidden: data?.groups == "Y" ? false : true,
-						children: [
-							{
-								key: "sub3-1",
-								icon: <FileSearchOutlined />,
-								label: <Link to={"/homebm/searchgroup/"}>Edit Group</Link>,
-								// hidden: data?.edit_group == "Y" ? false : true,
-							},
-							{
-								key: "sub3-2",
-								icon: <PlusCircleOutlined />,
-								label: <Link to={"/homebm/editgroupform/0"}>Add Group</Link>,
-								// hidden: data?.add_group == "Y" ? false : true,
-							},
-							{
-								key: "sub3-4",
-								icon: <SendOutlined />,
-								label: (
-									<Link to={"/homebm/trancefercofrom/0"}>Transfer Group</Link>
-								),
-								// hidden: data?.transfer_group == "Y" ? false : true,
-							},
-							{
-								key: "sub3-5",
-								icon: <CheckCircleOutlined />,
-								label: (
-									<Link to={"/homebm/trancefercofromapprove-unic"}>
-										Approve Group Transfer
-									</Link>
-								),
-								// hidden: data?.approve_group_transfer == "Y" ? false : true,
-							},
-							{
-								key: "sub3-6",
-								icon: <EyeOutlined />,
-								label: (
-									<Link to={"/homebm/tranceferco"}>View Group Transfer</Link>
-								),
-								// hidden: data?.view_group_transfer == "Y" ? false : true,
-							},
-							{
-								key: "sub3-9",
-								icon: <EyeFilled />,
-								label: (
-									<Link to={"/homebm/viewmembertransfer"}>
-										View Member Transfer
-									</Link>
-								),
-								// hidden: data?.view_group_transfer == "Y" ? false : true,
-							},
-							{
-								key: "sub3-7",
-								icon: <SwapCallsRounded />,
-								label: (
-									<Link to={"/homebm/transfermember/0"}>Member Transfer</Link>
-								),
-								// hidden: data?.view_group_transfer == "Y" ? false : true,
-							},
-							{
-								key: "sub3-8",
-								icon: <CheckCircleOutlined />,
-								label: (
-									<Link to={"/homebm/approvemembertransfer"}>
-										Approve Member Transfer
-									</Link>
-								),
-								// hidden: data?.view_group_transfer == "Y" ? false : true,
-							},
-
-							//    {
-							//      key: "sub3-3",
-							//      icon: <SubnodeOutlined />,
-							//      label: <Link to={"/homemis/assignmember"}>Assign Member</Link>,
-							//    },
-						],
-					},
-					{
-						key: "sub_att",
-						icon: <ImportOutlined />,
-						label: "Attendance",
-						// hidden: data?.attendance == "Y" ? false : true,
-						children: [
-							{
-								key: "sub_att-1",
-								icon: <UserAddOutlined />,
-								label: (
-									<Link to={"/homebm/attendancebm"}>Attendance Dashboard</Link>
-								),
-								// hidden: data?.attendance_dashboard == "Y" ? false : true,
-							},
-						],
-					},
-					{
-						key: "sub4",
-						icon: <ThunderboltOutlined />,
-						label: "Loans",
-						// hidden: data?.loans == "Y" ? false : true,
-						children: [
-							{
-								key: "sub4-1",
-								icon: <ThunderboltOutlined />,
-								label: <Link to={"/homebm/disburseloan"}>Disburse Loan</Link>,
-								// hidden: data?.disburse_loan == "Y" ? false : true,
-							},
-							{
-								key: "sub4-3",
-								icon: <EyeOutlined />,
-								label: <Link to={"/homebm/viewloan"}>View Loan</Link>,
-								// hidden: data?.view_loan == "Y" ? false : true,
-							},
-							{
-								key: "sub4-4",
-								icon: <EyeOutlined />,
-								label: <Link to={"/homebm/rejecttxn"}>Reject Transaction</Link>,
-								// hidden: data?.view_loan == "Y" ? false : true,
-							},
-							{
-								key: "sub4-6",
-								icon: <EyeOutlined />,
-								label: <Link to={"/homebm/rejecdisbursement"}>Reject Disbursement</Link>,
-								// hidden: data?.view_loan == "Y" ? false : true,
-							},
-							{
-								key: "sub4-2",
-								icon: <CheckCircleOutlined />,
-								label: "Approve Transaction",
-								// hidden: data?.approve_transaction == "Y" ? false : true,
+								label: "GRT",
+								// hidden: data?.grt == "Y" ? false : true,
 								children: [
 									{
-										key: "sub4-2-1",
-										icon: <CheckCircleOutlined />,
-										label: (
-											<Link to={"/homebm/approvedisbursed"}>Disburse</Link>
-										),
-										// hidden: data?.approve_transaction == "Y" ? false : true,
+										key: "sub2-1",
+										icon: <ContainerOutlined />,
+										label: <Link to={"/homebm/grtappls/"}>Applications</Link>,
+										// hidden: data?.applications == "Y" ? false : true,
 									},
 									{
-										key: "sub4-2-2",
-										icon: <CheckCircleOutlined />,
-										label: <Link to={"/homebm/approveloan"}>Recovery</Link>,
-										// hidden: data?.approve_transaction == "Y" ? false : true,
+										key: "sub2-4",
+										icon: <FileSearchOutlined />,
+										label: <Link to={"/homemis/searchmember/"}>Search Member</Link>,
+										// hidden: data?.search_member == "Y" ? false : true,
 									},
 								],
 							},
 							{
-								key: "sub4-5",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homebm/loancalculator"}>Loan EMI Calculator</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-						],
-					},
-					{
-						key: "sub5",
-						icon: <DatabaseOutlined />,
-						label: "Master",
-						// hidden: data?.master == "Y" ? false : true,
-						children: [
-							{
-								key: "sub5-1",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterbanks"}>Banks</Link>,
-								// hidden: data?.banks == "Y" ? false : true,
-							},
-							{
-								key: "sub5-2",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masteremployees"}>Employees</Link>,
-								// hidden: data?.employees == "Y" ? false : true,
-							},
-							{
-								key: "sub5-3",
-								icon: <DatabaseOutlined />,
-								label: (
-									<Link to={"/homeadmin/masterdesignations"}>Designations</Link>
-								),
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-							{
-								key: "sub5-4",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterdistricts"}>Districts</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-							{
-								key: "sub5-5",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterblocks"}>Blocks</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-							{
-								key: "sub5-6",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterpurpose"}>Purpose</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-							{
-								key: "sub5-7",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterfunds"}>Funds</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-							{
-								key: "sub5-8",
-								icon: <DatabaseOutlined />,
-								label: <Link to={"/homeadmin/masterschemes"}>Scheme</Link>,
-								// hidden: data?.designation == "Y" ? false : true,
-							},
-						],
-					},
-					{
-						key: "sub7",
-						icon: <ImportOutlined />,
-						label: "User Management",
-						// hidden: data?.user_management == "Y" ? false : true,
-						children: [
-							{
-								key: "sub7-1",
-								icon: <UserAddOutlined />,
-								label: <Link to={"/homeadmin/createuser/0"}>Create User</Link>,
-								// hidden: data?.create_user == "Y" ? false : true,
-							},
-							{
-								key: "sub7-2",
-								icon: <SettingOutlined />,
-								label: <Link to={"/homeadmin/manageuser/"}>Manage User</Link>,
-								// hidden: data?.manage_user == "Y" ? false : true,
-							},
-							{
-								key: "sub7-3",
-								icon: <FastForwardOutlined />,
-								label: (
-									<Link to={"/homeadmin/transferuser/0"}>Transfer User</Link>
-								),
-								// hidden: data?.transfer_user == "Y" ? false : true,
-							},
-							{
-								key: "sub7-5",
-								icon: <FastForwardOutlined />,
-								label: (
-									<Link to={"/homeadmin/audit_report"}>Audit Trail</Link>
-								),
-								// hidden: data?.transfer_user == "Y" ? false : true,
-							},
-							{
-								key: "sub7-4",
-								icon: <TableOutlined />,
-								label: <Link to={"/homeadmin/monthend"}>Month End</Link>,
-								// hidden: data?.transfer_user == "Y" ? false : true,
-							},
-						],
-					},
-					{
-						label: "Reports",
-						key: "sub6",
-						icon: <BarsOutlined />,
-						// hidden: data?.reports == "Y" ? false : true,
-						children: [
-							// {
-							//  key: "sub6-1",
-							//  icon: <BarChartOutlined />,
-							//  label: (
-							//    <Link to={"/homebm/memberwiserecoveryreport"}>
-							//      Memberwise Recovery
-							//    </Link>
-							//  ),
-							// },
-							// {
-							//  key: "sub6-2",
-							//  icon: <BarChartOutlined />,
-							//  label: (
-							//    <Link to={"/homebm/groupwiserecoveryreport"}>
-							//      Groupwise Recovery
-							//    </Link>
-							//  ),
-							// },
-							// {
-							//  key: "sub6-3",
-							//  icon: <BarChartOutlined />,
-							//  label: <Link to={"/homebm/demandreport"}>Demand</Link>,
-							// },
-							{
-								key: "sub6-14",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/previous-loantxns"}>Previous Loan Transactions</Link>
-								),
-								
-							},
-							{
-								key: "sub6-5",
-								icon: <BarChartOutlined />,
-								label: <Link to={"/homebm/loantxns"}>Loan Transactions</Link>,
-								// hidden: data?.loan_transactions == "Y" ? false : true,
-							},
-							{
-								key: "sub6-6",
-								icon: <BarChartOutlined />,
-								label: <Link to={"/homebm/demandreport"}>Demand Report</Link>,
-								// hidden: data?.demand_report == "Y" ? false : true,
-							},
-							{
-								key: "sub6-7",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/outstasndingreport"}>
-										Outstanding Report
-									</Link>
-								),
-								// hidden: data?.outstanding_report == "Y" ? false : true,
-							},
-							{
-								key: "sub6-4",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/loanstatements"}>Loan Statements</Link>
-								),
-								// hidden: data?.loan_statement == "Y" ? false : true,
-							},
+								key: "sub3",
+								icon: <DeploymentUnitOutlined />,
+								label: "Groups",
+								// hidden: data?.groups == "Y" ? false : true,
+								children: [
+									{
+										key: "sub3-1",
+										icon: <FileSearchOutlined />,
+										label: <Link to={"/homebm/searchgroup/"}>Edit Group</Link>,
+										// hidden: data?.edit_group == "Y" ? false : true,
+									},
+									{
+										key: "sub3-2",
+										icon: <PlusCircleOutlined />,
+										label: <Link to={"/homebm/editgroupform/0"}>Add Group</Link>,
+										// hidden: data?.add_group == "Y" ? false : true,
+									},
+									{
+										key: "sub3-4",
+										icon: <SendOutlined />,
+										label: (
+											<Link to={"/homebm/trancefercofrom/0"}>Transfer Group</Link>
+										),
+										// hidden: data?.transfer_group == "Y" ? false : true,
+									},
+									{
+										key: "sub3-5",
+										icon: <CheckCircleOutlined />,
+										label: (
+											<Link to={"/homebm/trancefercofromapprove-unic"}>
+												Approve Group Transfer
+											</Link>
+										),
+										// hidden: data?.approve_group_transfer == "Y" ? false : true,
+									},
+									{
+										key: "sub3-6",
+										icon: <EyeOutlined />,
+										label: (
+											<Link to={"/homebm/tranceferco"}>View Group Transfer</Link>
+										),
+										// hidden: data?.view_group_transfer == "Y" ? false : true,
+									},
+									{
+										key: "sub3-9",
+										icon: <EyeFilled />,
+										label: (
+											<Link to={"/homebm/viewmembertransfer"}>
+												View Member Transfer
+											</Link>
+										),
+										// hidden: data?.view_group_transfer == "Y" ? false : true,
+									},
+									{
+										key: "sub3-7",
+										icon: <SwapCallsRounded />,
+										label: (
+											<Link to={"/homebm/transfermember/0"}>Member Transfer</Link>
+										),
+										// hidden: data?.view_group_transfer == "Y" ? false : true,
+									},
+									{
+										key: "sub3-8",
+										icon: <CheckCircleOutlined />,
+										label: (
+											<Link to={"/homebm/approvemembertransfer"}>
+												Approve Member Transfer
+											</Link>
+										),
+										// hidden: data?.view_group_transfer == "Y" ? false : true,
+									},
 
-							// {
-							//  key: "sub6-8",
-							//  icon: <BarChartOutlined />,
-							//  label: <Link to={"/homebm/summaryreports"}>Summary Reports</Link>,
-							//  children: [
-							//    {
-							//      key: "sub6-8-1",
-							//      icon: <BarChartOutlined />,
-							//      label: (
-							//        <Link to={"/homebm/summaryreports/fundwise"}>
-							//          Fundwise Report
-							//        </Link>
-							//      ),
-							//    },
-							//    {
-							//      key: "sub6-8-2",
-							//      icon: <BarChartOutlined />,
-							//      label: (
-							//        <Link to={"/homebm/summaryreports/schemewise"}>
-							//          Schemewise Report
-							//        </Link>
-							//      ),
-							//    },
-							//  ],
-							// },
-							// {
-							// 	key: "sub6-8",
-							// 	icon: <BarChartOutlined />,
-							// 	label: (
-							// 		<Link to={"/homebm/fundwisesummary"}>Fundwise Report</Link>
-							// 	),
-							// },
-							// {
-							// 	key: "sub6-9",
-							// 	icon: <BarChartOutlined />,
-							// 	label: (
-							// 		<Link to={"/homebm/schemewisesummary"}>
-							// 			Schemewise Report
-							// 		</Link>
-							// 	),
-							// },
-							{
-								key: "sub6-11",
-								icon: <BarChartOutlined />,
-								label: <Link to={"/homebm/overduereport"}>Overdue Report</Link>,
-								// hidden: data?.demand_vs_collection == "Y" ? false : true,
+									//    {
+									//      key: "sub3-3",
+									//      icon: <SubnodeOutlined />,
+									//      label: <Link to={"/homemis/assignmember"}>Assign Member</Link>,
+									//    },
+								],
 							},
 							{
-								key: "sub6-10",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/demandvscollectionreport"}>
-										Demand vs. Collection
-									</Link>
-								),
-								// hidden: data?.demand_vs_collection == "Y" ? false : true,
+								key: "sub_att",
+								icon: <ImportOutlined />,
+								label: "Attendance",
+								// hidden: data?.attendance == "Y" ? false : true,
+								children: [
+									{
+										key: "sub_att-1",
+										icon: <UserAddOutlined />,
+										label: (
+											<Link to={"/homebm/attendancebm"}>Attendance Dashboard</Link>
+										),
+										// hidden: data?.attendance_dashboard == "Y" ? false : true,
+									},
+								],
 							},
 							{
-								key: "sub6-12",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/portfolioreport"}>Portfolio Report</Link>
-								),
-								// hidden: data?.demand_vs_collection == "Y" ? false : true,
+								key: "sub4",
+								icon: <ThunderboltOutlined />,
+								label: "Loans",
+								// hidden: data?.loans == "Y" ? false : true,
+								children: [
+									{
+										key: "sub4-1",
+										icon: <ThunderboltOutlined />,
+										label: <Link to={"/homebm/disburseloan"}>Disburse Loan</Link>,
+										// hidden: data?.disburse_loan == "Y" ? false : true,
+									},
+									{
+										key: "sub4-3",
+										icon: <EyeOutlined />,
+										label: <Link to={"/homebm/viewloan"}>View Loan</Link>,
+										// hidden: data?.view_loan == "Y" ? false : true,
+									},
+									{
+										key: "sub4-4",
+										icon: <EyeOutlined />,
+										label: <Link to={"/homebm/rejecttxn"}>Reject Transaction</Link>,
+										// hidden: data?.view_loan == "Y" ? false : true,
+									},
+									{
+										key: "sub4-6",
+										icon: <EyeOutlined />,
+										label: <Link to={"/homebm/rejecdisbursement"}>Reject Disbursement</Link>,
+										// hidden: data?.view_loan == "Y" ? false : true,
+									},
+									{
+										key: "sub4-2",
+										icon: <CheckCircleOutlined />,
+										label: "Approve Transaction",
+										// hidden: data?.approve_transaction == "Y" ? false : true,
+										children: [
+											{
+												key: "sub4-2-1",
+												icon: <CheckCircleOutlined />,
+												label: (
+													<Link to={"/homebm/approvedisbursed"}>Disburse</Link>
+												),
+												// hidden: data?.approve_transaction == "Y" ? false : true,
+											},
+											{
+												key: "sub4-2-2",
+												icon: <CheckCircleOutlined />,
+												label: <Link to={"/homebm/approveloan"}>Recovery</Link>,
+												// hidden: data?.approve_transaction == "Y" ? false : true,
+											},
+										],
+									},
+									{
+										key: "sub4-5",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homebm/loancalculator"}>Loan EMI Calculator</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+								],
 							},
 							{
-								key: "sub6-13",
-								icon: <BarChartOutlined />,
-								label: (
-									<Link to={"/homebm/groupreport"}>Group Report</Link>
-								),
-								// hidden: data?.demand_vs_collection == "Y" ? false : true,
+								key: "sub5",
+								icon: <DatabaseOutlined />,
+								label: "Master",
+								// hidden: data?.master == "Y" ? false : true,
+								children: [
+									{
+										key: "sub5-1",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterbanks"}>Banks</Link>,
+										// hidden: data?.banks == "Y" ? false : true,
+									},
+									{
+										key: "sub5-2",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masteremployees"}>Employees</Link>,
+										// hidden: data?.employees == "Y" ? false : true,
+									},
+									{
+										key: "sub5-3",
+										icon: <DatabaseOutlined />,
+										label: (
+											<Link to={"/homeadmin/masterdesignations"}>Designations</Link>
+										),
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+									{
+										key: "sub5-4",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterdistricts"}>Districts</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+									{
+										key: "sub5-5",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterblocks"}>Blocks</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+									{
+										key: "sub5-6",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterpurpose"}>Purpose</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+									{
+										key: "sub5-7",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterfunds"}>Funds</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+									{
+										key: "sub5-8",
+										icon: <DatabaseOutlined />,
+										label: <Link to={"/homeadmin/masterschemes"}>Scheme</Link>,
+										// hidden: data?.designation == "Y" ? false : true,
+									},
+								],
 							},
-							
-							// {
-							//   key: "sub6-10",
-							//   icon: <BarChartOutlined />,
-							//   label: (
-							//     <Link to={"/homebm/groupclosereport"}>Group Close</Link>
-							//   ),
-							// },
-						],
-					},
-				]
-				var data = res?.data?.msg
-				var userMenuData = []
-				for (let dt of data) {
-					var tempMenuData = items_all_user1.filter(
-						(item) => item.key == dt.key
-					)
-					if (dt.has_child != "N" && dt.children) {
-						if (dt.children.length > 0) {
-							var tempChildren = []
-							for (let child of dt.children) {
-								var tempChild = tempMenuData[0].children.filter(
-									(item) => item.key == child.key
-								)
-								tempChildren.push(tempChild[0])
+							{
+								key: "sub7",
+								icon: <ImportOutlined />,
+								label: "User Management",
+								// hidden: data?.user_management == "Y" ? false : true,
+								children: [
+									{
+										key: "sub7-1",
+										icon: <UserAddOutlined />,
+										label: <Link to={"/homeadmin/createuser/0"}>Create User</Link>,
+										// hidden: data?.create_user == "Y" ? false : true,
+									},
+									{
+										key: "sub7-2",
+										icon: <SettingOutlined />,
+										label: <Link to={"/homeadmin/manageuser/"}>Manage User</Link>,
+										// hidden: data?.manage_user == "Y" ? false : true,
+									},
+									{
+										key: "sub7-3",
+										icon: <FastForwardOutlined />,
+										label: (
+											<Link to={"/homeadmin/transferuser/0"}>Transfer User</Link>
+										),
+										// hidden: data?.transfer_user == "Y" ? false : true,
+									},
+									{
+										key: "sub7-5",
+										icon: <FastForwardOutlined />,
+										label: (
+											<Link to={"/homeadmin/audit_report"}>Audit Trail</Link>
+										),
+										// hidden: data?.transfer_user == "Y" ? false : true,
+									},
+									{
+										key: "sub7-4",
+										icon: <TableOutlined />,
+										label: <Link to={"/homeadmin/monthend"}>Month End</Link>,
+										// hidden: data?.transfer_user == "Y" ? false : true,
+									},
+								],
+							},
+							{
+								label: "Reports",
+								key: "sub6",
+								icon: <BarsOutlined />,
+								// hidden: data?.reports == "Y" ? false : true,
+								children: [
+									// {
+									//  key: "sub6-1",
+									//  icon: <BarChartOutlined />,
+									//  label: (
+									//    <Link to={"/homebm/memberwiserecoveryreport"}>
+									//      Memberwise Recovery
+									//    </Link>
+									//  ),
+									// },
+									// {
+									//  key: "sub6-2",
+									//  icon: <BarChartOutlined />,
+									//  label: (
+									//    <Link to={"/homebm/groupwiserecoveryreport"}>
+									//      Groupwise Recovery
+									//    </Link>
+									//  ),
+									// },
+									// {
+									//  key: "sub6-3",
+									//  icon: <BarChartOutlined />,
+									//  label: <Link to={"/homebm/demandreport"}>Demand</Link>,
+									// },
+									{
+										key: "sub6-14",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/previous-loantxns"}>Previous Loan Transactions</Link>
+										),
+
+									},
+									{
+										key: "sub6-5",
+										icon: <BarChartOutlined />,
+										label: <Link to={"/homebm/loantxns"}>Loan Transactions</Link>,
+										// hidden: data?.loan_transactions == "Y" ? false : true,
+									},
+									{
+										key: "sub6-6",
+										icon: <BarChartOutlined />,
+										label: <Link to={"/homebm/demandreport"}>Demand Report</Link>,
+										// hidden: data?.demand_report == "Y" ? false : true,
+									},
+									{
+										key: "sub6-7",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/outstasndingreport"}>
+												Outstanding Report
+											</Link>
+										),
+										// hidden: data?.outstanding_report == "Y" ? false : true,
+									},
+									{
+										key: "sub6-4",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/loanstatements"}>Loan Statements</Link>
+										),
+										// hidden: data?.loan_statement == "Y" ? false : true,
+									},
+
+									// {
+									//  key: "sub6-8",
+									//  icon: <BarChartOutlined />,
+									//  label: <Link to={"/homebm/summaryreports"}>Summary Reports</Link>,
+									//  children: [
+									//    {
+									//      key: "sub6-8-1",
+									//      icon: <BarChartOutlined />,
+									//      label: (
+									//        <Link to={"/homebm/summaryreports/fundwise"}>
+									//          Fundwise Report
+									//        </Link>
+									//      ),
+									//    },
+									//    {
+									//      key: "sub6-8-2",
+									//      icon: <BarChartOutlined />,
+									//      label: (
+									//        <Link to={"/homebm/summaryreports/schemewise"}>
+									//          Schemewise Report
+									//        </Link>
+									//      ),
+									//    },
+									//  ],
+									// },
+									// {
+									// 	key: "sub6-8",
+									// 	icon: <BarChartOutlined />,
+									// 	label: (
+									// 		<Link to={"/homebm/fundwisesummary"}>Fundwise Report</Link>
+									// 	),
+									// },
+									// {
+									// 	key: "sub6-9",
+									// 	icon: <BarChartOutlined />,
+									// 	label: (
+									// 		<Link to={"/homebm/schemewisesummary"}>
+									// 			Schemewise Report
+									// 		</Link>
+									// 	),
+									// },
+									{
+										key: "sub6-11",
+										icon: <BarChartOutlined />,
+										label: <Link to={"/homebm/overduereport"}>Overdue Report</Link>,
+										// hidden: data?.demand_vs_collection == "Y" ? false : true,
+									},
+									{
+										key: "sub6-10",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/demandvscollectionreport"}>
+												Demand vs. Collection
+											</Link>
+										),
+										// hidden: data?.demand_vs_collection == "Y" ? false : true,
+									},
+									{
+										key: "sub6-12",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/portfolioreport"}>Portfolio Report</Link>
+										),
+										// hidden: data?.demand_vs_collection == "Y" ? false : true,
+									},
+									{
+										key: "sub6-13",
+										icon: <BarChartOutlined />,
+										label: (
+											<Link to={"/homebm/groupreport"}>Group Report</Link>
+										),
+										// hidden: data?.demand_vs_collection == "Y" ? false : true,
+									},
+
+									// {
+									//   key: "sub6-10",
+									//   icon: <BarChartOutlined />,
+									//   label: (
+									//     <Link to={"/homebm/groupclosereport"}>Group Close</Link>
+									//   ),
+									// },
+								],
+							},
+						]
+						var data = res?.data?.msg
+						var userMenuData = []
+						for (let dt of data) {
+							var tempMenuData = items_all_user1.filter(
+								(item) => item.key == dt.key
+							)
+							if (dt.has_child != "N" && dt.children) {
+								if (dt.children.length > 0) {
+									var tempChildren = []
+									for (let child of dt.children) {
+										var tempChild = tempMenuData[0].children.filter(
+											(item) => item.key == child.key
+										)
+										tempChildren.push(tempChild[0])
+									}
+									tempMenuData[0].children = tempChildren
+								}
 							}
-							tempMenuData[0].children = tempChildren
+							userMenuData.push(tempMenuData[0])
 						}
+						setPermissions(userMenuData)
 					}
-					userMenuData.push(tempMenuData[0])
-				}
-				setPermissions(userMenuData)
-				}
 
-			})
+				})
 
 		}
 
@@ -685,9 +693,9 @@ function Sidebar({ mode = 0, reportProgress_G_, reportProgress_F_, reportProgres
 						/>
 					</div> */}
 					{/* <MenusBr data={permissions} reportProgress={reportProgress} />  */}
-					<MenusBr data={permissions} /> 
+					<MenusBr data={permissions} />
 
-					
+
 
 					{/* <img className='absolute bottom-0 h-40 blur-1' src={sidebar2} alt="Flowbite Logo" /> */}
 				</div>
@@ -715,7 +723,7 @@ function Sidebar({ mode = 0, reportProgress_G_, reportProgress_F_, reportProgres
 							: userDetails?.id == 11
 							? `Admin 2 - ${userDetails?.emp_name}`
 							: `HO User - ${userDetails?.emp_name} `} */}
-							{`${userDetails?.user_type} - ${userDetails?.emp_name}`}
+						{`${userDetails?.user_type} - ${userDetails?.emp_name}`}
 						({userDetails?.branch_name})
 					</div>
 
@@ -800,52 +808,52 @@ function Sidebar({ mode = 0, reportProgress_G_, reportProgress_F_, reportProgres
 
 
 
-<div style={{alignItems:'center', display:'flex'}} className="mr-10">
-{reportProgress_G || reportProgress_F || reportProgress_CO || reportProgress_M || reportProgress_B
-  ? reportProgress_G === "loading" || reportProgress_F === "loading" || reportProgress_CO === "loading" || reportProgress_M === "loading" || reportProgress_B === "loading" ? (
-      <>
-        <span style={{ fontSize: 12, color: "#76c90d" }}>Report Generating...</span>
-        <Spin
-          indicator={<LoadingOutlined style={{ color: "#76c90d" }} spin />}
-          size="small"
-          style={{ color: "#76c90d", marginLeft: 5 }}
-          className="text-white"
-          spinning={true}
-        />
-      </>
-    ) : (
-      <p></p>
-    )
-  : (() => {
-      const keys = [
-        "reportDataProgress_G",
-        "reportDataProgress_F",
-        "reportDataProgress_CO",
-        "reportDataProgress_M",
-        "reportDataProgress_B",
-        "reportDataProgress", // keep your existing key too
-      ];
+					<div style={{ alignItems: 'center', display: 'flex' }} className="mr-10">
+						{reportProgress_G || reportProgress_F || reportProgress_CO || reportProgress_M || reportProgress_B
+							? reportProgress_G === "loading" || reportProgress_F === "loading" || reportProgress_CO === "loading" || reportProgress_M === "loading" || reportProgress_B === "loading" ? (
+								<>
+									<span style={{ fontSize: 12, color: "#76c90d" }}>Report Generating...</span>
+									<Spin
+										indicator={<LoadingOutlined style={{ color: "#76c90d" }} spin />}
+										size="small"
+										style={{ color: "#76c90d", marginLeft: 5 }}
+										className="text-white"
+										spinning={true}
+									/>
+								</>
+							) : (
+								<p></p>
+							)
+							: (() => {
+								const keys = [
+									"reportDataProgress_G",
+									"reportDataProgress_F",
+									"reportDataProgress_CO",
+									"reportDataProgress_M",
+									"reportDataProgress_B",
+									"reportDataProgress", // keep your existing key too
+								];
 
-      const isAnyLoading = keys.some(
-        (key) => localStorage.getItem(key) === "loading"
-      );
+								const isAnyLoading = keys.some(
+									(key) => localStorage.getItem(key) === "loading"
+								);
 
-      return isAnyLoading ? (
-        <>
-          <span style={{ fontSize: 12, color: "#76c90d" }}>Report Generating...</span>
-          <Spin
-            indicator={<LoadingOutlined style={{ color: "#76c90d" }} spin />}
-            size="small"
-            style={{ color: "#76c90d", marginLeft: 5 }}
-            className="text-white"
-            spinning={true}
-          />
-        </>
-      ) : (
-        <p></p>
-      );
-    })()}
-</div>
+								return isAnyLoading ? (
+									<>
+										<span style={{ fontSize: 12, color: "#76c90d" }}>Report Generating...</span>
+										<Spin
+											indicator={<LoadingOutlined style={{ color: "#76c90d" }} spin />}
+											size="small"
+											style={{ color: "#76c90d", marginLeft: 5 }}
+											className="text-white"
+											spinning={true}
+										/>
+									</>
+								) : (
+									<p></p>
+								);
+							})()}
+					</div>
 
 					{/* <div className="italic mr-10">
 						⇨ Date of Operation : {new Date().toLocaleDateString("en-GB")}

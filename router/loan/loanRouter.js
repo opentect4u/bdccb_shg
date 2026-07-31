@@ -539,13 +539,13 @@ loanRouter.post("/check_group_recovery", async (req, res) => {
     // Check td_loan_transactions
     const rec_select = "COUNT(b.trans_id) AS recovery_count";
     const rec_table = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id";
-    const rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R'`;
+    const rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R' AND (COALESCE(a.curr_prn, 0) + COALESCE(a.ovd_prn, 0)) > 0`;
     const rec_check = await db_Select(rec_select, rec_table, rec_whr, null);
     
     // Check td_loan_member_trans
     const mem_rec_select = "COUNT(b.trans_id) AS recovery_count";
     const mem_rec_table = "bdccb.td_loan_member a INNER JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id";
-    const mem_rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R'`;
+    const mem_rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R' AND (COALESCE(a.prn_amt, 0) + COALESCE(a.ovd_prn_amt, 0)) > 0`;
     const mem_rec_check = await db_Select(mem_rec_select, mem_rec_table, mem_rec_whr, null);
     
     let recovery_exists = false;

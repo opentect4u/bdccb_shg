@@ -67,28 +67,28 @@ const group_trans_process = [
 ]
 
 const genderOptions = [
-  { code: "M", name: "Male" },
-  { code: "F", name: "Female" },
-  { code: "O", name: "Other" },
+	{ code: "M", name: "Male" },
+	{ code: "F", name: "Female" },
+	{ code: "O", name: "Other" },
 ];
 
 const religionOptions = [
-  { code: "Hinduism", name: "Hinduism" },
-  { code: "Islam", name: "Islam" },
-  { code: "Christianity", name: "Christianity" },
-  { code: "Jainism", name: "Jainism" },
-  { code: "Buddhism", name: "Buddhism" },
-  { code: "Sikhism", name: "Sikhism" },
-  { code: "Others", name: "Others" },
+	{ code: "Hinduism", name: "Hinduism" },
+	{ code: "Islam", name: "Islam" },
+	{ code: "Christianity", name: "Christianity" },
+	{ code: "Jainism", name: "Jainism" },
+	{ code: "Buddhism", name: "Buddhism" },
+	{ code: "Sikhism", name: "Sikhism" },
+	{ code: "Others", name: "Others" },
 ];
 
 
 const casteOptions = [
-  { code: "GEN", name: "General" },
-  { code: "SC", name: "SC" },
-  { code: "ST", name: "ST" },
-  { code: "OBCA", name: "OBC A" },
-  { code: "OBCB", name: "OBC B" },
+	{ code: "GEN", name: "General" },
+	{ code: "SC", name: "SC" },
+	{ code: "ST", name: "ST" },
+	{ code: "OBCA", name: "OBC A" },
+	{ code: "OBCB", name: "OBC B" },
 ];
 
 const economicActivites = [
@@ -211,56 +211,55 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 
 	const validationSchema = Yup.object({
 		g_group_name: Yup.mixed(),
-		
+
 
 		members: Yup.array()
-		.of(
-		Yup.object({
-      member_name: Yup.string().required("Member name required"),
+			.of(
+				Yup.object({
+					member_name: Yup.string().required("Member name required"),
 
-      sb_acc_no: Yup.string().required("SB A/C No. required"),
+					sb_acc_no: Yup.string().required("SB A/C No. required"),
 
-	  ifsc_code: Yup.string().required("IFSC Code required"),
+					ifsc_code: Yup.string().required("IFSC Code required"),
 
-      aadhar_no: Yup.string()
-        .matches(/^[0-9]{12}$/, "Aadhaar must be 12 digits")
-        .required("Aadhaar required (Aadhaar must be 12 digits)"),
+					aadhar_no: Yup.string()
+						.matches(/^[0-9]{12}$/, "Aadhaar must be 12 digits")
+						.required("Aadhaar required (Aadhaar must be 12 digits)"),
 
-	  husb_father: Yup.string().required("Husband's/Father's Name required"),
+					husb_father: Yup.string().required("Husband's/Father's Name required"),
 
-      mobile_no: Yup.string()
-        .matches(/^[0-9]{10}$/, "Mobile must be 10 digits")
-        .required("Mobile No. required (Mobile must be 10 digits)"),
+					mobile_no: Yup.string()
+						.test("is-10-digits", "Mobile must be 10 digits", (val) => !val || /^[0-9]{10}$/.test(val)),
 
-      gender_field: Yup.string().required("Gender required"),
+					gender_field: Yup.string().required("Gender required"),
 
-      gp_leader_flag: Yup.string()
-        .oneOf(["Y", "N"])
-        .required(),
+					gp_leader_flag: Yup.string()
+						.oneOf(["Y", "N"])
+						.required(),
 
-      asst_gp_leader_flag: Yup.string()
-        .oneOf(["Y", "N"])
-        .required(),
-    })
-  )
-  .min(1, "At least one member required")
+					asst_gp_leader_flag: Yup.string()
+						.oneOf(["Y", "N"])
+						.required(),
+				})
+			)
+			.min(1, "At least one member required")
 
-  // 🔐 ROLE VALIDATION
-  .test(
-    "leader-assistant-rule",
-    "Only one Group Leader and one Assistant Member allowed",
-    (members = []) => {
-      const leaderCount = members.filter(
-        (m) => m.gp_leader_flag === "Y"
-      ).length;
+			// 🔐 ROLE VALIDATION
+			.test(
+				"leader-assistant-rule",
+				"Only one Group Leader and one Assistant Member allowed",
+				(members = []) => {
+					const leaderCount = members.filter(
+						(m) => m.gp_leader_flag === "Y"
+					).length;
 
-      const assistantCount = members.filter(
-        (m) => m.asst_gp_leader_flag === "Y"
-      ).length;
+					const assistantCount = members.filter(
+						(m) => m.asst_gp_leader_flag === "Y"
+					).length;
 
-      return leaderCount <= 1 && assistantCount <= 1;
-    }
-  )
+					return leaderCount <= 1 && assistantCount <= 1;
+				}
+			)
 
 
 
@@ -278,30 +277,30 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 	const onSubmit = async (values) => {
 
 		// console.log(groupValue, 'ggggggggggggggggggg', formik.values.g_group_name);
-		
+
 		if (!groupValue) {
-		Message("error", "Please select Group Name");
-		return; // ⛔ stop submit
+			Message("error", "Please select Group Name");
+			return; // ⛔ stop submit
 		}
 
 		// 🔥 Mark all fields as touched
 		const touchedMembers = values.members.map(() => ({
-		member_name: true,
-		sb_acc_no: true,
-		aadhar_no: true,
-		mobile_no: true,
-		gender_field: true,
+			member_name: true,
+			sb_acc_no: true,
+			aadhar_no: true,
+			mobile_no: true,
+			gender_field: true,
 		}));
 
 		formik.setTouched({
-		members: touchedMembers,
+			members: touchedMembers,
 		});
 
 		// run validation manually
 		const errors = await formik.validateForm();
 
 		if (Object.keys(errors).length > 0) {
-		return; // ❌ stop submit
+			return; // ❌ stop submit
 		}
 
 		handleOpenConfirm(values);
@@ -335,7 +334,7 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 	const fetchGroupsList = async () => {
 
 		// console.log(searchKeywords, 'search', userDetails[0]?.brn_code);
-		
+
 		setLoading(true)
 		// const creds = {
 		// group_name: '',
@@ -348,36 +347,36 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
 		await axios.get(`${url_bdccb}/group/group_list_for_add`, {
-		params: {
-		type: userDetails[0]?.user_type, branch_id: userDetails[0]?.brn_code
-		},
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
-		},
+			params: {
+				type: userDetails[0]?.user_type, branch_id: userDetails[0]?.brn_code
+			},
+			headers: {
+				Authorization: `${tokenValue?.token}`, // example header
+				"Content-Type": "application/json", // optional
+			},
 		})
 
-		.then((res) => {
-		console.log(res?.data?.data, 'searchsearchsearchsearchsearch', 'creds');
-		if(res?.data?.success){
-		// setGroupsList(res?.data?.data)
-		setGroupsList(res?.data?.data?.map((item, i) => ({
-		code: item?.group_code,
-		name: item?.group_name,
-		})))
+			.then((res) => {
+				console.log(res?.data?.data, 'searchsearchsearchsearchsearch', 'creds');
+				if (res?.data?.success) {
+					// setGroupsList(res?.data?.data)
+					setGroupsList(res?.data?.data?.map((item, i) => ({
+						code: item?.group_code,
+						name: item?.group_name,
+					})))
 
-		} else {
-		navigate(routePaths.LANDING)
-		localStorage.clear()
-		}
+				} else {
+					navigate(routePaths.LANDING)
+					localStorage.clear()
+				}
 
-		})
-		.catch((err) => {
-		Message("error", "Some error occurred while searching...")
-		})
+			})
+			.catch((err) => {
+				Message("error", "Some error occurred while searching...")
+			})
 		setLoading(false)
 
-		}
+	}
 
 	const fetchGroupDetails = async (groupCode) => {
 		const creds = {
@@ -412,13 +411,13 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		// 	},
 		// })
 
-			await axios.get(`${url_bdccb}/group/fetch_grp_dtls_code`, {
-			params: {group_code: groupCode},
+		await axios.get(`${url_bdccb}/group/fetch_grp_dtls_code`, {
+			params: { group_code: groupCode },
 			headers: {
-			Authorization: `${tokenValue?.token}`, // example header
-			"Content-Type": "application/json", // optional
+				Authorization: `${tokenValue?.token}`, // example header
+				"Content-Type": "application/json", // optional
 			},
-			})
+		})
 			.then((res) => {
 
 				console.log(res?.data?.data[0], 'groupCodegroupCodegroupCode', creds,);
@@ -444,23 +443,23 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 						// gp_id: res?.data?.data[0]?.gp_name,
 						// village_id: res?.data?.data[0]?.vill_name,
 						members: [
-									{
-										member_id: 0,
-										member_name: "",
-										address: "",
-										sb_acc_no: "",
-										aadhar_no: "",
-										gp_leader_flag: "N",
-										asst_gp_leader_flag: "N",
+							{
+								member_id: 0,
+								member_name: "",
+								address: "",
+								sb_acc_no: "",
+								aadhar_no: "",
+								gp_leader_flag: "N",
+								asst_gp_leader_flag: "N",
 
-										husb_father: "",
-										ifsc_code: "",
-										mobile_no: "",
-										gender_field: "",
-										religion_field: "",
-										caste_field: "",
-									}
-								]
+								husb_father: "",
+								ifsc_code: "",
+								mobile_no: "",
+								gender_field: "",
+								religion_field: "",
+								caste_field: "",
+							}
+						]
 
 					})
 
@@ -480,17 +479,17 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 
 	useEffect(() => {
 
-	fetchGroupsList()
+		fetchGroupsList()
 
 	}, [])
 
 	useEffect(() => {
 
-	if (userDetails[0]?.user_type === 'P' && params?.id > 0) {
-	return;
-	} else {
-	fetchBranch_Group()
-	}
+		if (userDetails[0]?.user_type === 'P' && params?.id > 0) {
+			return;
+		} else {
+			fetchBranch_Group()
+		}
 
 	}, [])
 
@@ -546,28 +545,28 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		setLoading(true)
 
 		const member_ids = formData?.members.map((item) => ({
-		id: "",   // if not available keep empty
-		member_id: item.member_id || "",
-		member_name: item.member_name || "",
-		father_hus_name: item.husb_father || "",
-		gender: item.gender_field || "",
-		religion: item.religion_field || "",
-		caste: item.caste_field || "",
-		phone_no: item.mobile_no ? String(item.mobile_no) : "",
-		aadhar_no: item.aadhar_no || "",
-		sb_acc_no: item.sb_acc_no || "",
-		ifsc: item.ifsc_code || "",
-		address: item.address || "",
-		gp_leader_flag: item.gp_leader_flag || "N",
-		asst_gp_leader_flag: item.asst_gp_leader_flag || "N",
-		economic_activity: item.economic_activity || "Y"
+			id: "",   // if not available keep empty
+			member_id: item.member_id || "",
+			member_name: item.member_name || "",
+			father_hus_name: item.husb_father || "",
+			gender: item.gender_field || "",
+			religion: item.religion_field || "",
+			caste: item.caste_field || "",
+			phone_no: item.mobile_no ? String(item.mobile_no) : "",
+			aadhar_no: item.aadhar_no || "",
+			sb_acc_no: item.sb_acc_no || "",
+			ifsc: item.ifsc_code || "",
+			address: item.address || "",
+			gp_leader_flag: item.gp_leader_flag || "N",
+			asst_gp_leader_flag: item.asst_gp_leader_flag || "N",
+			economic_activity: item.economic_activity || "Y"
 		}));
 
 
 		console.log(formData, 'formDataformDataformDataformData', groupsDetails);
 
 		// return;
-		
+
 
 		const ip = await getClientIP()
 
@@ -1070,7 +1069,7 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		formik.setFieldValue("members", updated);
 	};
 
-	
+
 
 
 	const checkAdharNoExists = async (aadhaarNo, index) => {
@@ -1188,36 +1187,36 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 
 
 	const checkIFCS_code_format = (ifsc, index) => {
-	const value = ifsc.toUpperCase();
+		const value = ifsc.toUpperCase();
 
-	// Rule-based validation
-	const isValid = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
+		// Rule-based validation
+		const isValid = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
 
-	if (!isValid) {
+		if (!isValid) {
+			setIFSCCodeStatus(prev => ({
+				...prev,
+				[index]: {
+					user_status: 1,
+					msg: "Invalid IFSC (Format: ABCD0XXXXXX)",
+				},
+			}));
+			return;
+		}
+
+		// ✅ Valid IFSC
 		setIFSCCodeStatus(prev => ({
 			...prev,
 			[index]: {
-				user_status: 1,
-				msg: "Invalid IFSC (Format: ABCD0XXXXXX)",
+				user_status: 0,
+				msg: "Valid IFSC",
 			},
 		}));
-		return;
-	}
-
-	// ✅ Valid IFSC
-	setIFSCCodeStatus(prev => ({
-		...prev,
-		[index]: {
-			user_status: 0,
-			msg: "Valid IFSC",
-		},
-	}));
-};
+	};
 
 
 	const checkIFSC_Code = (e, index) => {
 		// let value = e.target.value.replace(/\D/g, "");
-		let value = e.target.value.toUpperCase(); 
+		let value = e.target.value.toUpperCase();
 
 		const members = [...formik.values.members];
 
@@ -1227,26 +1226,26 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		);
 
 		// if (isDuplicate) {
-			// // set error message for this row
-			// setIFSCCodeStatus(prev => ({
-			// 	...prev,
-			// 	[index]: {
-			// 		user_status: 1,
-			// 		msg: "Duplicate IFSC Code",
-			// 	},
-			// }));
+		// // set error message for this row
+		// setIFSCCodeStatus(prev => ({
+		// 	...prev,
+		// 	[index]: {
+		// 		user_status: 1,
+		// 		msg: "Duplicate IFSC Code",
+		// 	},
+		// }));
 		// } else {
-			// clear duplicate message
-			setIFSCCodeStatus(prev => {
-				const copy = { ...prev };
-				delete copy[index];
-				return copy;
-			});
+		// clear duplicate message
+		setIFSCCodeStatus(prev => {
+			const copy = { ...prev };
+			delete copy[index];
+			return copy;
+		});
 
-			// call API only if 12 digits and not duplicate
-			// if (value.length > 0) {
-			checkIFCS_code_format(value, index);
-			// }
+		// call API only if 12 digits and not duplicate
+		// if (value.length > 0) {
+		checkIFCS_code_format(value, index);
+		// }
 		// }
 
 		members[index].ifsc_code = value;
@@ -1269,59 +1268,31 @@ function MemberExtendedForm_BDCCB({ groupDataArr }) {
 		// }
 
 		console.log(mobileNum, 'mobileNummobileNummobileNum', index);
-		
+
 	};
 
 
 
 	const handleMobileChange = async (e, index) => {
-	let value = e.target.value.replace(/\D/g, ""); // ✅ only digits
+		let value = e.target.value.replace(/\D/g, ""); // ✅ only digits
 
-	// ✅ limit to 10 digits
-	if (value.length > 10) return;
+		// ✅ limit to 10 digits
+		if (value.length > 10) return;
 
-	const members = [...formik.values.members];
-
-	// 🔴 Duplicate check inside form
-	const isDuplicate = members.some(
-		(m, i) => i !== index && m.mobile_no === value
-	);
-
-	if (isDuplicate) {
-		setMobileExists(prev => ({
-			...prev,
-			[index]: {
-				user_status: 1,
-				msg: "Duplicate Mobile Number",
-			},
-		}));
-	} else {
-		// clear error
-		setMobileExists(prev => {
-			const copy = { ...prev };
-			delete copy[index];
-			return copy;
-		});
-
-		// ✅ Call API ONLY when exactly 10 digits
-		if (value.length === 10) {
-			checkMobileExists(value, index);
-		}
-	}
-
-	members[index].mobile_no = value;
-	formik.setFieldValue("members", members);
-};
+		const members = [...formik.values.members];
+		members[index].mobile_no = value;
+		formik.setFieldValue("members", members);
+	};
 
 
 
-const hasErrorStatus =
-	formik.values.members.some((_, index) =>
-		IFSCCodeStatus[index]?.user_status == 1 ||
-		SBAccountStatus[index]?.user_status == 1 ||
-		adharStatus[index]?.user_status == 1 ||
-		mobileExists[index]?.user_status == 1
-	);
+	const hasErrorStatus =
+		formik.values.members.some((_, index) =>
+			IFSCCodeStatus[index]?.user_status == 1 ||
+			SBAccountStatus[index]?.user_status == 1 ||
+			adharStatus[index]?.user_status == 1 ||
+			mobileExists[index]?.user_status == 1
+		);
 
 
 
@@ -1346,11 +1317,11 @@ const hasErrorStatus =
 				<form onSubmit={formik.handleSubmit}>
 					<div className="flex justify-start gap-5">
 						<div className={"grid gap-4 sm:grid-cols-4 sm:gap-6 w-full mb-3"}>
-							
-							
-							
+
+
+
 							<div className="sm:col-span-1">
-								
+
 
 								<TDInputTemplateBr
 									placeholder="Group Name"
@@ -1360,10 +1331,10 @@ const hasErrorStatus =
 									formControlName={formik.values.g_group_name}
 									handleChange={(value) => {
 										setGroupValue('')
-										
+
 										setGroupValue(value.target.value)
 										console.log(value.target.value, 'ggggggggggggggggggg');
-										
+
 										formik.setFieldValue("g_group_name", value.target.value)
 										// fetchPacks_Group(value.target.value)
 										fetchGroupDetails(value.target.value)
@@ -1373,29 +1344,29 @@ const hasErrorStatus =
 									mode={2}
 								/>
 
-								
+
 
 								{/* {formik.errors.g_group_name && formik.touched.g_group_name ? (
 								<VError title={formik.errors.g_group_name} />
 								) : null} */}
 
-								
+
 							</div>
 
 							<div className="sm:col-span-1 flex items-end">
-	<Button 
-		type="primary"
-		onClick={() => setGroupDetailsModal(true)}
-		disabled={!groupsDetails?.group_code} // disable if no data
-	>
-		View Group Details
-	</Button>
-</div>
+								<Button
+									type="primary"
+									onClick={() => setGroupDetailsModal(true)}
+									disabled={!groupsDetails?.group_code} // disable if no data
+								>
+									View Group Details
+								</Button>
+							</div>
 
 
 						</div>
 					</div>
-					
+
 
 					{/* {JSON.stringify(formik.errors?.members, null, 2)} */}
 
@@ -1434,360 +1405,359 @@ const hasErrorStatus =
 
 							return (
 								<>
-								<div
-									key={index}
-									className="grid grid-cols-6 gap-3 mb-3 p-3 border rounded-md bg-slate-50" style={{ position: 'relative' }}
-								>
+									<div
+										key={index}
+										className="grid grid-cols-6 gap-3 mb-3 p-3 border rounded-md bg-slate-50" style={{ position: 'relative' }}
+									>
 
 
-									{/* Designation */}
-									<div className="col-span-6 flex flex-col gap-1" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'start' }}>
-										{/* Group Leader */}
-										<label className="flex items-center gap-1 text-xs" style={{ fontSize: 11 }}>
-											<input
-												type="checkbox"
-												//   checked={member.gp_leader_flag}
-												checked={member.gp_leader_flag === "Y"}
-												onChange={() => handleGroupLeaderChange(index)}
-											/>
-											Group Leader
-										</label>
+										{/* Designation */}
+										<div className="col-span-6 flex flex-col gap-1" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'start' }}>
+											{/* Group Leader */}
+											<label className="flex items-center gap-1 text-xs" style={{ fontSize: 11 }}>
+												<input
+													type="checkbox"
+													//   checked={member.gp_leader_flag}
+													checked={member.gp_leader_flag === "Y"}
+													onChange={() => handleGroupLeaderChange(index)}
+												/>
+												Group Leader
+											</label>
 
-										{/* Assistant Member */}
-										<label className="flex items-center gap-1 text-xs" style={{ fontSize: 11 }}>
-											<input
-												type="checkbox"
-												//   checked={member.asst_gp_leader_flag}
-												checked={member.asst_gp_leader_flag === "Y"}
-												onChange={() => handleAssistantChange(index)}
-											/>
-											Assistant Leader
-										</label>
-									</div>
-
-									{/* Radion Economic Activities */}
-									<div className="col-span-6 economicActivitesClass flex flex-col gap-1" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'start' }}>
-									<label className="block mb-2 text-sm capitalize font-bold text-slate-800 dark:text-gray-100">
-									Economic Activities *
-									</label>
-
-									<Radiobtn
-									data={economicActivites}
-									val={member.economic_activity}
-									onChangeVal={(value) => {
-									formik.setFieldValue(
-									`members[${index}].economic_activity`,
-									value
-									);
-									}}
-									/>
-									</div>
-
-									{/* Name */}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="Member Name"
-											label="Member Name *"
-											type="text"
-											name={`members[${index}].member_name`}
-											formControlName={member.member_name}
-											handleChange={formik.handleChange}
-											mode={1}
-										/>
-										{formik.errors?.members?.[index]?.member_name && (
-										<div className="text-red-500 text-xs">
-										{formik.errors.members[index].member_name}
+											{/* Assistant Member */}
+											<label className="flex items-center gap-1 text-xs" style={{ fontSize: 11 }}>
+												<input
+													type="checkbox"
+													//   checked={member.asst_gp_leader_flag}
+													checked={member.asst_gp_leader_flag === "Y"}
+													onChange={() => handleAssistantChange(index)}
+												/>
+												Assistant Leader
+											</label>
 										</div>
-										)}
-									</div>
 
+										{/* Radion Economic Activities */}
+										<div className="col-span-6 economicActivitesClass flex flex-col gap-1" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'start' }}>
+											<label className="block mb-2 text-sm capitalize font-bold text-slate-800 dark:text-gray-100">
+												Economic Activities *
+											</label>
 
+											<Radiobtn
+												data={economicActivites}
+												val={member.economic_activity}
+												onChangeVal={(value) => {
+													formik.setFieldValue(
+														`members[${index}].economic_activity`,
+														value
+													);
+												}}
+											/>
+										</div>
 
-									{/* SB ACC */}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="SB A/C No."
-											label="SB A/C No. *"
-											type="text"   // ✅ MUST be text
-											name={`members[${index}].sb_acc_no`}
-											formControlName={member.sb_acc_no}
-											handleChange={(e) => handleSBAccNoChange(e, index)}
-											mode={1}
-										// disabled={params?.id > 0}
-										/>
-
-										
-
-										{member.sb_acc_no?.length > 0 && SBAccountStatus[index] && (
-											SBAccountStatus[index]?.user_status == 1 ? (
-												<div style={{ fontSize: 12, color: "red" }}>
-													{SBAccountStatus[index]?.msg}
+										{/* Name */}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Member Name"
+												label="Member Name *"
+												type="text"
+												name={`members[${index}].member_name`}
+												formControlName={member.member_name}
+												handleChange={formik.handleChange}
+												mode={1}
+											/>
+											{formik.errors?.members?.[index]?.member_name && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].member_name}
 												</div>
-											) : (
-											<>
-											{/* <div style={{ fontSize: 12, color: "green" }}>
+											)}
+										</div>
+
+
+
+										{/* SB ACC */}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="SB A/C No."
+												label="SB A/C No. *"
+												type="text"   // ✅ MUST be text
+												name={`members[${index}].sb_acc_no`}
+												formControlName={member.sb_acc_no}
+												handleChange={(e) => handleSBAccNoChange(e, index)}
+												mode={1}
+											// disabled={params?.id > 0}
+											/>
+
+
+
+											{member.sb_acc_no?.length > 0 && SBAccountStatus[index] && (
+												SBAccountStatus[index]?.user_status == 1 ? (
+													<div style={{ fontSize: 12, color: "red" }}>
+														{SBAccountStatus[index]?.msg}
+													</div>
+												) : (
+													<>
+														{/* <div style={{ fontSize: 12, color: "green" }}>
 											{SBAccountStatus[index]?.msg}
 											</div> */}
-											</>
-											)
-										)}
+													</>
+												)
+											)}
 
-										{formik.errors?.members?.[index]?.sb_acc_no && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].sb_acc_no}
-										</div>
-										)}
-
-									</div>
-
-									{/* IFS Code*/}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="IFS Code"
-											label="IFS Code"
-											type="text"   // ✅ MUST be text
-											name={`members[${index}].ifsc_code`}
-											formControlName={member.ifsc_code}
-											// handleChange={formik.handleChange}
-											handleChange={(e) => checkIFSC_Code(e, index)}
-											mode={1}
-										// disabled={params?.id > 0}
-										/>
-
-										{member.ifsc_code?.length > 0 && IFSCCodeStatus[index] && (
-											IFSCCodeStatus[index]?.user_status == 1 ? (
-												<div style={{ fontSize: 12, color: "red" }}>
-													{IFSCCodeStatus[index]?.msg}
+											{formik.errors?.members?.[index]?.sb_acc_no && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].sb_acc_no}
 												</div>
-											) : (
-											<>
-											{/* <div style={{ fontSize: 12, color: "green" }}>
+											)}
+
+										</div>
+
+										{/* IFS Code*/}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="IFS Code"
+												label="IFS Code"
+												type="text"   // ✅ MUST be text
+												name={`members[${index}].ifsc_code`}
+												formControlName={member.ifsc_code}
+												// handleChange={formik.handleChange}
+												handleChange={(e) => checkIFSC_Code(e, index)}
+												mode={1}
+											// disabled={params?.id > 0}
+											/>
+
+											{member.ifsc_code?.length > 0 && IFSCCodeStatus[index] && (
+												IFSCCodeStatus[index]?.user_status == 1 ? (
+													<div style={{ fontSize: 12, color: "red" }}>
+														{IFSCCodeStatus[index]?.msg}
+													</div>
+												) : (
+													<>
+														{/* <div style={{ fontSize: 12, color: "green" }}>
 											{SBAccountStatus[index]?.msg}
 											</div> */}
-											</>
-											)
-										)}
+													</>
+												)
+											)}
 
-										{formik.errors?.members?.[index]?.ifsc_code && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].ifsc_code}
-										</div>
-										)}
-
-									</div>
-
-									{/* Aadhaar */}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="Aadhaar No"
-											label="Aadhaar No *"
-											type="text"   // ✅ MUST be text
-											name={`members[${index}].aadhar_no`}
-											formControlName={member.aadhar_no}
-											handleChange={(e) => handleAdharNoChange(e, index)}
-											mode={1}
-										/>
-
-										{formik.errors?.members?.[index]?.aadhar_no && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].aadhar_no}
-										</div>
-										)}
-
-										{member.aadhar_no?.length === 12 && adharStatus[index] && (
-											adharStatus[index].user_status == 1 ? (
-												<div style={{ fontSize: 12, color: "red" }}>
-													{adharStatus[index].msg}
+											{formik.errors?.members?.[index]?.ifsc_code && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].ifsc_code}
 												</div>
-											) : (
-												<>
-												{/* <div style={{ fontSize: 12, color: "green" }}>
+											)}
+
+										</div>
+
+										{/* Aadhaar */}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Aadhaar No"
+												label="Aadhaar No *"
+												type="text"   // ✅ MUST be text
+												name={`members[${index}].aadhar_no`}
+												formControlName={member.aadhar_no}
+												handleChange={(e) => handleAdharNoChange(e, index)}
+												mode={1}
+											/>
+
+											{formik.errors?.members?.[index]?.aadhar_no && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].aadhar_no}
+												</div>
+											)}
+
+											{member.aadhar_no?.length === 12 && adharStatus[index] && (
+												adharStatus[index].user_status == 1 ? (
+													<div style={{ fontSize: 12, color: "red" }}>
+														{adharStatus[index].msg}
+													</div>
+												) : (
+													<>
+														{/* <div style={{ fontSize: 12, color: "green" }}>
 												{adharStatus[index].msg}
 												</div> */}
-												</>
-											)
-										)}
+													</>
+												)
+											)}
 
-									</div>
-
-									
-
-									{/* Husband's/Father's Name */}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="Husband's/Father's Name"
-											label="Husband's/Father's Name"
-											type="text"
-											name={`members[${index}].husb_father`}
-											formControlName={member.husb_father}
-											handleChange={formik.handleChange}
-											mode={1}
-										/>
-
-										{formik.errors?.members?.[index]?.husb_father && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].husb_father}
 										</div>
-										)}
 
-									</div>
 
-									{/* Mobile No. */}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-											placeholder="Mobile No"
-											label="Mobile No *"
-											type="number"
-											name={`members[${index}].mobile_no`}
-											formControlName={member.mobile_no}
-											// handleChange={formik.handleChange}
-											handleChange={(e) => handleMobileChange(e, index)}
-											mode={1}
-										/>
 
-										{formik.errors?.members?.[index]?.mobile_no && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].mobile_no}
-										</div>
-										)}
+										{/* Husband's/Father's Name */}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Husband's/Father's Name"
+												label="Husband's/Father's Name"
+												type="text"
+												name={`members[${index}].husb_father`}
+												formControlName={member.husb_father}
+												handleChange={formik.handleChange}
+												mode={1}
+											/>
 
-										{member.mobile_no?.length > 0 && mobileExists[index] && (
-											mobileExists[index]?.user_status == 1 ? (
-												<div style={{ fontSize: 12, color: "red" }}>
-													{mobileExists[index]?.msg}
+											{formik.errors?.members?.[index]?.husb_father && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].husb_father}
 												</div>
-											) : (
-											<>
-											{/* <div style={{ fontSize: 12, color: "green" }}>
+											)}
+
+										</div>
+
+										{/* Mobile No. */}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Mobile No"
+												label="Mobile No"
+												type="number"
+												name={`members[${index}].mobile_no`}
+												formControlName={member.mobile_no}
+												handleChange={(e) => handleMobileChange(e, index)}
+												mode={1}
+											/>
+
+											{formik.errors?.members?.[index]?.mobile_no && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].mobile_no}
+												</div>
+											)}
+
+											{member.mobile_no?.length > 0 && mobileExists[index] && (
+												mobileExists[index]?.user_status == 1 ? (
+													<div style={{ fontSize: 12, color: "red" }}>
+														{mobileExists[index]?.msg}
+													</div>
+												) : (
+													<>
+														{/* <div style={{ fontSize: 12, color: "green" }}>
 											{SBAccountStatus[index]?.msg}
 											</div> */}
-											</>
-											)
-										)}
+													</>
+												)
+											)}
 
-									</div>
-									
-									{/* Gender*/}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-										placeholder="Select Gender..."
-										label="Gender *"
-										type="text"
-										name={`members[${index}].gender_field`}
-										formControlName={formik.values.members[index]?.gender_field}
-										handleChange={formik.handleChange}
-										handleBlur={formik.handleBlur}
-										data={genderOptions}
-										mode={2}
-										/>
-
-										{formik.errors?.members?.[index]?.gender_field && (
-										<div className="text-red-500 text-xs">
-											{formik.errors.members[index].gender_field}
 										</div>
-										)}
-									</div>
 
-									{/* Religion*/}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-										placeholder="Select Religion..."
-										label="Religion"
-										type="text"
-										name={`members[${index}].religion_field`}
-										formControlName={formik.values.members[index]?.religion_field}
-										handleChange={formik.handleChange}
-										handleBlur={formik.handleBlur}
-										data={religionOptions}
-										mode={2}
-										/>
-									</div>
+										{/* Gender*/}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Select Gender..."
+												label="Gender *"
+												type="text"
+												name={`members[${index}].gender_field`}
+												formControlName={formik.values.members[index]?.gender_field}
+												handleChange={formik.handleChange}
+												handleBlur={formik.handleBlur}
+												data={genderOptions}
+												mode={2}
+											/>
 
-									{/* Religion*/}
-									<div className="col-span-2">
-										<TDInputTemplateBr
-										placeholder="Select Caste..."
-										label="Caste"
-										type="text"
-										name={`members[${index}].caste_field`}
-										formControlName={formik.values.members[index]?.caste_field}
-										handleChange={formik.handleChange}
-										handleBlur={formik.handleBlur}
-										data={casteOptions}
-										mode={2}
-										/>
-									</div>
+											{formik.errors?.members?.[index]?.gender_field && (
+												<div className="text-red-500 text-xs">
+													{formik.errors.members[index].gender_field}
+												</div>
+											)}
+										</div>
 
-									{/* Address */}
-									<div className="col-span-6">
-										<TDInputTemplateBr
-											placeholder="Address"
-											label="Address"
-											type="text"
-											name={`members[${index}].address`}
-											formControlName={member.address}
-											handleChange={formik.handleChange}
-											mode={1}
-										/>
-									</div>
-									
+										{/* Religion*/}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Select Religion..."
+												label="Religion"
+												type="text"
+												name={`members[${index}].religion_field`}
+												formControlName={formik.values.members[index]?.religion_field}
+												handleChange={formik.handleChange}
+												handleBlur={formik.handleBlur}
+												data={religionOptions}
+												mode={2}
+											/>
+										</div>
 
-									{/* Remove */}
-									<div className="col-span-1 text-center" style={{ position: 'absolute', right: 10 }}>
-										{formik.values.members.length > 1 && (
-											<button
-												type="button"
-												onClick={() => {
-													const updated = [...formik.values.members];
-													updated.splice(index, 1);
-													formik.setFieldValue("members", updated);
-												}}
-												className="text-red-600 font-bold" style={{
-													background: "rgb(218 65 103 / var(--tw-bg-opacity))",
-													padding: "0 7px",
-													height: "25px",
-													color: "#fff",
-													lineHeight: "25px",
-													borderRadius: "5px",
-													marginTop: "13px",
-													fontSize: "13px",
-												}}
-											>
-												✕
-											</button>
-										)}
-									</div>
+										{/* Religion*/}
+										<div className="col-span-2">
+											<TDInputTemplateBr
+												placeholder="Select Caste..."
+												label="Caste"
+												type="text"
+												name={`members[${index}].caste_field`}
+												formControlName={formik.values.members[index]?.caste_field}
+												handleChange={formik.handleChange}
+												handleBlur={formik.handleBlur}
+												data={casteOptions}
+												mode={2}
+											/>
+										</div>
+
+										{/* Address */}
+										<div className="col-span-6">
+											<TDInputTemplateBr
+												placeholder="Address"
+												label="Address"
+												type="text"
+												name={`members[${index}].address`}
+												formControlName={member.address}
+												handleChange={formik.handleChange}
+												mode={1}
+											/>
+										</div>
+
+
+										{/* Remove */}
+										<div className="col-span-1 text-center" style={{ position: 'absolute', right: 10 }}>
+											{formik.values.members.length > 1 && (
+												<button
+													type="button"
+													onClick={() => {
+														const updated = [...formik.values.members];
+														updated.splice(index, 1);
+														formik.setFieldValue("members", updated);
+													}}
+													className="text-red-600 font-bold" style={{
+														background: "rgb(218 65 103 / var(--tw-bg-opacity))",
+														padding: "0 7px",
+														height: "25px",
+														color: "#fff",
+														lineHeight: "25px",
+														borderRadius: "5px",
+														marginTop: "13px",
+														fontSize: "13px",
+													}}
+												>
+													✕
+												</button>
+											)}
+										</div>
 
 									</div>
 
 									<div className="grid grid-cols-12 gap-3 p-3">
-										
-									{/* Add Button */}
-									{index === formik.values.members.length - 1 && (
-										<div className="col-span-12 text-right">
-											<Button
-												type="primary"
-												disabled={!isRowFilled || adharStatus[index]?.user_status == 1 || SBAccountStatus[index]?.user_status == 1}
-												onClick={() =>
-													formik.setFieldValue("members", [
-														...formik.values.members,
-														{
-															member_id: 0,
-															member_name: "",
-															address: "",
-															aadhar_no: "",
-															gp_leader_flag: "N",
-															asst_gp_leader_flag: "N",
-														},
-													])
-												}
-											>
-												+ Add Member
-											</Button>
-										</div>
-									)}
 
-								</div>
+										{/* Add Button */}
+										{index === formik.values.members.length - 1 && (
+											<div className="col-span-12 text-right">
+												<Button
+													type="primary"
+													disabled={!isRowFilled || adharStatus[index]?.user_status == 1 || SBAccountStatus[index]?.user_status == 1}
+													onClick={() =>
+														formik.setFieldValue("members", [
+															...formik.values.members,
+															{
+																member_id: 0,
+																member_name: "",
+																address: "",
+																aadhar_no: "",
+																gp_leader_flag: "N",
+																asst_gp_leader_flag: "N",
+															},
+														])
+													}
+												>
+													+ Add Member
+												</Button>
+											</div>
+										)}
+
+									</div>
 								</>
 							);
 						})}
@@ -1956,32 +1926,32 @@ const hasErrorStatus =
 
 
 			<Modal
-	title={<span className="text-lg font-semibold text-[#DA4167]">Group Details</span>}
-	open={groupDetailsModal}
-	onCancel={() => setGroupDetailsModal(false)}
-	footer={null}
-	width={900}
->
-	{groupsDetails ? (
-		<Descriptions bordered column={1} size="small">
-	<Descriptions.Item label="Group Code">{groupsDetails.group_code}</Descriptions.Item>
-	<Descriptions.Item label="Group Name">{groupsDetails.group_name}</Descriptions.Item>
-	<Descriptions.Item label="Branch">{groupsDetails.branch_name}</Descriptions.Item>
-	<Descriptions.Item label="Sahayika">{groupsDetails.sahayika_name}</Descriptions.Item>
-	<Descriptions.Item label="Phone">{groupsDetails.phone1}</Descriptions.Item>
-	<Descriptions.Item label="District">{groupsDetails.dist_name}</Descriptions.Item>
-	<Descriptions.Item label="Block">{groupsDetails.block_name}</Descriptions.Item>
-	<Descriptions.Item label="Police Station">{groupsDetails.ps_name}</Descriptions.Item>
-	<Descriptions.Item label="Post Office">{groupsDetails.post_name}</Descriptions.Item>
-	<Descriptions.Item label="GP">{groupsDetails.gp_name}</Descriptions.Item>
-	<Descriptions.Item label="Village">{groupsDetails.vill_name}</Descriptions.Item>
-	<Descriptions.Item label="Address">{groupsDetails.group_addr}</Descriptions.Item>
-	<Descriptions.Item label="Savings A/C">{groupsDetails.sb_ac_no}</Descriptions.Item>
-</Descriptions>
-	) : (
-		<p>No data available</p>
-	)}
-</Modal>
+				title={<span className="text-lg font-semibold text-[#DA4167]">Group Details</span>}
+				open={groupDetailsModal}
+				onCancel={() => setGroupDetailsModal(false)}
+				footer={null}
+				width={900}
+			>
+				{groupsDetails ? (
+					<Descriptions bordered column={1} size="small">
+						<Descriptions.Item label="Group Code">{groupsDetails.group_code}</Descriptions.Item>
+						<Descriptions.Item label="Group Name">{groupsDetails.group_name}</Descriptions.Item>
+						<Descriptions.Item label="Branch">{groupsDetails.branch_name}</Descriptions.Item>
+						<Descriptions.Item label="Sahayika">{groupsDetails.sahayika_name}</Descriptions.Item>
+						<Descriptions.Item label="Phone">{groupsDetails.phone1}</Descriptions.Item>
+						<Descriptions.Item label="District">{groupsDetails.dist_name}</Descriptions.Item>
+						<Descriptions.Item label="Block">{groupsDetails.block_name}</Descriptions.Item>
+						<Descriptions.Item label="Police Station">{groupsDetails.ps_name}</Descriptions.Item>
+						<Descriptions.Item label="Post Office">{groupsDetails.post_name}</Descriptions.Item>
+						<Descriptions.Item label="GP">{groupsDetails.gp_name}</Descriptions.Item>
+						<Descriptions.Item label="Village">{groupsDetails.vill_name}</Descriptions.Item>
+						<Descriptions.Item label="Address">{groupsDetails.group_addr}</Descriptions.Item>
+						<Descriptions.Item label="Savings A/C">{groupsDetails.sb_ac_no}</Descriptions.Item>
+					</Descriptions>
+				) : (
+					<p>No data available</p>
+				)}
+			</Modal>
 
 
 		</>

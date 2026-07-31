@@ -259,6 +259,23 @@ app.post("/v1/login", async (req, res) => {
   }
 });
 
+app.post("/v1/logout", async (req, res) => {
+  try {
+    // Optionally handle session clearing logic here if needed in the future
+    return res.send({
+      success: true,
+      msg: "Logged out successfully"
+    });
+  } catch (error) {
+    console.error("Error in /logout route:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR"
+    });
+  }
+});
+
 
 process.on('uncaughtException', (err) => {
   logger.error('UNCAUGHT EXCEPTION');

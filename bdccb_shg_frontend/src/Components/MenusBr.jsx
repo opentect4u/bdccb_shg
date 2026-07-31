@@ -28,7 +28,7 @@ import { Menu, Spin } from "antd"
 import { Link } from "react-router-dom"
 import IMG from "../Assets/Images/ssvws_crop-round.jpg"
 import Tooltip from "@mui/material/Tooltip"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import DialogBox from "./DialogBox"
 import { routePaths } from "../Assets/Data/Routes"
 import { url, url_bdccb } from "../Address/BaseUrl"
@@ -38,7 +38,7 @@ import axios from "axios"
 function MenusBr({ theme, data, data_ApprovPending }) {
 	console.log(data, "-------")
 	// const userDetails = JSON.parse(localStorage.getItem("user_details"))
-	const [current, setCurrent] = React.useState("sub1")
+	const [current, setCurrent] = React.useState([])
 	const [visibleModal, setVisibleModal] = useState(() => false)
 	const [visibleModal2, setVisibleModal2] = useState(() => false)
 	const [menuItems, setMenuItems] = useState([])
@@ -47,61 +47,135 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 	// const [getMenuShow, setMenuShow] = useState(localStorage.getItem("pendingApprove"))
 	const [getMenuShow, setMenuShow] = useState('')
 	const navigate = useNavigate()
-	
+	const location = useLocation()
+
 	useEffect(() => {
-        loadMenu();
-    }, []);
+		loadMenu();
+	}, []);
+
+	useEffect(() => {
+		const findBestMatch = (items, bestMatch = { key: null, length: 0 }) => {
+			if (!items) return bestMatch;
+
+			let currentPath = location.pathname.toLowerCase().replace(/\/$/, "");
+			
+			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
+			const isBranch = uTypeChar === 'B' || uTypeChar === 'P';
+
+			const detailPathMappings = isBranch ? {
+				"shg-recovery-details": "recovery-shg-list",
+				"viewloan-shg-recovery": "recovery-shg-list",
+				"group-recovery-details": "recovery-group-list",
+				"viewloan-group-recovery": "recovery-group-list",
+				"loan_branch_soi-recovery-details": "recovery-society-list",
+				"viewloan-society-recovery": "recovery-society-list",
+			} : {
+				"shg-recovery-details": "loan-recovery-shg-list",
+				"viewloan-shg-recovery": "loan-recovery-shg-list",
+				"group-recovery-details": "loan-recovery-group-list",
+				"viewloan-group-recovery": "loan-recovery-group-list",
+				"loan_branch_soi-recovery-details": "loan-recovery-society-list",
+				"viewloan-society-recovery": "loan-recovery-society-list",
+			};
+			for (const [detail, parent] of Object.entries(detailPathMappings)) {
+				if (currentPath.includes(detail)) {
+					currentPath = currentPath.replace(new RegExp(detail + ".*"), parent);
+					break;
+				}
+			}
+
+			for (let item of items) {
+				if (item.path) {
+					const itemPath = item.path.toLowerCase().replace(/\/$/, "");
+					if (currentPath.includes(itemPath)) {
+						if (itemPath.length >= bestMatch.length) {
+							bestMatch = { key: item.key, length: itemPath.length };
+						}
+					}
+				}
+				if (item.children) {
+					bestMatch = findBestMatch(item.children, bestMatch);
+				}
+			}
+			return bestMatch;
+		};
+		const match = findBestMatch(menuItems);
+		const activeKey = match.key;
+		console.log("Current Pathname:", location.pathname);
+		console.log("Menu Items:", menuItems);
+		console.log("Found Active Key:", activeKey);
+		if (activeKey) {
+			setCurrent(String(activeKey));
+		}
+	}, [location.pathname, menuItems]);
 
 	const onClick = (e) => {
 		console.log("click ", e)
-		setCurrent(e.key)
+		// Let the URL change handle the active key
 	}
 
-	 const loadMenu = async () => {
-        try {
-            const res = await axios.post(url_bdccb+"/dashboard/get_menu", {
-                user_type_id: 2
-            });
+	const loadMenu = async () => {
+		try {
+			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
+			const loginAs = localStorage.getItem("login_as_branch_society");
+			if (uTypeChar === 'H' && loginAs) {
+				uTypeChar = loginAs;
+			}
+			let uType = 0;
+			if (uTypeChar === 'S') uType = 1;
+			else if (uTypeChar === 'H') uType = 2;
+			else if (uTypeChar === 'B') uType = 3;
+			else if (uTypeChar === 'P') uType = 4;
+			else uType = userDetails?.id || (Array.isArray(userDetails) ? userDetails[0]?.id : 0); // Fallback
 
-            if (res.data.suc === 1) {
-                setMenuItems(convertMenu(res.data.msg));
-            }
-        } catch (err) {
-            console.log(err);
-        }
-    };
+			const res = await axios.post(url_bdccb + "/dashboard/get_menu", {
+				user_type_id: uType
+			});
+
+			if (res.data.suc === 1) {
+				console.log("Menu API Response:", res.data.msg);
+				setMenuItems(convertMenu(res.data.msg));
+			} else {
+				console.log("Menu API Failed:", res.data);
+			}
+		} catch (err) {
+			console.error("Menu API Error:", err);
+		}
+	};
 
 	const convertMenu = (menus) => {
-    return menus.map(item => ({
-        key: item.key,
-        label: item.link
-            ? <Link to={item.link}>{item.label}</Link>
-            : item.label,
-        children: item.children
-            ? convertMenu(item.children)
-            : undefined
-    }));
-    };
+		return menus.map(item => ({
+			key: String(item.key),
+			icon: item.icon ? menuIcons[item.icon] : undefined,
+			label: item.link
+				? <Link to={item.link}>{item.label}</Link>
+				: item.label,
+			path: item.link,
+			children: (item.children && item.children.length > 0)
+				? convertMenu(item.children)
+				: undefined
+		}));
+	};
 
-	// const menuIcons = {
-	//   LineChartOutlined: <LineChartOutlined />,
-	//   ImportOutlined: <ImportOutlined />,
-	//   UserAddOutlined: <UserAddOutlined />,
-	//   SettingOutlined: <SettingOutlined />,
-	//   FastForwardOutlined: <FastForwardOutlined />,
-	//   ContainerOutlined: <ContainerOutlined />,
-	//   SearchOutlined: <SearchOutlined />,
-	//   FileSearchOutlined: <FileSearchOutlined />,
-	//   DeploymentUnitOutlined: <DeploymentUnitOutlined />,
-	//   PlusCircleOutlined: <PlusCircleOutlined />,
-	//   ThunderboltOutlined: <ThunderboltOutlined />,
-	//   DatabaseOutlined: <DatabaseOutlined />,
-	//   BarsOutlined: <BarsOutlined />,
-	//   CheckCircleOutlined: <CheckCircleOutlined />,
-	//   EyeOutlined: <EyeOutlined />,
-	//   SubnodeOutlined: <SubnodeOutlined />,
-	//   BarChartOutlined: <BarChartOutlined />,
-	// };
+	const menuIcons = {
+		LineChartOutlined: <LineChartOutlined />,
+		ImportOutlined: <ImportOutlined />,
+		UserAddOutlined: <UserAddOutlined />,
+		SettingOutlined: <SettingOutlined />,
+		FastForwardOutlined: <FastForwardOutlined />,
+		ContainerOutlined: <ContainerOutlined />,
+		SearchOutlined: <SearchOutlined />,
+		FileSearchOutlined: <FileSearchOutlined />,
+		DeploymentUnitOutlined: <DeploymentUnitOutlined />,
+		PlusCircleOutlined: <PlusCircleOutlined />,
+		ThunderboltOutlined: <ThunderboltOutlined />,
+		DatabaseOutlined: <DatabaseOutlined />,
+		BarsOutlined: <BarsOutlined />,
+		CheckCircleOutlined: <CheckCircleOutlined />,
+		EyeOutlined: <EyeOutlined />,
+		SubnodeOutlined: <SubnodeOutlined />,
+		BarChartOutlined: <BarChartOutlined />,
+	};
 
 	useEffect(() => {
 		// Update getMenuShow from localStorage
@@ -513,7 +587,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 		// console.log(items_all_user_copy, '++++++++++++');
 		if (data) {
 			items_all_user_copy = data
-			setMenuItems(items_all_user_copy)
+			// setMenuItems(items_all_user_copy) // Removing this so the dynamic API items don't get overwritten
 
 			console.log(items_all_user_copy, "++++++++++++")
 		}
@@ -573,7 +647,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 
 	}, [data])
 
-	
+
 	const items_user_type_15 = [
 		{
 			key: "sub1",
@@ -2873,8 +2947,14 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			icon: <ThunderboltOutlined />,
 			label: "Loans",
 			children: [
+				// {
+				// 	key: "sub4-2-2",
+				// 	icon: <CheckCircleOutlined />,
+				// 	label: <Link to={"/homepacs/viewloan"}>Accept Disbursement</Link>,
+				// 	// hidden: data?.approve_transaction == "Y" ? false : true,
+				// },
 				{
-					key: "sub4-2-2",
+					key: "sub4-1-3",
 					icon: <CheckCircleOutlined />,
 					label: <Link to={"/homepacs/viewloan"}>Accept Disbursement</Link>,
 					// hidden: data?.approve_transaction == "Y" ? false : true,
@@ -2884,19 +2964,24 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 				// 	icon: <ThunderboltOutlined />,
 				// 	label: <Link to={"/homepacs/loan-recovery"}>Recovery</Link>,
 				// },
+				// {
+				// 	key: "sub4-1",
+				// 	icon: <ThunderboltOutlined />,
+				// 	label: <Link to={"/homepacs/recovery-shg-list"}>Recovery</Link>,
+				// },
 				{
-					key: "sub4-1",
+					key: "sub4-5",
 					icon: <ThunderboltOutlined />,
 					label: <Link to={"/homepacs/recovery-shg-list"}>Recovery</Link>,
 				},
 				{
-					key: "sub4-2-3",
+					key: "sub4-6",
 					icon: <CheckCircleOutlined />,
 					label: <Link to={"/homepacs/viewloan-recovery"}>Approve Recovery</Link>,
 					// hidden: data?.approve_transaction == "Y" ? false : true,
 				},
 				{
-					key: "sub4-2-4",
+					key: "sub4-7",
 					icon: <CheckCircleOutlined />,
 					label: <Link to={"/homepacs/viewloan-society"}>View Loan</Link>,
 					// hidden: data?.approve_transaction == "Y" ? false : true,
@@ -2924,7 +3009,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 					// hidden: data?.approve_transaction == "Y" ? false : true,
 				},
 				{
-					key: "sub5-2",
+					key: "sub5-3",
 					icon: <CheckCircleOutlined />,
 					label: <Link to={"/homepacs/refinace-approve-list"}>Approve Re-Finace</Link>,
 					// hidden: data?.approve_transaction == "Y" ? false : true,
@@ -3027,20 +3112,19 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			/> */}
 
 			<Menu
-				onClick={onClick}
 				selectedKeys={[current]}
-                items={
-					userDetails[0]?.user_type === 'B'
-						? items_bdccb
-						: userDetails[0]?.user_type === 'P'
-						? items_bdccb_PACS
-						: userDetails[0]?.user_type === 'H'
-						? userDetails[0]?.branch_type === 'P'
-						? items_bdccb_PACS
-						: items_bdccb
-						: items_bdccb
-					}
-                // items={menuItems}
+				// items={
+				// 	userDetails[0]?.user_type === 'B'
+				// 		? items_bdccb
+				// 		: userDetails[0]?.user_type === 'P'
+				// 		? items_bdccb_PACS
+				// 		: userDetails[0]?.user_type === 'H'
+				// 		? userDetails[0]?.branch_type === 'P'
+				// 		? items_bdccb_PACS
+				// 		: items_bdccb
+				// 		: items_bdccb
+				// 	}
+				items={menuItems}
 				mode="horizontal"
 				style={{
 					width: 1000,

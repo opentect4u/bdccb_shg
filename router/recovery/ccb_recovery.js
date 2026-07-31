@@ -276,7 +276,7 @@ ccb_recovRouter.post("/fetch_ccb_dtls", async (req, res) => {
   const { tenant_id, branch_id, from_dt, to_dt, approval_status, branch_type } = req.body;
 
   if(branch_type === 'B'){
-  var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
+  var select = "a.branch_id,a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status",
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_transactions c ON a.loan_id = c.loan_id`,
   whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND c.trans_type = 'R' AND c.approval_status = '${approval_status}' AND a.branch_shg_id = '111'`;
   if (from_dt && to_dt) {
@@ -312,7 +312,7 @@ if (branchCheck.suc === 1 && branchCheck.msg.length > 0) {
     msg: "Branch not found"
   });
 }
-var select = "a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status";
+var select = "a.branch_id,a.loan_id,a.group_code,b.group_name,a.disb_amt,TO_CHAR(c.trans_dt, 'YYYY-MM-DD') AS trans_dt,c.trans_id AS transaction_id,(COALESCE(c.cr_amt,0)) AS credit_amount,c.approval_status";
   table_name = `bdccb.td_loan_ccb a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code LEFT JOIN bdccb.td_loan_ccb_trans c ON a.loan_id = c.loan_id`;
   whr = `a.tenant_id = '${tenant_id}' AND ${branch_condition} AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
   if (from_dt && to_dt) {
@@ -534,7 +534,7 @@ ccb_recovRouter.post("/fetch_ccb_mem_dtls", async (req, res) => {
   try{
   const { tenant_id,branch_id,group_code,trans_dt,transaction_id, approval_status } = req.body;
 
-  var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) ELSE 0 END AS principal_amount, CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(i.dr_amt,0) ELSE COALESCE(r.cr_amt,0) END AS interest_amount",
+  var select = "a.branch_id,a.loan_id,a.group_code,d.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) ELSE 0 END AS principal_amount, CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(i.dr_amt,0) ELSE COALESCE(r.cr_amt,0) END AS interest_amount",
 
   table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}' LEFT JOIN (
       SELECT DISTINCT ON (loan_id) loan_id, dr_amt
