@@ -30,12 +30,12 @@ const options = [
 ]
 const options_Disburs = [
 	{
-		label: "Approved",
-		value: "A",
-	},
-	{
 		label: "Unapproved",
 		value: "U",
+	},
+	{
+		label: "Approved",
+		value: "A",
 	},
 	// {
 	// 	label: "Rejected",
@@ -53,7 +53,7 @@ function SearchRefinanceApproveBranch_BDCCB() {
 	const [approvalStatus, setApprovalStatus] = useState("S")
 	const navigate = useNavigate()
 	const [loanType, setLoanType] = useState("U")
-		const [disbursementStatus, setDisbursementStatus] = useState("A")
+		const [disbursementStatus, setDisbursementStatus] = useState("U")
 	const [fromDate, setFromDate] = useState(() => new Date().toISOString().slice(0, 10))
 		const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10))
 const onChange = (e) => {
@@ -121,7 +121,7 @@ const s2ab = (s) => {
                         
 						"Group Name": loan.group_name,
 						// "Total Members": loan.tot_member,
-						"Disbursement Amount": loan.disb_amt,
+						"Society Disbursement Amount": loan.disb_amt,
 						"Approval Status": loan.approval_status === "A" ? "Approved" : loan.approval_status === "U" ? "Unapproved" : "Rejected",
 
 						

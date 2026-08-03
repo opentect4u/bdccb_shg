@@ -180,7 +180,7 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 
 	const validationSchema = Yup.object({
 		// loan_id: Yup.string().required("Loan ID is required"),
-		loan_ac_no: Yup.string().required("Loan Account No. is required"),
+		loan_ac_no: Yup.string().required("CCB Loan Account No. is required"),
 		// loan_to: Yup.string().required("Loan To is required"),
 		loan_to: Yup.string(),
 		branch_shg_id: Yup.string().required("Select PACS or SHG is required"),
@@ -636,17 +636,33 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 				Authorization: `${tokenValue?.token}`, // example header
 				"Content-Type": "application/json", // optional
 			}
-		}).then((res) => {
+		}).then(async (res) => {
 
 			if (res?.data?.success) {
 
 				const groupList = res.data.data;
 
-				if (userDetails[0]?.user_type == 'B') {
-					setSHGList(res?.data?.data?.map((item, i) => ({
-						code: item?.group_code,
-						name: item?.group_name,
-					})))
+				// Ensure SHGList has the group so the dropdown displays the name instead of code
+				if (groupList && groupList.length > 0) {
+					const groupData = groupList[0];
+					
+					setSHGList((prev) => {
+						const exists = (prev || []).find((g) => g.code === groupData.group_code);
+						if (exists) return prev;
+						return [...(prev || []), { code: groupData.group_code, name: groupData.group_name }];
+					});
+
+					formik.setFieldValue(`rows[${index}].shg_id`, groupData.group_code);
+					const pacsId = formik.values.branch_shg_id;
+					const members = await fetchGroupData(groupData.group_code, index, pacsId, sb_acc_no);
+					
+					if (members && members.length > 0) {
+						// Auto-select member by matching member_name
+						const matchedMember = members.find(m => m.member_name === groupData.member_name);
+						if (matchedMember) {
+							formik.setFieldValue(`rows[${index}].member_id`, matchedMember.member_id);
+						}
+					}
 				}
 			} else {
 				// Message('error', res?.data?.msg)
@@ -720,6 +736,8 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 		}
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
+		
+		let fetchedMembers = [];
 
 		await axios.post(`${url_bdccb}/loan/fetch_member_name`, creds, {
 			headers: {
@@ -731,15 +749,8 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 
 				if (res?.data?.success) {
 					console.log(res?.data?.data, 'valueeeeeeeeeeeeeeeeeeeeeeee', creds);
-					// const totMemb = Number(res.data.data);
-					// const totMemb = res.data.data;
-
-					// // 🔥 SET VALUE INTO THAT ROW
-					// formik.setFieldValue(
-					// 	`rows[${rowIndex}].member_id`,
-					// 	totMemb
-					// );
 					const members = res.data.data;
+					fetchedMembers = members;
 
 					// ⭐ Save members for this row
 					setMemberOptions((prev) => ({
@@ -757,6 +768,7 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 			})
 
 		setLoading(false)
+		return fetchedMembers;
 	};
 
 
@@ -799,8 +811,8 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 	return (
 		<>
 			<section className=" dark:bg-[#001529] flex justify-center align-middle p-5">
-				<div className="p-5 w-4/5 min-h-screen rounded-3xl">
-					<div className="w-auto mx-14 my-4">
+				<div className="p-5 w-full min-h-screen rounded-3xl">
+					<div className="w-auto mx-4 my-4">
 						<FormHeader text={`${params?.id == 0 ? "Add Re-Finace Disbursement" : loanAppData?.approval_status == 'A' ? "View Re-Finace Disbursement" : "Edit/Preview Re-Finace Disbursement"}`} mode={2} />
 					</div>
 
@@ -814,7 +826,7 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 						{/* {JSON.stringify(formik, 2)} //
 						{JSON.stringify(formValues, 2)}  */}
 						{/* {JSON.stringify(loanAppData, null, 2)} */}
-						<div className="card shadow-lg bg-white border-2 p-5 mx-16 rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
+						<div className="card shadow-lg bg-white border-2 p-5 mx-4 rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
 							{loanAppData?.approval_status == 'A' && (<div className="accept_dis"><CheckCircleFilled style={{ color: "#fff", marginRight: 6 }} />
 								Disbursement Accepted </div>)}
 							{loanAppData?.approval_status == 'U' && (<div className="pending_dis"><SyncOutlined style={{ color: "#fff", marginRight: 6 }} />
@@ -830,9 +842,9 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 										<div>
 
 											<TDInputTemplateBr
-												placeholder="Loan Account No."
+												placeholder="CCB Loan Account No."
 												type="text"
-												label="Loan Account No."
+												label="CCB Loan Account No."
 												name="loan_ac_no"
 												formControlName={formik.values.loan_ac_no}
 												handleChange={formik.handleChange}
@@ -1169,9 +1181,9 @@ function RefinaceDisbForm_BDCCB({ flag }) {
 													/> */}
 
 													<TDInputTemplateBr
-														placeholder="SB Account No."
+														placeholder="Member SB A/C No."
 														type="text"
-														label="SB Acc No."
+														label="Member SB A/C No."
 														name={`rows[${index}].sb_acc_no`}
 														formControlName={formik.values.rows[index].sb_acc_no}
 														handleChange={(e) => {

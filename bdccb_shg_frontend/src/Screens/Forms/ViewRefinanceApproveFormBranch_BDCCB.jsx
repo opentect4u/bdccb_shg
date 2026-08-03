@@ -163,6 +163,10 @@ const s2ab = (s) => {
 
 	const initialValues = {
 		society_loan_acc: '',
+		disb_dt: '',
+		period: '',
+		curr_roi: '',
+		penal_roi: '',
 		// g_group_name: "",
 		// g_address: "",
 		// sahayika_id: "",
@@ -184,9 +188,29 @@ const s2ab = (s) => {
 	})
 
 	const fetchGroupDetails = async () => {
-
 		setGroupData(loanAppData ? [loanAppData] : [])
-		
+		if (loanAppData?.loan_id && loanAppData?.group_code) {
+			setLoading(true)
+			try {
+				const creds = {
+					ccb_loan_id: loanAppData.loan_id,
+					group_code: loanAppData.group_code
+				}
+				const tokenValue = await getLocalStoreTokenDts(navigate);
+				const res = await axios.post(`${url_bdccb}/refinance/fetch_refinance_members_branch_level`, creds, {
+					headers: {
+						Authorization: `${tokenValue?.token}`,
+						"Content-Type": "application/json",
+					},
+				})
+				if (res?.data?.success) {
+					setMemberDetails(res?.data?.data || [])
+				}
+			} catch (err) {
+				console.log("Error fetching member details:", err)
+			}
+			setLoading(false)
+		}
 	}
 
 	useEffect(() => {
@@ -216,14 +240,16 @@ const s2ab = (s) => {
 
 	
 	const formatDateToYYYYMMDD_CurrentDT = (date) => {
-	const d = new Date(date);
-	d.setHours(0, 0, 0, 0);
+		if (!date) return "";
+		const d = new Date(date);
+		if (isNaN(d.getTime())) return "";
+		d.setHours(0, 0, 0, 0);
 
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, "0");
+		const day = String(d.getDate()).padStart(2, "0");
 
-	return `${year}-${month}-${day}`;
+		return `${year}-${month}-${day}`;
 	};
 
 	const getClientIP = async () => {
@@ -363,124 +389,168 @@ await saveMasterData({
 					<div className="flex flex-col justify-start gap-5">
 						<div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
 						
+						<div className="text-[#DA4167] text-lg font-bold sm:col-span-3 mb-2">Society Loan Details</div>
+						
+						<div className="sm:col-span-3 mb-8">
+							<div className="bg-white shadow-md sm:rounded-lg border border-blue-100 overflow-hidden">
+								{memberDetails?.length > 0 && (
+									<div className="flex flex-col md:flex-row justify-between gap-y-4 gap-x-4 bg-gray-50 p-4 border-b border-gray-200">
+										{/* Col 1: Left */}
+										<div className="flex flex-col gap-4">
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">CCB Loan Acc No:</span>
+												<span className="font-medium text-gray-900">{groupData[0]?.loan_acc_no}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Total Disburse Amount:</span>
+												<span className="font-medium text-gray-900">{formatINR(groupData[0]?.disb_amt)}</span>
+											</div>
+										</div>
+										
+										{/* Col 2: Center */}
+										<div className="flex flex-col gap-4">
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Group Name:</span>
+												<span className="font-medium text-gray-900 truncate max-w-[200px] lg:max-w-xs" title={memberDetails[0]?.group_name}>{memberDetails[0]?.group_name}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Current ROI:</span>
+												<span className="font-medium text-gray-900">{memberDetails[0]?.curr_roi}%</span>
+											</div>
+										</div>
+										
+										{/* Col 3: Right attach */}
+										<div className="flex flex-col gap-4">
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Disbursement Date:</span>
+												<span className="font-medium text-gray-900">{memberDetails[0]?.disb_dt}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Penal ROI:</span>
+												<span className="font-medium text-gray-900">{memberDetails[0]?.penal_roi}%</span>
+											</div>
+										</div>
+									</div>
+								)}
+
+								<div className="relative overflow-x-auto">
+									<table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+										<thead className="text-xs text-gray-900 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+											<tr>
+												<th scope="col" className="px-6 py-3 font-semibold">Member Savings A/C No</th>
+												<th scope="col" className="px-6 py-3 font-semibold">Member Name</th>
+												<th scope="col" className="px-6 py-3 font-semibold text-right">Member Amount</th>
+											</tr>
+										</thead>
+										<tbody>
+											{memberDetails?.map((item, i) => (
+												<tr
+													key={i}
+													className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600"
+												>
+													<td className="px-6 py-4">{item?.sb_acc_no}</td>
+													<th
+														scope="row"
+														className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+													>
+														{item?.member_name}
+													</th>
+													<td className="px-6 py-4 font-semibold text-right">{formatINR(item?.prn_amt || item?.disb_amt)}</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+
+						
 						
 							<div className="text-[#DA4167] text-lg font-bold sm:col-span-3"> Branch Loan Details</div>
 
-							<div className="sm:col-span-1">
-							<TDInputTemplateBr
-							placeholder="Society Loan A/C No."
-							type="text"
-							label="Society Loan A/C No."
-							name="society_loan_acc"
-							handleChange={formik.handleChange}
-							handleBlur={formik.handleBlur}
-							formControlName={formik.values.society_loan_acc}
-							disabled={loanAppData?.approval_status == 'U' ? false : true}
-							mode={1}
-							/>
-								{formik.errors.society_loan_acc && formik.touched.society_loan_acc ? (
-									<VError title={formik.errors.society_loan_acc} />
-								) : null}
-							</div>
-
-							<div className="sm:col-span-1">
-							<TDInputTemplateBr
+							<div className="sm:col-span-3">
+								<TDInputTemplateBr
 									type="text"
-									label="Loan Account No. "
-									name="loan_acc_no"
-									handleChange={formik.handleChange}
-									handleBlur={formik.handleBlur}
-									formControlName={groupData[0]?.loan_acc_no}
-									mode={1}
-									disabled
-								/>
-							</div>
-
-							 <div className="sm:col-span-3">
-							<TDInputTemplateBr
-									type="text"
-									label="Select PACS "
+									label="Society Name"
 									name="pacs_name"
 									handleChange={formik.handleChange}
 									handleBlur={formik.handleBlur}
-									formControlName={userDetails[0]?.branch_name}
+									formControlName={loanAppData?.loan_to_name}
 									mode={1}
 									disabled
 								/>
 							</div>
 
+							<div className="sm:col-span-3 grid grid-cols-1 lg:grid-cols-5 gap-4">
+								<div>
+									<TDInputTemplateBr
+										placeholder="Society Loan A/C No."
+										type="text"
+										label="Society Loan A/C No."
+										name="society_loan_acc"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.society_loan_acc}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+										mode={1}
+									/>
+									{formik.errors.society_loan_acc && formik.touched.society_loan_acc ? (
+										<VError title={formik.errors.society_loan_acc} />
+									) : null}
+								</div>
 
-						<div>
+								<div>
+									<TDInputTemplateBr
+										type="text"
+										label="Period (In Month)"
+										name="period"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.period || groupData[0]?.period}
+										mode={1}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+									/>
+								</div>
 
-							<TDInputTemplateBr
-							type="date"
-							label="Sanction Date"
-							name="sanction_dt"
-							formControlName={formatDateToYYYYMMDD_CurrentDT(groupData[0]?.sanction_dt)}
-							mode={1}
-							disabled={true}
-						/>
-						</div>
+								<div>
+									<TDInputTemplateBr
+										type="text"
+										label="Current ROI"
+										name="curr_roi"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.curr_roi || groupData[0]?.curr_roi}
+										mode={1}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+									/>
+								</div>
 
-						<div>
+								<div>
+									<TDInputTemplateBr
+										type="text"
+										label="Ovd ROI"
+										name="penal_roi"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.penal_roi || groupData[0]?.penal_roi}
+										mode={1}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+									/>
+								</div>
 
-							<TDInputTemplateBr
-								type="text"
-								// label={loanAppData?.loan_to == 'P'? 'Pacs' : 'SHG'}
-								label="Sanction No."
-								formControlName={groupData[0]?.sanction_no} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div>
-
-						<div>
-
-							<TDInputTemplateBr
-								type="text"
-								// label={loanAppData?.loan_to == 'P'? 'Pacs' : 'SHG'}
-								label="Period (In Month)"
-								formControlName={groupData[0]?.period} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div>
-
-						<div>
-
-							<TDInputTemplateBr
-								type="text"
-								// label={loanAppData?.loan_to == 'P'? 'Pacs' : 'SHG'}
-								label="Current ROI"
-								formControlName={groupData[0]?.curr_roi} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div>
-						
-
-						<div>
-								
-								<TDInputTemplateBr
-									type="text"
-									// label={loanAppData?.loan_to == 'P'? 'Pacs' : 'SHG'}
-									label="Ovd ROI"
-									formControlName={groupData[0]?.penal_roi} // Default to SHG
-									mode={1}
-									disabled={true}
-								/>
+								<div>
+									<TDInputTemplateBr
+										type="date"
+										label="Disburse Date"
+										name="disb_dt"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.disb_dt || formatDateToYYYYMMDD_CurrentDT(groupData[0]?.disb_dt)}
+										mode={1}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+									/>
+								</div>
 							</div>
-
-						<div>
-
-							<TDInputTemplateBr
-								type="date"
-								label="Disburse Date"
-								formControlName={formatDateToYYYYMMDD_CurrentDT(groupData[0]?.disb_dt)} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div>
 
 						{/* <div>
 

@@ -134,7 +134,7 @@ function ViewRefinanceApproveTableBranch_BDCCB({
 								Total Member
 							</th> */}
 							<th scope="col" className="p-4">
-								Disbursement Amount
+								Society Disbursement Amount
 							</th>
 							<th scope="col" className="p-4">
 								Status
