@@ -1382,6 +1382,47 @@ function MemberEditExtendedForm({ groupDataArr }) {
 
 
 
+	const handleDeleteMember = async (index, member) => {
+		if (member.member_id > 0 || member.member_code) {
+			const memberCode = member.member_id || member.member_code; // Usually member_id stores member_code in this frontend
+			setLoading(true);
+			try {
+				const tokenValue = await getLocalStoreTokenDts(navigate);
+				const response = await axios.post(
+					`${url_bdccb}/group/delete_member`,
+					{ member_code: memberCode },
+					{
+						headers: {
+							Authorization: `${tokenValue?.token}`,
+							"Content-Type": "application/json",
+						},
+					}
+				);
+
+				if (response.data.success) {
+					Message("success", response.data.msg);
+					const updated = [...formik.values.members];
+					updated.splice(index, 1);
+					formik.setFieldValue("members", updated);
+				} else {
+					Message("error", response.data.msg);
+				}
+			} catch (err) {
+				Message("error", "Failed to delete member.");
+				console.error("Delete Error:", err);
+			} finally {
+				setLoading(false);
+			}
+		} else {
+			// Member is newly added on frontend and not saved in DB yet
+			const updated = [...formik.values.members];
+			updated.splice(index, 1);
+			formik.setFieldValue("members", updated);
+		}
+	};
+
+
+
 	return (
 		<>
 			{/* {
@@ -1785,11 +1826,7 @@ function MemberEditExtendedForm({ groupDataArr }) {
 											{formik.values.members.length > 1 && (
 												<button
 													type="button"
-													onClick={() => {
-														const updated = [...formik.values.members];
-														updated.splice(index, 1);
-														formik.setFieldValue("members", updated);
-													}}
+													onClick={() => handleDeleteMember(index, member)}
 													className="text-red-600 font-bold" style={{
 														background: "rgb(218 65 103 / var(--tw-bg-opacity))",
 														padding: "0 7px",

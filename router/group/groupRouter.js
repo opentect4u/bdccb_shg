@@ -1,4 +1,5 @@
 const { db_Select, saveRecord } = require('../../model/pgcommon');
+const pgdb = require('../../db/pgdb');
 const express = require('express');
 const bcrypt = require("bcrypt");
 const e = require('express');
@@ -1103,6 +1104,51 @@ groupRouter.post("/save_group", async (req, res) => {
     return res.send({
       success: false,
       msg: "Internal server error",
+      errorCode: "SERVER_ERROR"
+    });
+  }
+});
+
+
+
+groupRouter.post("/delete_member", async (req, res) => {
+  try {
+    const { member_code } = req.body;
+
+    if (!member_code) {
+      return res.send({ success: false, msg: "Member code is required." });
+    }
+
+    // 1. Check if the member has any loan with prn_amt > 0
+    const loanCheckQuery = "SELECT 1 FROM bdccb.td_loan_member WHERE member_code = $1 AND prn_amt > 0 LIMIT 1";
+    const loanCheckResult = await pgdb.query(loanCheckQuery, [member_code]);
+    if (loanCheckResult.rowCount > 0) {
+      return res.send({ success: false, msg: "Cannot delete: Member has an outstanding loan balance." });
+    }
+
+    // 2. Check if the member has any deposit balance > 0
+    const depositCheckQuery = "SELECT 1 FROM bdccb.td_sb WHERE member_id = $1 AND balance > 0 LIMIT 1";
+    // NOTE: assuming member_id in td_sb corresponds to member_code (as per schema conventions here)
+    const depositCheckResult = await pgdb.query(depositCheckQuery, [member_code]);
+    if (depositCheckResult.rowCount > 0) {
+      return res.send({ success: false, msg: "Cannot delete: Member has an outstanding deposit balance." });
+    }
+
+    // 3. Move member to md_member_delete table
+    const insertDeleteQuery = "INSERT INTO bdccb.md_member_delete SELECT * FROM bdccb.md_member WHERE member_code = $1";
+    await pgdb.query(insertDeleteQuery, [member_code]);
+
+    // 4. Delete member from md_member table
+    const deleteQuery = "DELETE FROM bdccb.md_member WHERE member_code = $1";
+    await pgdb.query(deleteQuery, [member_code]);
+
+    return res.send({ success: true, msg: "Member deleted successfully." });
+
+  } catch (error) {
+    console.error("Error in delete_member:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error while deleting member.",
       errorCode: "SERVER_ERROR"
     });
   }

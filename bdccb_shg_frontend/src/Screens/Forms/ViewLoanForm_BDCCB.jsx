@@ -207,7 +207,7 @@ function ViewLoanForm_BDCCB({ groupDataArr }) {
 			disburse_amt: Yup.number()
 				.typeError("Amount must be number")
 				.required("Member Amount is required")
-				.moreThan(0, "Amount must be greater than 0"),
+				.min(0, "Amount cannot be negative"),
 		})
 	),
 
