@@ -51,13 +51,13 @@ const formatINR = (num) =>
 		minimumFractionDigits: 2,
 	}).format(num || 0)
 function ViewRefinanceApproveFormBranch_BDCCB({ groupDataArr }) {
-	const [loanDtls,setLoanDtls] = useState([]);
+	const [loanDtls, setLoanDtls] = useState([]);
 	const [isOverdue, setIsOverdue] = useState('N');
 	const [overDueAmt, setOverDueAmt] = useState(0);
 	const params = useParams()
 	const [loading, setLoading] = useState(false)
 	const location = useLocation()
-	const loanAppData  = location.state || {}
+	const loanAppData = location.state || {}
 	const navigate = useNavigate()
 	const userDetails = JSON.parse(localStorage.getItem("user_details"))
 	const [count, setCount] = useState(0)
@@ -75,13 +75,13 @@ function ViewRefinanceApproveFormBranch_BDCCB({ groupDataArr }) {
 	const [period_mode, setPeriodMode] = useState("")
 	const [period_mode_val, setPeriodModeVal] = useState(0)
 	const [weekOfRecovery, setWeekOfRecovery] = useState(0)
-	const [actionType, setActionType] = useState(""); 
+	const [actionType, setActionType] = useState("");
 	const [rej_res, setRejRes] = useState("")
 
 	const containerRef = useRef(null)
 
 	const [isHovered, setIsHovered] = useState(false)
-const s2ab = (s) => {
+	const s2ab = (s) => {
 		const buf = new ArrayBuffer(s.length)
 		const view = new Uint8Array(buf)
 		for (let i = 0; i < s.length; i++) {
@@ -159,7 +159,7 @@ const s2ab = (s) => {
 		setIsHovered(false)
 	}
 
-	
+
 
 	const initialValues = {
 		society_loan_acc: '',
@@ -167,6 +167,7 @@ const s2ab = (s) => {
 		period: '',
 		curr_roi: '',
 		penal_roi: '',
+		disb_amt: '',
 		// g_group_name: "",
 		// g_address: "",
 		// sahayika_id: "",
@@ -217,7 +218,7 @@ const s2ab = (s) => {
 		fetchGroupDetails()
 	}, [count])
 
-	
+
 	const onSubmit = async (values) => {
 		console.log("onsubmit called")
 		console.log(values, "formDataformDataformDataformData")
@@ -238,7 +239,21 @@ const s2ab = (s) => {
 		validateOnMount: true,
 	})
 
-	
+	useEffect(() => {
+		if (groupData?.length > 0) {
+			formik.setValues({
+				...formik.values,
+				period: (groupData[0]?.period == 0 || groupData[0]?.period == "0") ? "" : groupData[0]?.period,
+				curr_roi: (groupData[0]?.curr_roi == 0 || groupData[0]?.curr_roi == "0") ? "" : groupData[0]?.curr_roi,
+				penal_roi: (groupData[0]?.penal_roi == 0 || groupData[0]?.penal_roi == "0") ? "" : groupData[0]?.penal_roi,
+				disb_dt: formatDateToYYYYMMDD_CurrentDT(groupData[0]?.disb_dt) || "",
+				disb_amt: "", // Always start blank so user must enter it manually
+				society_loan_acc: groupData[0]?.society_acc_no || loanAppData?.society_acc_no || "",
+			})
+		}
+	}, [groupData])
+
+
 	const formatDateToYYYYMMDD_CurrentDT = (date) => {
 		if (!date) return "";
 		const d = new Date(date);
@@ -259,122 +274,123 @@ const s2ab = (s) => {
 	}
 
 	const approveDisbursement = async () => {
-	
-	// alert('approveDisbursement')
-	// const member_ids = groupData[0]?.members.map(item => ({
-	// loan_id: item.mem_loan_id,
-	// group_code: item.group_code,
-	// member_code: item.member_id,
-	// disb_amt: item.disburse_amt,
-	// trans_id: item.tran_id,
-	// }));
+
+		// alert('approveDisbursement')
+		// const member_ids = groupData[0]?.members.map(item => ({
+		// loan_id: item.mem_loan_id,
+		// group_code: item.group_code,
+		// member_code: item.member_id,
+		// disb_amt: item.disburse_amt,
+		// trans_id: item.tran_id,
+		// }));
 
 
-	setLoading(true)
+		setLoading(true)
 
-	const ip = await getClientIP()
+		const ip = await getClientIP()
 
-	const creds = {
-	loan_id: groupData[0]?.loan_id,
-	branch_id: userDetails[0]?.brn_code,
-	tenant_id: userDetails[0]?.tenant_id,
-	trans_id: groupData[0]?.trans_id,
-	group_code: groupData[0]?.group_code,
-	curr_roi: groupData[0]?.curr_roi,
-	penal_roi: groupData[0]?.penal_roi,
-	period: groupData[0]?.period,
-	disb_dt: groupData[0]?.disb_dt,
-	created_by: userDetails[0]?.emp_id,
-	// ip_address: ip,
+		const creds = {
+			loan_id: groupData[0]?.loan_id,
+			branch_id: userDetails[0]?.brn_code,
+			tenant_id: userDetails[0]?.tenant_id,
+			trans_id: groupData[0]?.trans_id,
+			group_code: groupData[0]?.group_code,
+			curr_roi: formik.values.curr_roi,
+			penal_roi: formik.values.penal_roi,
+			period: formik.values.period,
+			disb_dt: formik.values.disb_dt,
+			disb_amt: formik.values.disb_amt,
+			created_by: userDetails[0]?.emp_id,
+			// ip_address: ip,
 
-	// society_acc_no : formik.values.society_loan_acc,
-	// loan_acc_no: groupData[0]?.loan_acc_no,
-	// group_code: loanAppData?.group_code,
-	// member_ids: member_ids,
+			// society_acc_no : formik.values.society_loan_acc,
+			// loan_acc_no: groupData[0]?.loan_acc_no,
+			// group_code: loanAppData?.group_code,
+			// member_ids: member_ids,
 
-	}
+		}
 
-await saveMasterData({
-	endpoint: "refinance/approve_re-finance_branch",
-	creds,
-	navigate,
-	successMsg: "Transaction Accepted",
-	onSuccess: () => navigate(-1),
+		await saveMasterData({
+			endpoint: "refinance/approve_re-finance_branch",
+			creds,
+			navigate,
+			successMsg: "Transaction Accepted",
+			onSuccess: () => navigate(-1),
 
-	// 🔥 fully dynamic failure handling
-	failureRedirect: routePaths.LANDING,
-	clearStorage: true,
-	})
+			// 🔥 fully dynamic failure handling
+			failureRedirect: routePaths.LANDING,
+			clearStorage: true,
+		})
 
-	// console.log(creds, 'formDataformDataformDataformData');
+		// console.log(creds, 'formDataformDataformDataformData');
 
-	setLoading(false)
+		setLoading(false)
 	}
 
 	const rejectDisbursement = async () => {
-	
-	const member_ids = groupData[0]?.members.map(item => ({
-	loan_id: item.mem_loan_id,
-	disb_amt: item.disburse_amt,
-	trans_id: item.tran_id,
-	member_id: item.member_id,
-	}));
 
-	setLoading(true)
+		const member_ids = groupData[0]?.members.map(item => ({
+			loan_id: item.mem_loan_id,
+			disb_amt: item.disburse_amt,
+			trans_id: item.tran_id,
+			member_id: item.member_id,
+		}));
 
-	const ip = await getClientIP()
+		setLoading(true)
 
-	const creds = {
-	// ccb_loan_id: groupData[0]?.loan_id,
-	// loan_id: groupData[0]?.loan_id,
-	// trans_id: 0,
-	// group_code: groupData[0]?.group_code,
+		const ip = await getClientIP()
 
-	loan_id: [groupData[0]?.loan_id],
-	trans_id: '0',
-	group_code: [groupData[0]?.group_code],
-	// reject_remarks: rej_res,
-	member_reject: member_ids,
-	created_by: userDetails[0]?.emp_id,
-	ip_address: ip,
+		const creds = {
+			// ccb_loan_id: groupData[0]?.loan_id,
+			// loan_id: groupData[0]?.loan_id,
+			// trans_id: 0,
+			// group_code: groupData[0]?.group_code,
+
+			loan_id: [groupData[0]?.loan_id],
+			trans_id: '0',
+			group_code: [groupData[0]?.group_code],
+			// reject_remarks: rej_res,
+			member_reject: member_ids,
+			created_by: userDetails[0]?.emp_id,
+			ip_address: ip,
+		}
+
+		// console.log(creds, 'formDataformDataformDataformData', 'reject');
+		// return;
+
+		await saveMasterData({
+			endpoint: "refinance/reject_refinance_disb",
+			creds,
+			navigate,
+			successMsg: "Transaction Accepted",
+			onSuccess: () => navigate(-1),
+
+			// 🔥 fully dynamic failure handling
+			failureRedirect: routePaths.LANDING,
+			clearStorage: true,
+		})
+
+		setLoading(false)
+
 	}
 
-	// console.log(creds, 'formDataformDataformDataformData', 'reject');
-	// return;
-
-	await saveMasterData({
-	endpoint: "refinance/reject_refinance_disb",
-	creds,
-	navigate,
-	successMsg: "Transaction Accepted",
-	onSuccess: () => navigate(-1),
-
-	// 🔥 fully dynamic failure handling
-	failureRedirect: routePaths.LANDING,
-	clearStorage: true,
-	})
-
-	setLoading(false)
-
-	}
-
-	const acceptReject = async (actionType)=>{
-		if(actionType == 'A'){
+	const acceptReject = async (actionType) => {
+		if (actionType == 'A') {
 			approveDisbursement()
 		}
 		// if(actionType == 'R'){
 		// 	rejectDisbursement()
 		// }
-		
+
 	}
 
 	return (
 		<>
-		{
-					isOverdue === 'Y' && <AlertComp 
-					
+			{
+				isOverdue === 'Y' && <AlertComp
+
 					msg={<p className="text-2xl font-normal"><span className="text-lg ">Loan Overdue Amount is </span>{formatINR(overDueAmt)}</p>} />
-				}
+			}
 			<Spin
 				indicator={<LoadingOutlined spin />}
 				size="large"
@@ -385,128 +401,121 @@ await saveMasterData({
 					{/* {JSON.stringify(userDetails[0], null, 2)} //////////////////////////////////
 						{JSON.stringify(loanAppData, 2)} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 						{JSON.stringify(groupData[0], 2)} */}
-						
+
 					<div className="flex flex-col justify-start gap-5">
 						<div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
-						
-						<div className="text-[#DA4167] text-lg font-bold sm:col-span-3 mb-2">Society Loan Details</div>
-						
-						<div className="sm:col-span-3 mb-8">
-							<div className="bg-white shadow-md sm:rounded-lg border border-blue-100 overflow-hidden">
-								{memberDetails?.length > 0 && (
-									<div className="flex flex-col md:flex-row justify-between gap-y-4 gap-x-4 bg-gray-50 p-4 border-b border-gray-200">
-										{/* Col 1: Left */}
-										<div className="flex flex-col gap-4">
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">CCB Loan Acc No:</span>
-												<span className="font-medium text-gray-900">{groupData[0]?.loan_acc_no}</span>
-											</div>
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Total Disburse Amount:</span>
-												<span className="font-medium text-gray-900">{formatINR(groupData[0]?.disb_amt)}</span>
-											</div>
-										</div>
-										
-										{/* Col 2: Center */}
-										<div className="flex flex-col gap-4">
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Group Name:</span>
-												<span className="font-medium text-gray-900 truncate max-w-[200px] lg:max-w-xs" title={memberDetails[0]?.group_name}>{memberDetails[0]?.group_name}</span>
-											</div>
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Current ROI:</span>
-												<span className="font-medium text-gray-900">{memberDetails[0]?.curr_roi}%</span>
-											</div>
-										</div>
-										
-										{/* Col 3: Right attach */}
-										<div className="flex flex-col gap-4">
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Disbursement Date:</span>
-												<span className="font-medium text-gray-900">{memberDetails[0]?.disb_dt}</span>
-											</div>
-											<div className="flex items-center gap-2">
-												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Penal ROI:</span>
-												<span className="font-medium text-gray-900">{memberDetails[0]?.penal_roi}%</span>
-											</div>
-										</div>
-									</div>
-								)}
 
-								<div className="relative overflow-x-auto">
-									<table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-										<thead className="text-xs text-gray-900 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
-											<tr>
-												<th scope="col" className="px-6 py-3 font-semibold">Member Savings A/C No</th>
-												<th scope="col" className="px-6 py-3 font-semibold">Member Name</th>
-												<th scope="col" className="px-6 py-3 font-semibold text-right">Member Amount</th>
-											</tr>
-										</thead>
-										<tbody>
-											{memberDetails?.map((item, i) => (
-												<tr
-													key={i}
-													className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600"
-												>
-													<td className="px-6 py-4">{item?.sb_acc_no}</td>
-													<th
-														scope="row"
-														className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-													>
-														{item?.member_name}
-													</th>
-													<td className="px-6 py-4 font-semibold text-right">{formatINR(item?.prn_amt || item?.disb_amt)}</td>
+							<div className="text-[#DA4167] text-lg font-bold sm:col-span-3 mb-2">Society Loan Details</div>
+
+							<div className="sm:col-span-3 mb-8">
+								<div className="bg-white shadow-md sm:rounded-lg border border-blue-100 overflow-hidden">
+									{memberDetails?.length > 0 && (
+										<div className="flex flex-col gap-y-4 bg-gray-50 p-4 border-b border-gray-200">
+											{/* Full width Society Name */}
+											<div className="flex items-center gap-2">
+												<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Society Name:</span>
+												<span className="font-medium text-gray-900">{loanAppData?.loan_to_name || "-----"}</span>
+											</div>
+
+											<div className="flex flex-col md:flex-row justify-between gap-y-4 gap-x-4">
+												{/* Col 1: Left */}
+												<div className="flex flex-col gap-4">
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Society Loan A/C No:</span>
+														<span className="font-medium text-gray-900">{memberDetails[0]?.society_acc_no || memberDetails[0]?.society_acc_no || "-----"}</span>
+													</div>
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Total Disburse Amount:</span>
+														<span className="font-medium text-gray-900">{formatINR(groupData[0]?.disb_amt)}</span>
+													</div>
+												</div>
+
+												{/* Col 2: Center */}
+												<div className="flex flex-col gap-4">
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Group Name:</span>
+														<span className="font-medium text-gray-900 truncate max-w-[200px] lg:max-w-xs" title={memberDetails[0]?.group_name}>{memberDetails[0]?.group_name}</span>
+													</div>
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Current ROI:</span>
+														<span className="font-medium text-gray-900">{memberDetails[0]?.curr_roi}%</span>
+													</div>
+												</div>
+
+												{/* Col 3: Right attach */}
+												<div className="flex flex-col gap-4">
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Disbursement Date:</span>
+														<span className="font-medium text-gray-900">{memberDetails[0]?.disb_dt}</span>
+													</div>
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-[#DA4167] font-semibold whitespace-nowrap">Penal ROI:</span>
+														<span className="font-medium text-gray-900">{memberDetails[0]?.penal_roi}%</span>
+													</div>
+												</div>
+											</div>
+										</div>
+									)}
+
+									<div className="relative overflow-x-auto">
+										<table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+											<thead className="text-xs text-gray-900 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+												<tr>
+													<th scope="col" className="px-6 py-3 font-semibold">Member Savings A/C No</th>
+													<th scope="col" className="px-6 py-3 font-semibold">Member Name</th>
+													<th scope="col" className="px-6 py-3 font-semibold text-right">Member Amount</th>
 												</tr>
-											))}
-										</tbody>
-									</table>
+											</thead>
+											<tbody>
+												{memberDetails?.map((item, i) => (
+													<tr
+														key={i}
+														className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600"
+													>
+														<td className="px-6 py-4">{item?.sb_acc_no}</td>
+														<th
+															scope="row"
+															className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+														>
+															{item?.member_name}
+														</th>
+														<td className="px-6 py-4 font-semibold text-right">{formatINR(item?.prn_amt || item?.disb_amt)}</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						
-						
+
+
 							<div className="text-[#DA4167] text-lg font-bold sm:col-span-3"> Branch Loan Details</div>
 
-							<div className="sm:col-span-3">
-								<TDInputTemplateBr
-									type="text"
-									label="Society Name"
-									name="pacs_name"
-									handleChange={formik.handleChange}
-									handleBlur={formik.handleBlur}
-									formControlName={loanAppData?.loan_to_name}
-									mode={1}
-									disabled
-								/>
-							</div>
-
-							<div className="sm:col-span-3 grid grid-cols-1 lg:grid-cols-5 gap-4">
+							<div className="sm:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
 								<div>
 									<TDInputTemplateBr
-										placeholder="Society Loan A/C No."
+										placeholder="CCB Loan Acc No."
 										type="text"
-										label="Society Loan A/C No."
-										name="society_loan_acc"
+										label="CCB Loan Acc No:"
+										name="ccb_loan_acc_no"
 										handleChange={formik.handleChange}
 										handleBlur={formik.handleBlur}
-										formControlName={formik.values.society_loan_acc}
-										disabled={loanAppData?.approval_status == 'U' ? false : true}
+										formControlName={groupData[0]?.loan_acc_no || loanAppData?.loan_acc_no}
+										disabled={true}
 										mode={1}
 									/>
-									{formik.errors.society_loan_acc && formik.touched.society_loan_acc ? (
-										<VError title={formik.errors.society_loan_acc} />
-									) : null}
 								</div>
 
 								<div>
 									<TDInputTemplateBr
-										type="text"
+										placeholder="0"
+										type="number"
 										label="Period (In Month)"
 										name="period"
 										handleChange={formik.handleChange}
 										handleBlur={formik.handleBlur}
-										formControlName={formik.values.period || groupData[0]?.period}
+										formControlName={formik.values.period}
 										mode={1}
 										disabled={loanAppData?.approval_status == 'U' ? false : true}
 									/>
@@ -514,12 +523,22 @@ await saveMasterData({
 
 								<div>
 									<TDInputTemplateBr
-										type="text"
+										placeholder="0.00"
+										type="number"
 										label="Current ROI"
 										name="curr_roi"
-										handleChange={formik.handleChange}
+										handleChange={(e) => {
+											formik.handleChange(e)
+											let val = parseFloat(e.target.value)
+											if (!isNaN(val)) {
+												// Automatically calculate Ovd ROI (+ 2% default logic)
+												formik.setFieldValue("penal_roi", (val + 2).toFixed(2))
+											} else {
+												formik.setFieldValue("penal_roi", "")
+											}
+										}}
 										handleBlur={formik.handleBlur}
-										formControlName={formik.values.curr_roi || groupData[0]?.curr_roi}
+										formControlName={formik.values.curr_roi}
 										mode={1}
 										disabled={loanAppData?.approval_status == 'U' ? false : true}
 									/>
@@ -527,12 +546,13 @@ await saveMasterData({
 
 								<div>
 									<TDInputTemplateBr
-										type="text"
+										placeholder="0.00"
+										type="number"
 										label="Ovd ROI"
 										name="penal_roi"
 										handleChange={formik.handleChange}
 										handleBlur={formik.handleBlur}
-										formControlName={formik.values.penal_roi || groupData[0]?.penal_roi}
+										formControlName={formik.values.penal_roi}
 										mode={1}
 										disabled={loanAppData?.approval_status == 'U' ? false : true}
 									/>
@@ -545,46 +565,34 @@ await saveMasterData({
 										name="disb_dt"
 										handleChange={formik.handleChange}
 										handleBlur={formik.handleBlur}
-										formControlName={formik.values.disb_dt || formatDateToYYYYMMDD_CurrentDT(groupData[0]?.disb_dt)}
+										formControlName={formik.values.disb_dt}
+										mode={1}
+										disabled={loanAppData?.approval_status == 'U' ? false : true}
+									/>
+								</div>
+
+								<div>
+									<TDInputTemplateBr
+										placeholder="0"
+										type="number"
+										label="Disburse Amount"
+										name="disb_amt"
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.disb_amt}
 										mode={1}
 										disabled={loanAppData?.approval_status == 'U' ? false : true}
 									/>
 								</div>
 							</div>
 
-						{/* <div>
-
-							<TDInputTemplateBr
-								type="text"
-								label="Disburse Amount"
-								formControlName={groupData[0]?.disb_amt} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div>
-						
-
-						
-
-						<div>
-
-							<TDInputTemplateBr
-								type="text"
-								label="Number Of Group"
-								formControlName={groupData[0]?.tot_grp} // Default to SHG
-								mode={1}
-								disabled={true}
-							/>
-						</div> */}
-
-						
 
 
 
-						{/* ////////////////////////// Below Old ///////////////////////// */}
+							{/* ////////////////////////// Below Old ///////////////////////// */}
 
 
-								{/* {JSON.stringify(formik.values, null, 2)} */}
+							{/* {JSON.stringify(formik.values, null, 2)} */}
 							{/* <div className="text-[#DA4167] text-lg font-bold sm:col-span-3"> Group Loan Details</div>
 							<div className="sm:col-span-1">
 								<TDInputTemplateBr
@@ -768,13 +776,13 @@ await saveMasterData({
 										disabled
 									/>
 								</div> */}
-								
-							
-							
-						</div>
-						
 
-						
+
+
+						</div>
+
+
+
 
 						{/* {params?.id > 0 && (
 							<div className="gap-3">
@@ -873,40 +881,40 @@ await saveMasterData({
 						param={params?.id}
 					/> */}
 
-				
-					{loanAppData?.approval_status == 'U' &&(	
+
+					{loanAppData?.approval_status == 'U' && (
 						<div className="flex justify-center  sm:gap-6 mt-8">
-						<button
-						className={`inline-flex items-center px-4 py-2 mt-0 ml-0 sm:mt-0 text-sm font-small text-center text-white border hover:border-green-600 border-teal-500 bg-teal-500 transition ease-in-out hover:bg-green-600 duration-300 rounded-full  dark:focus:ring-primary-900`}
-						// onClick={async () => {
-						// // await checkingBeforeApprove()
-						// setActionType("A")
-						// setVisible(true)
-						
-						// }}
-						onClick={async () => {
-						// check value first
-						if (!formik.values.society_loan_acc) {
-							// mark field touched to show error
-							formik.setFieldTouched("society_loan_acc", true);
+							<button
+								className={`inline-flex items-center px-4 py-2 mt-0 ml-0 sm:mt-0 text-sm font-small text-center text-white border hover:border-green-600 border-teal-500 bg-teal-500 transition ease-in-out hover:bg-green-600 duration-300 rounded-full  dark:focus:ring-primary-900`}
+								// onClick={async () => {
+								// // await checkingBeforeApprove()
+								// setActionType("A")
+								// setVisible(true)
 
-							Message("error", "Society Loan A/C No. is required");
-							return;
-						}
+								// }}
+								onClick={async () => {
+									// check value first
+									// if (!formik.values.society_loan_acc) {
+									// 	// mark field touched to show error
+									// 	formik.setFieldTouched("society_loan_acc", true);
 
-						// if value exists → console it
-						// console.log("Society Loan A/C No.:", formik.values.society_loan_acc);
+									// 	Message("error", "Society Loan A/C No. is required");
+									// 	return;
+									// }
 
-						// continue existing flow
-						setActionType("A");
-						setVisible(true);
-						}}
-						>
-						<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
-						</button>
+									// if value exists → console it
+									// console.log("Society Loan A/C No.:", formik.values.society_loan_acc);
+
+									// continue existing flow
+									setActionType("A");
+									setVisible(true);
+								}}
+							>
+								<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
+							</button>
 
 
-						{/* <button
+							{/* <button
 						className={`inline-flex items-center px-4 py-2 mt-0 ml-0 sm:mt-0 text-sm font-small text-center text-white border hover:border-[#DA4167] border-[#DA4167] bg-[#DA4167] transition ease-in-out hover:bg-[#DA4167] hover:text-white duration-300 rounded-full  dark:focus:ring-primary-900`}
 						onClick={async () => {
 						// check value first
@@ -929,9 +937,9 @@ await saveMasterData({
 						<CloseCircleOutlined /> <span className={`ml-2`}>Rejected Transaction</span>
 						</button> */}
 
-						
 
-						{/* <div>
+
+							{/* <div>
 				<Popconfirm
 				title={`Reject Transaction?`}
 				description={
@@ -969,31 +977,32 @@ await saveMasterData({
 				</Popconfirm>
 				</div> */}
 
-						
-											
-						</div>
-						)} 
 
-						<DialogBox
-							flag={4}
-							onPress={() => setVisible(!visible)}
-							visible={visible}
-							onPressYes={async () => {
+
+						</div>
+					)}
+
+					<DialogBox
+						flag={4}
+						onPress={() => setVisible(!visible)}
+						visible={visible}
+						onPressYes={async () => {
 							await acceptReject(actionType)
-							.then(() => {
-							})
-							.catch((err) => {
-							// console.log("Err in RecoveryCoApproveTable.jsx", err)
-							})
+								.then(() => {
+								})
+								.catch((err) => {
+									// console.log("Err in RecoveryCoApproveTable.jsx", err)
+								})
 							setVisible(!visible)
-							}}
-							onPressNo={() => {
-								setVisible(!visible)
-							}}
-						/>
+						}}
+						onPressNo={() => {
+							setVisible(!visible)
+						}}
+					/>
 				</form>
 
-				 <div className="flex justify-start gap-4 bg-white p-4">
+				{loanAppData?.approval_status !== 'U' && (
+					<div className="flex justify-start gap-4 bg-white p-4">
 						<Tooltip title="Export to Excel">
 							<button
 								onClick={() => handleExportMembers(groupData)}
@@ -1006,8 +1015,8 @@ await saveMasterData({
 								/>
 							</button>
 						</Tooltip>
-
 					</div>
+				)}
 
 
 			</Spin>

@@ -686,7 +686,7 @@ refinanceRouter.post("/fetch_unapprove_re-finance_data_branch_level", async (req
 // APPROVE RE-FINANCE DISBURSEMENT FROM BRANCH
 refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
   try {
-    const { loan_id, tenant_id, branch_id, trans_id, group_code, curr_roi, penal_roi, period, disb_dt, created_by } = req.body;
+    const { loan_id, tenant_id, branch_id, trans_id, group_code, curr_roi, penal_roi, period, disb_dt, disb_amt, created_by } = req.body;
     console.log(req.body, 'approve_branch');
 
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -697,16 +697,16 @@ refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
     const endDate = instl_date.emiEnd;
 
     const mem_table = "bdccb.td_loan_ccb";
-    const mem_columns = ["period", "curr_roi", "penal_roi", "disb_dt", "rep_start_dt", "rep_end_dt", "modified_by", "modified_dt"];
-    const mem_values = [curr_roi, penal_roi, disb_dt, startDate, endDate, created_by, datetime];
+    const mem_columns = ["period", "curr_roi", "penal_roi", "disb_dt", "disb_amt", "rep_start_dt", "rep_end_dt", "curr_prn", "modified_by", "modified_dt"];
+    const mem_values = [period, curr_roi, penal_roi, disb_dt, disb_amt, startDate, endDate, disb_amt, created_by, datetime];
     const mem_whereColumns = ["loan_id", "tenant_id", "branch_id", "group_code"];
     const mem_whereValues = [loan_id, tenant_id, branch_id, group_code];
     const mem_flag = 1;
     await saveRecord(mem_table, mem_columns, mem_values, mem_whereColumns, mem_whereValues, mem_flag);
 
     const mem_table_trans = "bdccb.td_loan_ccb_trans";
-    const mem_columns_trans = ["approval_status", "approved_by", "approved_dt", "modified_by", "modified_dt"];
-    const mem_values_trans = ["A", created_by, datetime, created_by, datetime];
+    const mem_columns_trans = ["trans_dt", "dr_amt", "curr_prn", "approval_status", "approved_by", "approved_dt", "modified_by", "modified_dt"];
+    const mem_values_trans = [disb_dt, disb_amt, disb_amt, "A", created_by, datetime, created_by, datetime];
     const mem_whereColumns_trans = ["loan_id", "trans_id"];
     const mem_whereValues_trans = [loan_id, trans_id];
     const mem_flag_trans = 1;
@@ -723,14 +723,14 @@ refinanceRouter.post("/approve_re-finance_branch", async (req, res) => {
       errorCode: "SERVER_ERROR",
     });
   }
-})
+});
 
 // FETCH RE-FINANCE MEMBERS AT BRANCH LEVEL
 refinanceRouter.post("/fetch_refinance_members_branch_level", async (req, res) => {
   try {
     const { ccb_loan_id, group_code } = req.body;
 
-    var select = `a.loan_id AS mem_loan_id, a.ccb_loan_id, a.member_code AS member_id, d.member_name, a.group_code, c.group_name, a.prn_amt, a.disb_amt, d.member_account_no AS sb_acc_no, TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt, a.curr_roi, a.penal_roi`,
+    var select = `a.loan_id AS mem_loan_id, a.ccb_loan_id, a.member_code AS member_id, d.member_name, a.group_code, c.group_name, a.prn_amt, a.disb_amt, d.member_account_no AS sb_acc_no, TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt, a.curr_roi, a.penal_roi,a.society_acc_no`,
       table_name = `bdccb.td_loan_member a LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code`,
       whr = `a.ccb_loan_id = '${ccb_loan_id}' AND a.group_code = '${group_code}'`,
       order = null;
