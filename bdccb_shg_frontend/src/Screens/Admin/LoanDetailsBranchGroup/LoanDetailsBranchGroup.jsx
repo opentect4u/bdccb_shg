@@ -588,7 +588,7 @@ function LoanDetailsBranchGroup() {
 			mem_loan_id: item.mem_loan_id,
 			principal_amt: item.principal_amt,
 			cr_amt: item.loan_amt || 0,
-			sb_amt: item.sb_amt || 0
+			sb_amt: 0 // item.sb_amt || 0
 		}));
 
 		const creds = {
@@ -882,7 +882,7 @@ function LoanDetailsBranchGroup() {
 
 								{/* <div>{JSON.stringify(formik.values.members, null, 2)}</div> */}
 
-								<div className="grid grid-cols-5 gap-5 mt-2">
+								<div className="grid grid-cols-4 gap-5 mt-2">
 									<div>
 										<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
 							dark:text-gray-100"> Member Loan ID</label>
@@ -903,15 +903,15 @@ function LoanDetailsBranchGroup() {
 							dark:text-gray-100"> Loan Amount</label>
 									</div>
 
-									<div>
+									{/* <div>
 										<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
 							dark:text-gray-100"> SB Amount</label>
-									</div>
+									</div> */}
 								</div>
 
 								{formik.values.members.map((member, index) => (
 
-									<div key={index} className="grid grid-cols-5 gap-5 mt-0">
+									<div key={index} className="grid grid-cols-4 gap-5 mt-0">
 
 										<div>
 											<TDInputTemplateBr
@@ -958,7 +958,7 @@ function LoanDetailsBranchGroup() {
 											/>
 										</div>
 
-										<div>
+										{/* <div>
 											<TDInputTemplateBr
 												placeholder="SB Amount"
 												type="number"
@@ -968,13 +968,13 @@ function LoanDetailsBranchGroup() {
 												handleChange={formik.handleChange}
 												mode={1}
 											/>
-										</div>
+										</div> */}
 
 									</div>
 
 								))}
 
-								<div className="grid grid-cols-5 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
+								<div className="grid grid-cols-4 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
 									<div className="text-black font-semibold text-base col-span-3 text-center pr-10">Total</div>
 									<div className="pl-3 text-base">
 										{Math.round(formik.values.members.reduce(
@@ -983,30 +983,30 @@ function LoanDetailsBranchGroup() {
 										)
 										)}
 									</div>
-									<div className="pl-3 text-base">
+									{/* <div className="pl-3 text-base">
 										{Math.round(formik.values.members.reduce(
 											(sum, item) => sum + Number(item.sb_amt || 0),
 											0
 										)
 										)}
-									</div>
+									</div> */}
 								</div>
 
 								<div className="flex justify-center mt-7">
 									<Popconfirm
-										title={`Collect Loan Amount ${Math.round(formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0) + Number(item.sb_amt || 0), 0))}/-?`}
+										title={`Collect Loan Amount ${Math.round(formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0), 0))}/-?`}
 										description="Are you sure, you want to deposit this amount?"
 										onConfirm={() => allRecoverySubmit()}
 										okText="YES"
 										cancelText="NO"
-										disabled={formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0) + Number(item.sb_amt || 0), 0) === 0}
+										disabled={formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0), 0) === 0}
 									>
 										<button
-											className={`inline-flex items-center px-6 py-2 mt-0 text-sm font-small text-center text-white border transition ease-in-out duration-300 rounded-full ${formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0) + Number(item.sb_amt || 0), 0) > 0
+											className={`inline-flex items-center px-6 py-2 mt-0 text-sm font-small text-center text-white border transition ease-in-out duration-300 rounded-full ${formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0), 0) > 0
 												? "bg-teal-500 hover:bg-green-600 border-teal-500 hover:border-green-600 dark:focus:ring-primary-900"
 												: "bg-teal-500/50 border-teal-500/50 cursor-not-allowed"
 												}`}
-											disabled={formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0) + Number(item.sb_amt || 0), 0) === 0}
+											disabled={formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0), 0) === 0}
 										>
 											<SaveOutlined /> <span className={`ml-2`}>Collect Amount</span>
 										</button>

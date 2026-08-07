@@ -140,32 +140,32 @@ function BranchGroupLoanRecoveryDetails() {
 						{formik.values.members?.length > 0 && (
 							<>
 								<div className="text-[#DA4167] text-lg font-bold mb-0 mt-5">Members</div>
-								<div className="grid grid-cols-5 gap-5 mt-2">
+								<div className="grid grid-cols-4 gap-5 mt-2">
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Member Loan ID</label></div>
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Member Name</label></div>
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Outstanding Amount</label></div>
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Loan Amount</label></div>
-									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> SB Amount</label></div>
+									{/* <div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> SB Amount</label></div> */}
 								</div>
 
 								{formik.values.members.map((member, index) => (
-									<div key={index} className="grid grid-cols-5 gap-5 mt-0">
+									<div key={index} className="grid grid-cols-4 gap-5 mt-0">
 										<div><TDInputTemplateBr placeholder="Member Loan ID" type="text" name={`members.${index}.loan_id`} formControlName={member.loan_id} disabled={true} mode={1} /></div>
 										<div><TDInputTemplateBr placeholder="Member Name" type="text" name={`members.${index}.member_name`} formControlName={member.member_name} disabled={true} mode={1} /></div>
 										<div><TDInputTemplateBr placeholder="Outstanding Amount" type="number" name={`members.${index}.mem_outstanding`} formControlName={member.mem_outstanding} disabled={true} mode={1} /></div>
 										<div><TDInputTemplateBr placeholder="Loan Amount" type="number" name={`members.${index}.loan_amt`} formControlName={formik.values.members[index].loan_amt} disabled={true} mode={1} /></div>
-										<div><TDInputTemplateBr placeholder="SB Amount" type="number" name={`members.${index}.sb_amt`} formControlName={formik.values.members[index].sb_amt} disabled={true} mode={1} /></div>
+										{/* <div><TDInputTemplateBr placeholder="SB Amount" type="number" name={`members.${index}.sb_amt`} formControlName={formik.values.members[index].sb_amt} disabled={true} mode={1} /></div> */}
 									</div>
 								))}
 
-								<div className="grid grid-cols-5 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
+								<div className="grid grid-cols-4 gap-2 mt-2 bg-slate-100 p-2 rounded-lg bg-slate-200">
 									<div className="text-black font-semibold text-base col-span-3 text-center pr-10">Total</div>
 									<div className="pl-3 text-base">
 										{Math.round(formik.values.members.reduce((sum, item) => sum + Number(item.loan_amt || 0), 0))}
 									</div>
-									<div className="pl-3 text-base">
+									{/* <div className="pl-3 text-base">
 										{Math.round(formik.values.members.reduce((sum, item) => sum + Number(item.sb_amt || 0), 0))}
-									</div>
+									</div> */}
 								</div>
 
 
