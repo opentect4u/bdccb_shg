@@ -47,9 +47,9 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
 
     if (fetch_soc_loan_dtls.suc === 1 && fetch_soc_loan_dtls.msg.length > 0) {
       /* -------- Fetch Member recovery Details -------- */
-      var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(SUM(a.cr_amt),0) AS cr_amt,(COALESCE(b.prn_amt,0)) AS mem_outstanding",
+      var select_mem_recov = "a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,COALESCE(SUM(a.cr_amt),0) AS cr_amt,(COALESCE(b.disb_amt,0)) AS mem_disb_amt,(COALESCE(b.prn_amt,0)) AS mem_outstanding,(COALESCE(b.intt_amt,0)) AS mem_intt_outstanding",
         table_name_mem_recov = "bdccb.td_loan_member_trans_temp a LEFT JOIN bdccb.td_loan_member b ON a.loan_id = b.loan_id AND a.tenant_id = b.tenant_id AND a.ccb_loan_id = b.ccb_loan_id LEFT JOIN bdccb.md_member c ON b.member_code = c.member_code AND b.group_code = c.group_code",
-        whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.prn_amt` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.prn_amt`,
+        whr_mem_recov = loan_to == 'S' ? `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.approval_status = 'U'  AND b.fund_type = 'B' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.disb_amt,b.prn_amt,b.intt_amt` : `a.loan_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.approval_status = 'U' AND b.fund_type = 'B' GROUP BY a.loan_id,b.member_code,c.member_name,a.ccb_loan_id,b.disb_amt,b.prn_amt,b.intt_amt`,
         order_mem_recov = null;
       var fetch_member_dtls = await db_Select(select_mem_recov, table_name_mem_recov, whr_mem_recov, order_mem_recov);
 
@@ -135,6 +135,8 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
 society_recovRouter.post("/calculate_prn_intt_amt", async (req, res) => {
   try {
     const { curr_prn, disb_amt, prn_amt, intt_amt, memb_loan, created_by, ip_address } = req.body;
+    console.log(req.body, 'hhh');
+
 
     let currPrincipal = Number(curr_prn);
     let totalDisbAmt = Number(disb_amt || 0);
@@ -233,19 +235,19 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) => {
 // SUBMIT RECOVERY IN SOCIETY LEVEL
 society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   try {
-    const { ccb_loan_id, tenant_id, branch_id, loan_acc_no, loan_to, loan_outstanding, prn_amt, intt_amt, society_recov, created_by, ip_address } = req.body;
+    const { ccb_loan_id, tenant_id, branch_id, loan_acc_no, loan_to, loan_outstanding, prn_amt, intt_amt, trans_date,society_recov, created_by, ip_address } = req.body;
     // console.log(req.body,'soc');
 
 
     let datetime = new Date().toISOString().slice(0, 19).replace("T", " ");
-    let date = new Date().toISOString().slice(0, 10);
+    // let date = new Date().toISOString().slice(0, 10);
 
     for (const dt of society_recov) {
       let soc_trans_id = await members_trans_id();
 
       const table2 = "bdccb.td_loan_member_trans";
       const columns2 = ["trans_date", "trans_id", "loan_id", "ccb_loan_id", "tenant_id", "branch_id", "loan_to", "branch_shg_id", "loan_acc_no", "trans_type", "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov", "curr_prn", "curr_intt", "ovd_prn", "ovd_intt", "approval_status", "created_by", "created_dt", "ip_address"];
-      const values2 = [date, soc_trans_id, dt.loan_id, ccb_loan_id, tenant_id, branch_id, loan_to, branch_id, loan_acc_no, 'I', Number(dt.calculated_interest), 0, 0, 0, 0, 0, Number(dt.curr_prn + dt.calculated_interest), 0, 0, 0, 'U', created_by, datetime, ip_address];
+      const values2 = [trans_date, soc_trans_id, dt.loan_id, ccb_loan_id, tenant_id, branch_id, loan_to, branch_id, loan_acc_no, 'I', Number(dt.calculated_interest), 0, 0, 0, 0, 0, Number(dt.curr_prn + dt.calculated_interest), 0, 0, 0, 'U', created_by, datetime, ip_address];
       const whereColumns2 = [];
       const whereValues2 = [];
       const flag2 = 0;
@@ -269,7 +271,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
         const table3 = "bdccb.td_loan_member_trans";
         const columns3 = ["trans_date", "trans_id", "loan_id", "ccb_loan_id", "tenant_id", "branch_id", "loan_to", "branch_shg_id", "loan_acc_no", "trans_type", "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov", "curr_prn", "curr_intt", "ovd_prn", "ovd_intt", "approval_status", "created_by", "created_dt", "ip_address"];
-        const values3 = [date, soc_trans_ids, dt.loan_id, ccb_loan_id, tenant_id, branch_id, loan_to, branch_id, loan_acc_no, 'R', 0, Number(dt.amount), Number(dt.prn_recov + dt.intt_recov), 0, 0, 0, current_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
+        const values3 = [trans_date, soc_trans_ids, dt.loan_id, ccb_loan_id, tenant_id, branch_id, loan_to, branch_id, loan_acc_no, 'R', 0, Number(dt.amount), Number(dt.prn_recov + dt.intt_recov), 0, 0, 0, current_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
         const whereColumns3 = [];
         const whereValues3 = [];
         const flag3 = 0;
@@ -319,7 +321,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table5 = "bdccb.td_loan_transactions";
     const columns5 = ["trans_dt", "trans_id", "tenant_id", "loan_to", "branch_shg_id", "loan_id", "loan_ac_no", "trans_type", "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov", "curr_prn", "curr_intt", "ovd_prn", "ovd_intt", "approval_status", "created_by", "created_dt", "ip_address"];
-    const values5 = [date, soc_td_trans_ids, tenant_id, loan_to, branch_id, ccb_loan_id, loan_acc_no, 'I', intt_amt, 0, 0, 0, 0, 0, updated_total_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
+    const values5 = [trans_date, soc_td_trans_ids, tenant_id, loan_to, branch_id, ccb_loan_id, loan_acc_no, 'I', intt_amt, 0, 0, 0, 0, 0, updated_total_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
     const whereColumns5 = [];
     const whereValues5 = [];
     const flag5 = 0;
@@ -336,7 +338,7 @@ society_recovRouter.post("/submit_society_recovery", async (req, res) => {
 
     const table7 = "bdccb.td_loan_transactions";
     const columns7 = ["trans_dt", "trans_id", "tenant_id", "loan_to", "branch_shg_id", "loan_id", "loan_ac_no", "trans_type", "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov", "curr_prn", "curr_intt", "ovd_prn", "ovd_intt", "approval_status", "created_by", "created_dt", "ip_address"];
-    const values7 = [date, soc_td_tran_ids, tenant_id, loan_to, branch_id, ccb_loan_id, loan_acc_no, 'R', 0, tot_coll_recov_amt, tot_coll_recov_amt, 0, 0, 0, tot_current_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
+    const values7 = [trans_date, soc_td_tran_ids, tenant_id, loan_to, branch_id, ccb_loan_id, loan_acc_no, 'R', 0, tot_coll_recov_amt, tot_coll_recov_amt, 0, 0, 0, tot_current_prn, 0, 0, 0, 'U', created_by, datetime, ip_address];
     const whereColumns7 = [];
     const whereValues7 = [];
     const flag7 = 0;

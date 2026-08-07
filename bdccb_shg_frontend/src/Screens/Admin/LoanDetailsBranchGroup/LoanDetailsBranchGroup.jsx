@@ -71,6 +71,7 @@ function LoanDetailsBranchGroup() {
 	const [societySrchMsg, setSocietySrchMsg] = useState('')
 	const [groupList, setGroupList] = useState([]);
 	const [selectedGroup, setSelectedGroup] = useState([]);
+	const [branch_Select, setBranch_Select] = useState("");
 
 	const navigate = useNavigate()
 
@@ -163,9 +164,10 @@ function LoanDetailsBranchGroup() {
 
 		const creds = {
 			tenant_id: userDetails[0]?.tenant_id,
-			branch_id: userDetails[0]?.brn_code,
+			branch_id: userDetails[0]?.branch_type === 'H' ? branch_Select : userDetails[0]?.brn_code,
 			ccb_acc_no: societyLoanNo,
-			ccb_loan_id: selectedGroup?.loan_id
+			ccb_loan_id: selectedGroup?.loan_id,
+			branch_type: userDetails[0]?.branch_type
 		}
 
 		console.log(selectedGroup?.loan_id, 'groupegroupegroupe', creds);
@@ -180,7 +182,7 @@ function LoanDetailsBranchGroup() {
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
-		await axios.post(`${url_bdccb}/recov/fetch_loan_details`, creds, {
+		await axios.post(`${url_bdccb}/recov/fetch_loan_details_web`, creds, {
 			headers: {
 				Authorization: `${tokenValue?.token}`, // example header
 				"Content-Type": "application/json", // optional
@@ -249,13 +251,14 @@ function LoanDetailsBranchGroup() {
 
 		const creds = {
 			tenant_id: userDetails[0]?.tenant_id,
-			branch_id: userDetails[0]?.brn_code,
-			emp_id: societyLoanNo
+			branch_id: userDetails[0]?.branch_type === 'H' ? branch_Select : userDetails[0]?.brn_code,
+			emp_id: societyLoanNo,
+			branch_type: userDetails[0]?.branch_type
 		}
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
-		await axios.post(`${url_bdccb}/recov/fetch_loan_details`, creds, {
+		await axios.post(`${url_bdccb}/recov/fetch_loan_details_web`, creds, {
 			headers: {
 				Authorization: `${tokenValue?.token}`,
 				"Content-Type": "application/json",
@@ -278,7 +281,7 @@ function LoanDetailsBranchGroup() {
 						}))
 
 						Message("success", res?.data?.msg)
-						
+
 						const groupName = res?.data?.data[0]?.members?.[0]?.group_name || '';
 						const groupCode = res?.data?.data[0]?.members?.[0]?.group_code || '';
 						if (groupName && groupCode) {
@@ -591,8 +594,8 @@ function LoanDetailsBranchGroup() {
 		const creds = {
 			tenant_id: loanDetails[0]?.tenant_id,
 			branch_id: loanDetails[0]?.branch_id,
-			loan_acc_no: loanDetails[0]?.ccb_loan_acc_no || "",
-			loan_to: "S",
+			loan_acc_no: userDetails[0]?.branch_type == 'B' ? loanDetails[0]?.ccb_loan_acc_no || "" : loanDetails[0]?.society_acc_no || "",
+			loan_to: userDetails[0]?.branch_type == 'B' ? "S" : "P",
 			branch_shg_id: loanDetails[0]?.branch_shg_id || "",
 			created_by: userDetails[0]?.emp_id,
 			ip_address: ip,
@@ -758,7 +761,7 @@ function LoanDetailsBranchGroup() {
 								</p>
 							)}
 						</div>
-						
+
 
 
 					</div>
