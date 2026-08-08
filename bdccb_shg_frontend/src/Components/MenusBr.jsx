@@ -146,7 +146,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 	const convertMenu = (menus) => {
 		return menus.map(item => ({
 			key: String(item.key),
-			icon: item.icon ? menuIcons[item.icon] : undefined,
+			icon: item.icon && menuIcons[item.icon.trim()] ? menuIcons[item.icon.trim()] : undefined,
 			label: item.link
 				? <Link to={item.link}>{item.label}</Link>
 				: item.label,

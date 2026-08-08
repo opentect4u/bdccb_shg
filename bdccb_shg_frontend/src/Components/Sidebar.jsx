@@ -48,7 +48,8 @@ function Sidebar({ mode = 0 }) {
 	const [current, setCurrent] = React.useState("mail")
 	const [theme, setTheme] = useState(localStorage.getItem("col"))
 	const paths = location.pathname.split("/")
-	const userDetails = JSON.parse(localStorage.getItem("user_details"))
+	const rawUser = JSON.parse(localStorage.getItem("user_details"))
+	const userDetails = Array.isArray(rawUser) ? (rawUser[0] || {}) : (rawUser || {})
 	const [open, setOpen] = useState(false)
 	const [permissions, setPermissions] = useState()
 	const [permissions_ApprovPending, setPermissions_ApprovPending] = useState()
@@ -106,13 +107,13 @@ function Sidebar({ mode = 0 }) {
 
 
 		const fetchMenu = async (userTypeId) => {
-			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
+			let uTypeChar = userDetails?.user_type;
 			let parsedId = 0;
 			if (uTypeChar === 'S') parsedId = 1;
 			else if (uTypeChar === 'H') parsedId = 2;
 			else if (uTypeChar === 'B') parsedId = 3;
 			else if (uTypeChar === 'P') parsedId = 4;
-			else parsedId = userTypeId || (Array.isArray(userDetails) ? userDetails[0]?.id : userDetails?.id) || 0;
+			else parsedId = userTypeId || userDetails?.id || 0;
 
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			axios
@@ -425,7 +426,7 @@ function Sidebar({ mode = 0 }) {
 									// 	// hidden: data?.transfer_user == "Y" ? false : true,
 									// },
 									// ⭐ ADD THIS CONDITIONALLY
-									...(userDetails?.brn_code === "100"
+									...(userDetails?.brn_code == 112 || userDetails?.[0]?.brn_code == 112
 										? [
 											{
 												key: "sub7-6",
@@ -436,167 +437,103 @@ function Sidebar({ mode = 0 }) {
 										: []),
 								],
 							},
-							{
-								label: "Reports",
-								key: "sub6",
-								icon: <BarsOutlined />,
-								// hidden: data?.reports == "Y" ? false : true,
-								children: [
-									// {
-									//  key: "sub6-1",
-									//  icon: <BarChartOutlined />,
-									//  label: (
-									//    <Link to={"/homebm/memberwiserecoveryreport"}>
-									//      Memberwise Recovery
-									//    </Link>
-									//  ),
-									// },
-									// {
-									//  key: "sub6-2",
-									//  icon: <BarChartOutlined />,
-									//  label: (
-									//    <Link to={"/homebm/groupwiserecoveryreport"}>
-									//      Groupwise Recovery
-									//    </Link>
-									//  ),
-									// },
-									// {
-									//  key: "sub6-3",
-									//  icon: <BarChartOutlined />,
-									//  label: <Link to={"/homebm/demandreport"}>Demand</Link>,
-									// },
+							...((userDetails?.brn_code == 112 || userDetails?.[0]?.brn_code == 112 || userDetails?.branch_type === 'H' || userDetails?.[0]?.branch_type === 'H')
+								? [
 									{
-										key: "sub6-14",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/previous-loantxns"}>Previous Loan Transactions</Link>
-										),
+										label: "Reports",
+										key: "sub6",
+										icon: <BarsOutlined />,
+										children: [
+											{
+												key: "sub6-14",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/previous-loantxns"}>Previous Loan Transactions</Link>
+												),
 
+											},
+											{
+												key: "sub6-5",
+												icon: <BarChartOutlined />,
+												label: <Link to={"/homebm/loantxns"}>Loan Transactions</Link>,
+											},
+											{
+												key: "sub6-15",
+												icon: <BarChartOutlined />,
+												label: <Link to={"/homebm/loanstatements"}>Loan Statement</Link>,
+											},
+											{
+												key: "loanstatements",
+												icon: <BarChartOutlined />,
+												label: <Link to={"/homebm/loanstatements"}>Loan Statement</Link>,
+											},
+											{
+												key: "sub6-6",
+												icon: <BarChartOutlined />,
+												label: <Link to={"/homebm/demandreport"}>Demand Report</Link>,
+											},
+											{
+												key: "sub6-7",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/outstasndingreport"}>
+														Outstanding Report
+													</Link>
+												),
+											},
+											{
+												key: "sub6-8",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/overduereport"}>Overdue Report</Link>
+												),
+											},
+											{
+												key: "sub6-9",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/summaryreports"}>
+														Summary Reports
+													</Link>
+												),
+											},
+											{
+												key: "sub6-11",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/demandvscollectionreport"}>
+														Demand Vs Collection
+													</Link>
+												),
+											},
+											{
+												key: "sub6-15",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/advancecollectionreport"}>
+														Advance Collection Report
+													</Link>
+												),
+											},
+											{
+												key: "sub6-12",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/portfolioreport"}>Portfolio Report</Link>
+												),
+											},
+											{
+												key: "sub6-13",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/groupreport"}>Group Report</Link>
+												),
+											},
+										],
 									},
-									{
-										key: "sub6-5",
-										icon: <BarChartOutlined />,
-										label: <Link to={"/homebm/loantxns"}>Loan Transactions</Link>,
-										// hidden: data?.loan_transactions == "Y" ? false : true,
-									},
-									{
-										key: "sub6-6",
-										icon: <BarChartOutlined />,
-										label: <Link to={"/homebm/demandreport"}>Demand Report</Link>,
-										// hidden: data?.demand_report == "Y" ? false : true,
-									},
-									{
-										key: "sub6-7",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/outstasndingreport"}>
-												Outstanding Report
-											</Link>
-										),
-										// hidden: data?.outstanding_report == "Y" ? false : true,
-									},
-									{
-										key: "sub6-4",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/loanstatements"}>Loan Statements</Link>
-										),
-										// hidden: data?.loan_statement == "Y" ? false : true,
-									},
-
-									// {
-									//  key: "sub6-8",
-									//  icon: <BarChartOutlined />,
-									//  label: <Link to={"/homebm/summaryreports"}>Summary Reports</Link>,
-									//  children: [
-									//    {
-									//      key: "sub6-8-1",
-									//      icon: <BarChartOutlined />,
-									//      label: (
-									//        <Link to={"/homebm/summaryreports/fundwise"}>
-									//          Fundwise Report
-									//        </Link>
-									//      ),
-									//    },
-									//    {
-									//      key: "sub6-8-2",
-									//      icon: <BarChartOutlined />,
-									//      label: (
-									//        <Link to={"/homebm/summaryreports/schemewise"}>
-									//          Schemewise Report
-									//        </Link>
-									//      ),
-									//    },
-									//  ],
-									// },
-									// {
-									// 	key: "sub6-8",
-									// 	icon: <BarChartOutlined />,
-									// 	label: (
-									// 		<Link to={"/homebm/fundwisesummary"}>Fundwise Report</Link>
-									// 	),
-									// },
-									// {
-									// 	key: "sub6-9",
-									// 	icon: <BarChartOutlined />,
-									// 	label: (
-									// 		<Link to={"/homebm/schemewisesummary"}>
-									// 			Schemewise Report
-									// 		</Link>
-									// 	),
-									// },
-									{
-										key: "sub6-11",
-										icon: <BarChartOutlined />,
-										label: <Link to={"/homebm/overduereport"}>Overdue Report</Link>,
-										// hidden: data?.demand_vs_collection == "Y" ? false : true,
-									},
-									{
-										key: "sub6-10",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/demandvscollectionreport"}>
-												Demand vs. Collection
-											</Link>
-										),
-										// hidden: data?.demand_vs_collection == "Y" ? false : true,
-									},
-									{
-										key: "sub6-15",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/advancecollectionreport"}>
-												Advance Collection Report
-											</Link>
-										),
-										// hidden: data?.demand_vs_collection == "Y" ? false : true,
-									},
-									{
-										key: "sub6-12",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/portfolioreport"}>Portfolio Report</Link>
-										),
-										// hidden: data?.demand_vs_collection == "Y" ? false : true,
-									},
-									{
-										key: "sub6-13",
-										icon: <BarChartOutlined />,
-										label: (
-											<Link to={"/homebm/groupreport"}>Group Report</Link>
-										),
-										// hidden: data?.demand_vs_collection == "Y" ? false : true,
-									},
-
-									// {
-									//   key: "sub6-10",
-									//   icon: <BarChartOutlined />,
-									//   label: (
-									//     <Link to={"/homebm/groupclosereport"}>Group Close</Link>
-									//   ),
-									// },
-								],
-							},
+								]
+								: []
+							),
 						]
 
 						var items_all_user2 = [
@@ -730,19 +667,23 @@ function Sidebar({ mode = 0 }) {
 							var tempMenuData = items_all_user1.filter(
 								(item) => item.key == dt.key
 							)
-							if (dt.has_child != "N" && dt.children) {
-								if (dt.children.length > 0) {
-									var tempChildren = []
-									for (let child of dt.children) {
-										var tempChild = tempMenuData[0].children.filter(
-											(item) => item.key == child.key
-										)
-										tempChildren.push(tempChild[0])
+							if (tempMenuData && tempMenuData.length > 0) {
+								if (dt.has_child != "N" && dt.children) {
+									if (dt.children.length > 0) {
+										var tempChildren = []
+										for (let child of dt.children) {
+											var tempChild = tempMenuData[0].children?.filter(
+												(item) => item.key == child.key
+											)
+											if (tempChild && tempChild.length > 0) {
+												tempChildren.push(tempChild[0])
+											}
+										}
+										tempMenuData[0].children = tempChildren
 									}
-									tempMenuData[0].children = tempChildren
 								}
+								userMenuData.push(tempMenuData[0])
 							}
-							userMenuData.push(tempMenuData[0])
 						}
 						setPermissions(userMenuData)
 
@@ -753,19 +694,23 @@ function Sidebar({ mode = 0 }) {
 							var tempMenuData = items_all_user2.filter(
 								(item) => item.key == dt.key
 							)
-							if (dt.has_child != "N" && dt.children) {
-								if (dt.children.length > 0) {
-									var tempChildren = []
-									for (let child of dt.children) {
-										var tempChild = tempMenuData[0].children.filter(
-											(item) => item.key == child.key
-										)
-										tempChildren.push(tempChild[0])
+							if (tempMenuData && tempMenuData.length > 0) {
+								if (dt.has_child != "N" && dt.children) {
+									if (dt.children.length > 0) {
+										var tempChildren = []
+										for (let child of dt.children) {
+											var tempChild = tempMenuData[0].children?.filter(
+												(item) => item.key == child.key
+											)
+											if (tempChild && tempChild.length > 0) {
+												tempChildren.push(tempChild[0])
+											}
+										}
+										tempMenuData[0].children = tempChildren
 									}
-									tempMenuData[0].children = tempChildren
 								}
+								userMenuData_ApprPend.push(tempMenuData[0])
 							}
-							userMenuData_ApprPend.push(tempMenuData[0])
 						}
 						setPermissions_ApprovPending(userMenuData_ApprPend)
 
@@ -1333,8 +1278,8 @@ function Sidebar({ mode = 0 }) {
 					<div className="italic ml-10">
 						⇨{" "}
 
-						{`${userDetails[0]?.user_type == 'H' ? 'Head Office' : userDetails[0]?.user_type == 'B' ? 'Branch' : userDetails[0]?.user_type == 'P' ? 'PACS' : userDetails[0]?.user_type == 'S' ? 'SHG' : ''} - ${userDetails[0]?.emp_name} `}
-						({userDetails[0]?.branch_name})
+						{`${(userDetails?.user_type || userDetails?.[0]?.user_type) == 'H' ? 'Head Office' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'B' ? 'Branch' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'P' ? 'PACS' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'S' ? 'SHG' : 'Head Office'} - ${userDetails?.emp_name || userDetails?.[0]?.emp_name || userDetails?.user_name || 'User'} `}
+						({userDetails?.branch_name || userDetails?.[0]?.branch_name || userDetails?.brn_name || userDetails?.brn_code || 'Head Office'})
 					</div>
 
 					{/* <div style={{alignItems:'center', display:'flex'}} className="mr-10">

@@ -24,6 +24,7 @@ app.use('/v1/account', require('./router/account/indexAccountRouter'));
 app.use('/v1/dashboard', require('./router/dashboard/indexDashboardRouter'));
 app.use('/v1/user', require('./router/user/indexUserRouter'));
 app.use('/v1/report', require('./router/report/indexReportRouter'));
+app.use('/v1', require('./router/report/indexReportRouter'));
 app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
 app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 app.use('/v1/sbledger', require('./router/sbledger/indexsbledgerRouter'));

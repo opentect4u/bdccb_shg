@@ -16,12 +16,12 @@ import SHGDisb from "./Screens/Reports/SHGDisb/SHGDisb.jsx"
 // const LoanTransactionsMain = lazy(() => import("./Screens/Reports/LoanTransactions/LoanTransactionsMain.jsx__BDCCB"));
 // const PreviousLoanTransaction = lazy(()=> import('./Screens/Reports/PreviousLoanTransactions/PreviousLoanTransactions.jsx__BDCCB'));
 // const TestPage = lazy(() => import("./Screens/Reports/LoanTransactions/testPage.jsx__BDCCB"));
-// const LoanStatementMain =  lazy(() => import("./Screens/Reports/LoanStatements/LoanStatementMain.jsx__BDCCB"));
+const LoanStatementMain =  lazy(() => import("./Screens/Reports/LoanStatements/LoanStatementMain.jsx"));
 // const DemandReportsMain = lazy(() => import("./Screens/Reports/DemandReports/DemandReportsMain.jsx__BDCCB"));
 // const DemandVsCollectionMain = lazy(() => import("./Screens/Reports/DemandVsCollectionReport/DemandVsCollectionMain.jsx__BDCCB"));
 // const AdvanceCollectionReportMain = lazy(() => import("./Screens/Reports/AdvanceCollectionReport/AdvanceCollectionReportMain.jsx__BDCCB"));
 // const GroupClose =  lazy(() => import("./Screens/Reports/GroupClose/GroupClose.jsx__BDCCB"));
-// const OutstaningReportMain =  lazy(() => import("./Screens/Reports/OutstandingReports/OutstaningReportMain.jsx__BDCCB"));
+const OutstaningReportMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstaningReportMain"));
 // const OverdueReport = lazy(() => import("./Screens/Reports/OverdueReport/OverdueReport.jsx__BDCCB"));
 // const GroupReport = lazy(() => import("./Screens/Reports/GroupReport/GroupReport.jsx__BDCCB"));
 // const PortfolioReport =  lazy(() => import("./Screens/Reports/PortfolioReport/PortfolioReport.jsx__BDCCB"));
@@ -540,6 +540,18 @@ const router = createBrowserRouter([
 							{
 								path: "loantxns",
 								element: <LoanTransactionsMain />,
+							},
+							{
+								path: "loanstatements",
+								element: <LoanStatementMain />,
+							},
+							{
+								path: "outstasndingreport",
+								element: <OutstaningReportMain />,
+							},
+							{
+								path: "loanoutstanding",
+								element: <OutstaningReportMain />,
 							},
 							{
 								path: "loan_branch_shg-recovery",
