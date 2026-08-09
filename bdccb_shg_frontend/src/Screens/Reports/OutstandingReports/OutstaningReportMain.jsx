@@ -293,26 +293,26 @@ function OutstaningReportMain() {
 			supply_date: fromDate ? formatDateToYYYYMMDD(fromDate) : formatDateToYYYYMMDD(new Date()),
 		}
 
-		if(conditionState === "current"){
+		if (conditionState === "current") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
-				.post(`${url}/loan_outstanding_report_memberwise_new`, creds , {
+				.post(`${url}/loan_outstanding_report_memberwise_new`, creds, {
 					headers: {
 						Authorization: `${tokenValue?.token}`,
 						"Content-Type": "application/json",
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						Message('error', res?.data?.msg)
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
-						if(res?.data?.outstanding_member_data?.suc > 0) {
+						if (res?.data?.outstanding_member_data?.suc > 0) {
 							const data = res?.data?.outstanding_member_data?.msg || []
 							setFetchedReportDate(new Date(res?.data?.balance_date).toLocaleDateString("en-GB"))
 							setReportData(data)
-							populateColumns(res?.data?.outstanding_member_data?.msg, memberwiseOutstandingHeader);	
+							populateColumns(res?.data?.outstanding_member_data?.msg, memberwiseOutstandingHeader);
 						} else {
 							Message("error", res?.data?.outstanding_member_data?.msg[0])
 							setReportData([])
@@ -325,7 +325,7 @@ function OutstaningReportMain() {
 				})
 		}
 
-		if(conditionState === "old"){
+		if (conditionState === "old") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
 				.post(`${url}/loan_outstanding_report_memberwise`, creds, {
@@ -335,14 +335,14 @@ function OutstaningReportMain() {
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
 						const data = res?.data?.outstanding_member_data?.msg || []
 						setFetchedReportDate(new Date(res?.data?.balance_date).toLocaleDateString("en-GB"))
 						setReportData(data)
-						populateColumns(res?.data?.outstanding_member_data?.msg, memberwiseOutstandingHeader);	
+						populateColumns(res?.data?.outstanding_member_data?.msg, memberwiseOutstandingHeader);
 					}
 				})
 				.catch((err) => {
@@ -361,7 +361,7 @@ function OutstaningReportMain() {
 			supply_date: fromDate ? formatDateToYYYYMMDD(fromDate) : formatDateToYYYYMMDD(new Date()),
 		}
 
-		if(conditionState === "current"){
+		if (conditionState === "current") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
 				.post(`${url}/loan_outstanding_report_branchwise_new`, creds, {
@@ -371,12 +371,12 @@ function OutstaningReportMain() {
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						Message('error', res?.data?.msg)
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
-						if(res?.data?.outstanding_branch_data?.suc > 0) {
+						if (res?.data?.outstanding_branch_data?.suc > 0) {
 							const data = res?.data?.outstanding_branch_data?.msg || []
 							setFetchedReportDate(new Date(res?.data?.balance_date).toLocaleDateString("en-GB"))
 							setReportData(data)
@@ -393,7 +393,7 @@ function OutstaningReportMain() {
 				})
 		}
 
-		if(conditionState === "old"){
+		if (conditionState === "old") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
 				.post(`${url}/loan_outstanding_report_branchwise`, creds, {
@@ -403,7 +403,7 @@ function OutstaningReportMain() {
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
@@ -429,7 +429,7 @@ function OutstaningReportMain() {
 			supply_date: fromDate ? formatDateToYYYYMMDD(fromDate) : formatDateToYYYYMMDD(new Date()),
 		}
 
-		if(conditionState === "current"){
+		if (conditionState === "current") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
 				.post(`${url}/loan_outstanding_report_groupwise_new`, creds, {
@@ -439,11 +439,11 @@ function OutstaningReportMain() {
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
-						if(res?.data?.outstanding_data?.suc > 0) {
+						if (res?.data?.outstanding_data?.suc > 0) {
 							const data = res?.data?.outstanding_data?.msg || []
 							setFetchedReportDate(new Date(res?.data?.balance_date).toLocaleDateString("en-GB"))
 							setReportData(data)
@@ -458,9 +458,9 @@ function OutstaningReportMain() {
 				.catch((err) => {
 					console.log("ERRRR>>>", err)
 				})
-		} 
+		}
 
-		if(conditionState === "old"){
+		if (conditionState === "old") {
 			const tokenValue = await getLocalStoreTokenDts(navigate);
 			await axios
 				.post(`${url}/loan_outstanding_report_groupwise`, creds, {
@@ -470,7 +470,7 @@ function OutstaningReportMain() {
 					},
 				})
 				.then((res) => {
-					if(res?.data?.suc === 0){
+					if (res?.data?.suc === 0) {
 						navigate(routePaths.LANDING)
 						localStorage.clear()
 					} else {
@@ -491,8 +491,8 @@ function OutstaningReportMain() {
 		setBranches([]);
 		setLoading(true)
 		var apiUrl = ''
-		if(para === 'B') apiUrl = 'fetch_branch_name_based_usertype'
-		if(para === 'D') apiUrl = 'fetch_divitionwise_branch'
+		if (para === 'B') apiUrl = 'fetch_branch_name_based_usertype'
+		if (para === 'D') apiUrl = 'fetch_divitionwise_branch'
 
 		const creds = {
 			emp_id: userDetails?.emp_id,
@@ -507,7 +507,7 @@ function OutstaningReportMain() {
 				},
 			})
 			.then((res) => {
-				if(res?.data?.suc === 0){
+				if (res?.data?.suc === 0) {
 					navigate(routePaths.LANDING)
 					localStorage.clear()
 				} else {
@@ -522,7 +522,7 @@ function OutstaningReportMain() {
 	}
 
 	useEffect(() => {
-		getBranches(searchBrnchDiv) 
+		getBranches(searchBrnchDiv)
 	}, [])
 
 	useEffect(() => {
@@ -569,7 +569,7 @@ function OutstaningReportMain() {
 			branches: branchCodes?.length > 0 ? branchCodes : [{ branch_code: selectedBrnCode }],
 		}
 
-		if(conditionState === "old"){
+		if (conditionState === "old") {
 			await axios
 				.post(`${url}/call_outstanding_proc`, creds)
 				.then((res) => {
@@ -721,35 +721,39 @@ function OutstaningReportMain() {
 	const handleExcelExportMemberReport = async () => {
 		if (!reportData || reportData.length === 0) return;
 
+		const isSHG = searchType === "S";
+		const isSociety = searchType === "P";
 		const titleText = "BURDWAN CENTRAL CO-OPERATIVE BANK LTD.";
-		const subtitleText = "SHG MEMBER LOAN OUTSTANDING REPORT";
+		const subtitleText = isSHG 
+			? "SHG MEMBER LOAN OUTSTANDING REPORT" 
+			: (isSociety ? "SOCIETY LOAN OUTSTANDING DETAILS" : "CCB LOAN OUTSTANDING DETAILS");
 		const formattedAsOnDt = asOnDate ? moment(asOnDate).format("DD/MM/YYYY") : moment().format("DD/MM/YYYY");
 
 		const totalDisb = reportData.reduce((acc, curr) => acc + (parseFloat(curr.disb_amt) || 0), 0);
-		const totalOutstanding = reportData.reduce((acc, curr) => acc + (parseFloat(curr.member_outstanding) || 0), 0);
+		const totalOutstanding = reportData.reduce((acc, curr) => acc + (parseFloat(curr.member_outstanding ?? curr.group_outstanding) || 0), 0);
 
 		const workbook = new ExcelJS.Workbook();
-		const worksheet = workbook.addWorksheet("Member Loan Outstanding");
+		const worksheetName = isSHG 
+			? "SHG Member Loan Outstanding" 
+			: (isSociety ? "Society Loan Outstanding" : "CCB Loan Outstanding");
+		const worksheet = workbook.addWorksheet(worksheetName);
 
-		worksheet.columns = [
-			{ width: 10 },
-			{ width: 16 },
-			{ width: 16 },
-			{ width: 16 },
-			{ width: 26 },
-			{ width: 10 },
-			{ width: 14 },
-			{ width: 14 },
-			{ width: 16 },
-			{ width: 22 },
-			{ width: 14 },
-			{ width: 16 },
-			{ width: 16 },
-			{ width: 24 },
-		];
+		if (isSHG) {
+			worksheet.columns = [
+				{ width: 10 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 26 },
+				{ width: 10 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 22 },
+				{ width: 14 }, { width: 16 }, { width: 16 }, { width: 24 },
+			];
+		} else {
+			worksheet.columns = [
+				{ width: 10 }, { width: 16 }, { width: 16 }, { width: 26 },
+				{ width: 10 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 22 },
+				{ width: 14 }, { width: 16 }, { width: 16 }, { width: 24 },
+			];
+		}
 
 		const bankRow = worksheet.addRow([subtitleText]);
-		worksheet.mergeCells("A1:N1");
+		worksheet.mergeCells(isSHG ? "A1:N1" : "A1:M1");
 		bankRow.font = { name: "Segoe UI", size: 15, bold: true, color: { argb: "FFFFFFFF" } };
 		bankRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
 		bankRow.alignment = { horizontal: "center", vertical: "middle" };
@@ -760,8 +764,8 @@ function OutstaningReportMain() {
 		const grpNameCode = `${metadataDtls?.group_name || "N/A"} (${metadataDtls?.group_code || "N/A"})`;
 		const brnSocName = `${metadataDtls?.branch_name || "N/A"}${metadataDtls?.society_name && metadataDtls.society_name.toUpperCase() !== "DEMO" ? " / " + metadataDtls.society_name : ""}`;
 		const metaRows = [
-			["Group Name & Code:", grpNameCode, "", "", "", "", "Branch / Society Name:", brnSocName],
-			["Statement As On Date:", formattedAsOnDt, "", "", "", "", "Total Member Records:", reportData.length],
+			["Group / Branch:", grpNameCode, "", "", "", "", "Branch / Society Name:", brnSocName],
+			["Statement As On Date:", formattedAsOnDt, "", "", "", "", "Total Records:", reportData.length],
 		];
 
 		metaRows.forEach(r => {
@@ -776,7 +780,7 @@ function OutstaningReportMain() {
 
 		worksheet.addRow([]);
 
-		const headers = [
+		const headers = isSHG ? [
 			"Sl. No.",
 			"Loan ID",
 			"CCB Loan ID",
@@ -791,6 +795,20 @@ function OutstaningReportMain() {
 			"Start Date",
 			"End Date",
 			"Member Outstanding (₹)"
+		] : [
+			"Sl. No.",
+			"Loan ID",
+			"Group Code",
+			"Group Name",
+			"Period",
+			"Curr ROI (%)",
+			"Penal ROI (%)",
+			"Disb Date",
+			"Disb Amount (₹)",
+			"Period Mode",
+			"Start Date",
+			"End Date",
+			"Group Outstanding (₹)"
 		];
 		const headerRow = worksheet.addRow(headers);
 		headerRow.height = 26;
@@ -800,7 +818,9 @@ function OutstaningReportMain() {
 		headerRow.eachCell((cell, colNumber) => {
 			cell.alignment = {
 				vertical: "middle",
-				horizontal: [6, 7, 8, 10, 14].includes(colNumber) ? "right" : [1, 5, 9, 11, 12, 13].includes(colNumber) ? "center" : "left"
+				horizontal: isSHG 
+					? ([6, 7, 8, 10, 14].includes(colNumber) ? "right" : [1, 5, 9, 11, 12, 13].includes(colNumber) ? "center" : "left")
+					: ([5, 6, 7, 9, 13].includes(colNumber) ? "right" : [1, 4, 8, 10, 11, 12].includes(colNumber) ? "center" : "left")
 			};
 			cell.border = {
 				top: { style: "thin", color: { argb: "FFCBD5E1" } },
@@ -812,7 +832,7 @@ function OutstaningReportMain() {
 
 		reportData.forEach((item, idx) => {
 			const pModeStr = item.period_mode === "M" ? "Monthly" : (item.period_mode === "Y" ? "Yearly" : (item.period_mode || "N/A"));
-			const rowValues = [
+			const rowValues = isSHG ? [
 				idx + 1,
 				item.loan_id || "",
 				item.ccb_loan_id || "N/A",
@@ -827,6 +847,20 @@ function OutstaningReportMain() {
 				item.start_date ? moment(item.start_date).format("DD/MM/YYYY") : "N/A",
 				item.end_date ? moment(item.end_date).format("DD/MM/YYYY") : "N/A",
 				parseFloat(item.member_outstanding || 0)
+			] : [
+				idx + 1,
+				item.loan_id || "",
+				item.group_code || "",
+				item.group_name || "N/A",
+				item.period || 0,
+				parseFloat(item.curr_roi || 0),
+				parseFloat(item.penal_roi || 0),
+				item.disb_date ? moment(item.disb_date).format("DD/MM/YYYY") : "N/A",
+				parseFloat(item.disb_amt || 0),
+				pModeStr,
+				item.start_date ? moment(item.start_date).format("DD/MM/YYYY") : "N/A",
+				item.end_date ? moment(item.end_date).format("DD/MM/YYYY") : "N/A",
+				parseFloat(item.group_outstanding || 0)
 			];
 
 			const dataRow = worksheet.addRow(rowValues);
@@ -834,14 +868,19 @@ function OutstaningReportMain() {
 			dataRow.font = { name: "Segoe UI", size: 10 };
 			if (idx % 2 === 1) dataRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
 
-			dataRow.getCell(10).numberFormat = "#,##0.00";
-			dataRow.getCell(14).numberFormat = "#,##0.00";
-			dataRow.getCell(14).font = { color: { argb: "FF0F766E" }, bold: true };
+			const disbColIndex = isSHG ? 10 : 9;
+			const outstColIndex = isSHG ? 14 : 13;
+
+			dataRow.getCell(disbColIndex).numberFormat = "#,##0.00";
+			dataRow.getCell(outstColIndex).numberFormat = "#,##0.00";
+			dataRow.getCell(outstColIndex).font = { color: { argb: "FF0F766E" }, bold: true };
 
 			dataRow.eachCell((cell, colNumber) => {
 				cell.alignment = {
 					vertical: "middle",
-					horizontal: [6, 7, 8, 10, 14].includes(colNumber) ? "right" : [1, 9, 11, 12, 13].includes(colNumber) ? "center" : "left"
+					horizontal: isSHG
+						? ([6, 7, 8, 10, 14].includes(colNumber) ? "right" : [1, 9, 11, 12, 13].includes(colNumber) ? "center" : "left")
+						: ([5, 6, 7, 9, 13].includes(colNumber) ? "right" : [1, 8, 10, 11, 12].includes(colNumber) ? "center" : "left")
 				};
 				cell.border = {
 					top: { style: "thin", color: { argb: "FFE2E8F0" } },
@@ -854,11 +893,16 @@ function OutstaningReportMain() {
 
 		worksheet.addRow([]);
 
-		const summaryRow = worksheet.addRow([
-			"TOTAL SUMMARY:", "", "", "", "", "", "", "", "",
-			totalDisb, "", "", "", totalOutstanding
-		]);
-		worksheet.mergeCells(`A${summaryRow.number}:I${summaryRow.number}`);
+		const summaryRowValues = isSHG 
+			? ["TOTAL SUMMARY:", "", "", "", "", "", "", "", "", totalDisb, "", "", "", totalOutstanding]
+			: ["TOTAL SUMMARY:", "", "", "", "", "", "", "", totalDisb, "", "", "", totalOutstanding];
+
+		const summaryRow = worksheet.addRow(summaryRowValues);
+		if (isSHG) {
+			worksheet.mergeCells(`A${summaryRow.number}:I${summaryRow.number}`);
+		} else {
+			worksheet.mergeCells(`A${summaryRow.number}:H${summaryRow.number}`);
+		}
 		summaryRow.height = 26;
 		summaryRow.font = { name: "Segoe UI", size: 11, bold: true };
 		
@@ -866,12 +910,15 @@ function OutstaningReportMain() {
 		titleCell.alignment = { horizontal: "right", vertical: "middle" };
 		titleCell.font = { bold: true, color: { argb: "FF0F172A" } };
 
-		const disbCell = summaryRow.getCell(10);
+		const disbColIdx = isSHG ? 10 : 9;
+		const outstColIdx = isSHG ? 14 : 13;
+
+		const disbCell = summaryRow.getCell(disbColIdx);
 		disbCell.numberFormat = "#,##0.00";
 		disbCell.font = { bold: true, color: { argb: "FF16A34A" } };
 		disbCell.alignment = { horizontal: "right", vertical: "middle" };
 
-		const outstCell = summaryRow.getCell(14);
+		const outstCell = summaryRow.getCell(outstColIdx);
 		outstCell.numberFormat = "#,##0.00";
 		outstCell.font = { bold: true, color: { argb: "FF0F766E" } };
 		outstCell.alignment = { horizontal: "right", vertical: "middle" };
@@ -884,26 +931,35 @@ function OutstaningReportMain() {
 			};
 		});
 
+		const filePrefix = isSHG 
+			? "SHG_Member_Loan_Outstanding_Report" 
+			: (isSociety ? "Society_Loan_Outstanding_Details" : "CCB_Loan_Outstanding_Details");
+
 		const buffer = await workbook.xlsx.writeBuffer();
 		const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-		saveAs(blob, `SHG_Member_Outstanding_Report_${metadataDtls?.group_code || ""}_${moment().format("DDMMYYYY")}.xlsx`);
+		saveAs(blob, `${filePrefix}_${moment().format("DDMMYYYY")}.xlsx`);
 	};
 
 	const handlePrintMemberReport = () => {
 		if (!reportData || reportData.length === 0) return;
 
+		const isSHG = searchType === "S";
+		const isSociety = searchType === "P";
 		const printWindow = window.open("", "_blank");
 		const totalDisb = reportData.reduce((acc, curr) => acc + (parseFloat(curr.disb_amt) || 0), 0);
-		const totalOutstanding = reportData.reduce((acc, curr) => acc + (parseFloat(curr.member_outstanding) || 0), 0);
+		const totalOutstanding = reportData.reduce((acc, curr) => acc + (parseFloat(curr.member_outstanding ?? curr.group_outstanding) || 0), 0);
 		const formattedAsOnDt = asOnDate ? moment(asOnDate).format("DD/MM/YYYY") : moment().format("DD/MM/YYYY");
 		const grpNameCode = `${metadataDtls?.group_name || "N/A"} (${metadataDtls?.group_code || "N/A"})`;
 		const brnSocName = `${metadataDtls?.branch_name || "N/A"}${metadataDtls?.society_name && metadataDtls.society_name.toUpperCase() !== "DEMO" ? " / " + metadataDtls.society_name : ""}`;
+		const reportTitle = isSHG 
+			? "SHG MEMBER LOAN OUTSTANDING REPORT" 
+			: (isSociety ? "SOCIETY LOAN OUTSTANDING DETAILS" : "CCB LOAN OUTSTANDING DETAILS");
 
 		const htmlContent = `
 			<!DOCTYPE html>
 			<html>
 			<head>
-				<title>SHG Member Loan Outstanding Report</title>
+				<title>${reportTitle}</title>
 				<style>
 					@page { size: A4 landscape; margin: 12mm; }
 					body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 10pt; color: #1e293b; margin: 0; padding: 10px; }
@@ -927,14 +983,14 @@ function OutstaningReportMain() {
 			</head>
 			<body>
 				<div class="header-banner">
-					<h1>SHG MEMBER LOAN OUTSTANDING REPORT</h1>
+					<h1>${reportTitle}</h1>
 				</div>
 
 				<div class="meta-grid">
-					<div class="meta-item"><span class="meta-label">Group Name & Code:</span> <span class="meta-val">${grpNameCode}</span></div>
+					<div class="meta-item"><span class="meta-label">Group / Branch:</span> <span class="meta-val">${grpNameCode}</span></div>
 					<div class="meta-item"><span class="meta-label">Branch / Society:</span> <span class="meta-val">${brnSocName}</span></div>
 					<div class="meta-item"><span class="meta-label">Statement As On Date:</span> <span class="meta-val">${formattedAsOnDt}</span></div>
-					<div class="meta-item"><span class="meta-label">Total Member Records:</span> <span class="meta-val">${reportData.length}</span></div>
+					<div class="meta-item"><span class="meta-label">Total Records:</span> <span class="meta-val">${reportData.length}</span></div>
 				</div>
 
 				<table>
@@ -942,9 +998,9 @@ function OutstaningReportMain() {
 						<tr>
 							<th class="text-center">Sl.</th>
 							<th>Loan ID</th>
-							<th>CCB Loan ID</th>
-							<th>Member Code</th>
-							<th>Member Name</th>
+							${isSHG ? '<th>CCB Loan ID</th>' : ''}
+							<th>${isSHG ? 'Member Code' : 'Group Code'}</th>
+							<th>${isSHG ? 'Member Name' : 'Group Name'}</th>
 							<th class="text-center">Period</th>
 							<th class="text-right">Curr ROI (%)</th>
 							<th class="text-right">Penal ROI (%)</th>
@@ -953,7 +1009,7 @@ function OutstaningReportMain() {
 							<th class="text-center">Period Mode</th>
 							<th class="text-center">Start Date</th>
 							<th class="text-center">End Date</th>
-							<th class="text-right">Member Outstanding (₹)</th>
+							<th class="text-right">${isSHG ? 'Member Outstanding (₹)' : 'Group Outstanding (₹)'}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -961,9 +1017,9 @@ function OutstaningReportMain() {
 							<tr>
 								<td class="text-center">${idx + 1}</td>
 								<td>${item?.loan_id || ""}</td>
-								<td>${item?.ccb_loan_id || "N/A"}</td>
-								<td>${item?.member_code || ""}</td>
-								<td class="font-bold">${item?.member_name || "N/A"}</td>
+								${isSHG ? `<td>${item?.ccb_loan_id || "N/A"}</td>` : ''}
+								<td>${item?.member_code || item?.group_code || ""}</td>
+								<td class="font-bold">${item?.member_name || item?.group_name || "N/A"}</td>
 								<td class="text-center">${item?.period || 0}</td>
 								<td class="text-right">${Number(item?.curr_roi || 0).toFixed(2)}</td>
 								<td class="text-right">${Number(item?.penal_roi || 0).toFixed(2)}</td>
@@ -972,13 +1028,13 @@ function OutstaningReportMain() {
 								<td class="text-center">${item?.period_mode === "M" ? "Monthly" : (item?.period_mode === "Y" ? "Yearly" : (item?.period_mode || "N/A"))}</td>
 								<td class="text-center">${item?.start_date ? moment(item.start_date).format("DD/MM/YYYY") : "N/A"}</td>
 								<td class="text-center">${item?.end_date ? moment(item.end_date).format("DD/MM/YYYY") : "N/A"}</td>
-								<td class="text-right font-bold" style="color:#0f766e;">${Number(item?.member_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+								<td class="text-right font-bold" style="color:#0f766e;">${Number(item?.member_outstanding ?? item?.group_outstanding ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
 							</tr>
 						`).join("")}
 					</tbody>
 					<tfoot>
 						<tr class="total-row">
-							<td colSpan="9" class="text-right font-bold">TOTAL SUMMARY:</td>
+							<td colSpan="${isSHG ? 9 : 8}" class="text-right font-bold">TOTAL SUMMARY:</td>
 							<td class="text-right font-bold">${totalDisb.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
 							<td colSpan="3"></td>
 							<td class="text-right font-bold" style="color:#0f766e;">${totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
@@ -1227,11 +1283,10 @@ function OutstaningReportMain() {
 										return (
 											<button
 												disabled={!isBranchSelected}
-												className={`h-[38px] inline-flex items-center justify-center px-5 text-xs font-semibold text-white rounded transition-all duration-200 shadow-sm gap-1.5 ${
-													isBranchSelected
+												className={`h-[38px] inline-flex items-center justify-center px-5 text-xs font-semibold text-white rounded transition-all duration-200 shadow-sm gap-1.5 ${isBranchSelected
 														? "bg-teal-500 hover:bg-green-600 border border-teal-500 hover:border-green-600 cursor-pointer active:scale-95"
 														: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
-												}`}
+													}`}
 												onClick={() => {
 													handleSearchGroupList();
 												}}
@@ -1279,11 +1334,10 @@ function OutstaningReportMain() {
 										return (
 											<button
 												disabled={!canSubmit}
-												className={`h-[38px] inline-flex items-center justify-center px-5 text-xs font-semibold text-white rounded transition-all duration-200 shadow-sm gap-1.5 ${
-													canSubmit
+												className={`h-[38px] inline-flex items-center justify-center px-5 text-xs font-semibold text-white rounded transition-all duration-200 shadow-sm gap-1.5 ${canSubmit
 														? "bg-teal-600 hover:bg-teal-700 border border-teal-600 hover:border-teal-700 cursor-pointer active:scale-95"
 														: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
-												}`}
+													}`}
 												onClick={() => {
 													handleSubmit();
 												}}
@@ -1413,16 +1467,16 @@ function OutstaningReportMain() {
 					{/* Column Selector */}
 					{reportData.length > 0 && (
 						<div className="my-4">
-							<MultiSelect 
-								value={selectedColumns} 
-								onChange={(e) => setSelectedColumns(e.value)} 
-								options={md_columns} 
-								optionValue="index" 
-								optionLabel="header" 
-								filter 
-								placeholder="Choose Columns to Display" 
-								maxSelectedLabels={4} 
-								className="w-full md:w-80 rounded-xl text-xs" 
+							<MultiSelect
+								value={selectedColumns}
+								onChange={(e) => setSelectedColumns(e.value)}
+								options={md_columns}
+								optionValue="index"
+								optionLabel="header"
+								filter
+								placeholder="Choose Columns to Display"
+								maxSelectedLabels={4}
+								className="w-full md:w-80 rounded-xl text-xs"
 							/>
 						</div>
 					)}
@@ -1449,7 +1503,9 @@ function OutstaningReportMain() {
 									<thead className="text-xs uppercase bg-slate-800 text-slate-100 dark:bg-slate-900 sticky top-0 z-10">
 										<tr>
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider">Loan ID</th>
-											<th scope="col" className="px-4 py-3 font-bold tracking-wider">CCB Loan ID</th>
+											{searchType === "S" && (
+												<th scope="col" className="px-4 py-3 font-bold tracking-wider">CCB Loan ID</th>
+											)}
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider">{searchType === "S" ? "Member Code" : "Group Code"}</th>
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider">{searchType === "S" ? "Member Name" : "Group Name"}</th>
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider text-center">Period</th>
@@ -1460,14 +1516,16 @@ function OutstaningReportMain() {
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider text-center">Period Mode</th>
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider">Start Date</th>
 											<th scope="col" className="px-4 py-3 font-bold tracking-wider">End Date</th>
-											<th scope="col" className="px-4 py-3 font-bold tracking-wider text-right">Outstanding (₹)</th>
+											<th scope="col" className="px-4 py-3 font-bold tracking-wider text-right">{searchType === "S" ? "Member Outstanding (₹)" : "Group Outstanding (₹)"}</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-slate-200 dark:divide-slate-800">
 										{reportData.map((item, i) => (
 											<tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
 												<td className="px-4 py-3 font-mono text-teal-600 font-medium">{item?.loan_id}</td>
-												<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.ccb_loan_id || "N/A"}</td>
+												{searchType === "S" && (
+													<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.ccb_loan_id || "N/A"}</td>
+												)}
 												<td className="px-4 py-3 font-mono text-slate-800 dark:text-slate-200">{item?.member_code || item?.group_code}</td>
 												<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{item?.member_name || item?.group_name || "N/A"}</td>
 												<td className="px-4 py-3 text-center">{item?.period || 0}</td>
@@ -1479,20 +1537,20 @@ function OutstaningReportMain() {
 												<td className="px-4 py-3">{item?.start_date ? moment(item.start_date).format("DD/MM/YYYY") : "N/A"}</td>
 												<td className="px-4 py-3">{item?.end_date ? moment(item.end_date).format("DD/MM/YYYY") : "N/A"}</td>
 												<td className="px-4 py-3 text-right font-bold text-teal-600 dark:text-teal-400">
-													{Number(item?.member_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+													{Number(item?.member_outstanding ?? item?.group_outstanding ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 												</td>
 											</tr>
 										))}
 									</tbody>
 									<tfoot className="bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-300 dark:border-slate-700">
 										<tr>
-											<td colSpan={8} className="px-4 py-3 text-right uppercase tracking-wider">Total Summary:</td>
+											<td colSpan={searchType === "S" ? 8 : 7} className="px-4 py-3 text-right uppercase tracking-wider">Total Summary:</td>
 											<td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
 												{reportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 											</td>
 											<td colSpan={3}></td>
 											<td className="px-4 py-3 text-right text-teal-600 dark:text-teal-400">
-												{reportData.reduce((sum, item) => sum + Number(item?.member_outstanding || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+												{reportData.reduce((sum, item) => sum + Number(item?.member_outstanding ?? item?.group_outstanding ?? 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 											</td>
 										</tr>
 									</tfoot>
