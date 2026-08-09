@@ -433,7 +433,7 @@ reportRouter.post("/fetch_society_ccb_outstanding_report", async (req, res) => {
 				(
 					SELECT (COALESCE(b.curr_prn, 0) + COALESCE(b.curr_intt, 0))::numeric
 					FROM ${transTable} b
-					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_acc_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
+					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_ac_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
 					  AND (b.trans_dt::date <= '${filterDate}'::date OR b.trans_dt IS NULL)
 					  AND (b.approval_status = 'A' OR b.approval_status IS NULL OR b.approval_status = '')
 					ORDER BY b.trans_dt DESC, b.trans_id DESC
@@ -442,7 +442,7 @@ reportRouter.post("/fetch_society_ccb_outstanding_report", async (req, res) => {
 				(
 					SELECT (COALESCE(b.curr_prn, 0) + COALESCE(b.curr_intt, 0))::numeric
 					FROM ${transTable} b
-					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_acc_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
+					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_ac_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
 					  AND (b.approval_status = 'A' OR b.approval_status IS NULL OR b.approval_status = '')
 					ORDER BY b.trans_id DESC
 					LIMIT 1
@@ -450,7 +450,7 @@ reportRouter.post("/fetch_society_ccb_outstanding_report", async (req, res) => {
 				(
 					SELECT SUM(COALESCE(b.dr_amt, 0) - COALESCE(b.cr_amt, 0))::numeric
 					FROM ${transTable} b
-					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_acc_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
+					WHERE (b.loan_id::text = a.loan_id::text OR b.loan_ac_no::text = a.loan_acc_no::text OR (a.group_code IS NOT NULL AND b.branch_shg_id::text = a.group_code::text))
 					  AND (b.trans_dt::date <= '${filterDate}'::date OR b.trans_dt IS NULL)
 					  AND (b.approval_status = 'A' OR b.approval_status IS NULL OR b.approval_status = '')
 				),
