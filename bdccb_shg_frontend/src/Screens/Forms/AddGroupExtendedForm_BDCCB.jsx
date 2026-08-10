@@ -46,7 +46,7 @@ import { DataTable } from "primereact/datatable"
 import Column from "antd/es/table/Column"
 import { Toast } from "primereact/toast"
 import AlertComp from "../../Components/AlertComp"
-import { Map } from "lucide-react"
+import { Map as MapIcon } from "lucide-react"
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api"
 import { getLocalStoreTokenDts } from "../../Components/getLocalforageTokenDts"
 // import { format } from "date-fns"
@@ -716,7 +716,7 @@ const containerStyle = {
 			if(res?.data?.success){
 			// setBlocks(res?.data?.data)
 			setBlocks(res?.data?.data?.map((item, i) => ({
-			code: item?.block_id,
+			code: String(item?.block_id),
 			name: item?.block_name,
 			})))
 			
@@ -757,7 +757,7 @@ const containerStyle = {
 			if(res?.data?.success){
 			// setPoliceStation(res?.data?.data)
 			setPoliceStation(res?.data?.data?.map((item, i) => ({
-			code: item?.ps_id,
+			code: String(item?.ps_id),
 			name: item?.ps_name,
 			})))
 			} else {
@@ -794,7 +794,7 @@ const containerStyle = {
 
 			if(res?.data?.success){
 			setPostOffice(res?.data?.data?.map((item, i) => ({
-			code: item?.po_id,
+			code: String(item?.po_id),
 			name: item?.post_name,
 			})))
 			} else {
@@ -830,7 +830,7 @@ const containerStyle = {
 
 			if(res?.data?.success){
 			setGpName(res?.data?.data?.map((item, i) => ({
-			code: item?.gp_id,
+			code: String(item?.gp_id),
 			name: item?.gp_name,
 			})))
 			} else {
@@ -868,7 +868,7 @@ const containerStyle = {
 
 			if(res?.data?.success){
 			setVillName(res?.data?.data?.map((item, i) => ({
-			code: item?.vill_id,
+			code: String(item?.vill_id),
 			name: item?.vill_name,
 			})))
 			} else {
@@ -972,26 +972,21 @@ const handleFormikMasterChange = async (e) => {
   // 1️⃣ Always update Formik first
   formik.setFieldValue(name, value);
 
-//   console.log(name, 'namenamenamename', value, 'vvvvvvvvvvvvvvv', formik.values.dist_id, formik.values.block_id);
-  
+  const isValValid = (val) => val !== undefined && val !== null && String(val).trim() !== "" && String(val) !== "0";
 
   // 2️⃣ District changed
   if (name === "dist_id") {
-	if (value?.length > 0) {
+	if (isValValid(value)) {
 	  fetchBlock(value);
-	//   fetchPoliceStation(value);
-	//   fetchPosOffice(value);
 	  fetchBranch(value);
-	  console.log("load district");
+	  console.log("load district", value);
 	} else {
 	  setBlocks([]);
 	  setPoliceStation([]);
 	  setPostOffice([]);
 	  setBranch([]);
 	  setPinCodeList([]);
-	//   console.log("reset district");
 	}
-
 
 	// reset dependent Formik fields
 	formik.setFieldValue("block_id", "");
@@ -1006,15 +1001,13 @@ const handleFormikMasterChange = async (e) => {
 
   // 3️⃣ Block changed
   if (name === "block_id") {
-	const distId = formik.values.dist_id;
+	const distId = formik.values.dist_id || value;
 
-	if (distId?.length > 0 && value?.length > 0) {
-
+	if (isValValid(distId) && isValValid(value)) {
 	  fetchPoliceStation(distId, value);
 	  fetchPosOffice(distId, value);
 	  fetchGPList(distId, value);
 	  fetchPINCodeList(distId, value);
-	  
 	} else {
 	  setGpName([]);
 	  setPoliceStation([]);
@@ -1033,7 +1026,7 @@ const handleFormikMasterChange = async (e) => {
 	const distId = formik.values.dist_id;
 	const blockId = formik.values.block_id;
 
-	if (distId?.length > 0 && blockId?.length > 0 && value?.length > 0) {
+	if (isValValid(distId) && isValValid(blockId) && isValValid(value)) {
 	  fetchVillList(distId, blockId, value);
 	} else {
 	  setVillName([]);

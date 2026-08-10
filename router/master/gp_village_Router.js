@@ -9,18 +9,19 @@ gpvillRouter = express.Router();
         const dist_id = parseInt(req.query.dist_id || 0);
         const block_id = parseInt(req.query.block_id || 0);
 
-        // DIST ID AND BLOCK ID IS MANDATORY
-            if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0) {
-                return res.send({
-                    success: true,
-                    msg: "dist_id and block id is required"
-                });
-            }
-
+        let whr = "1=1";
+        if (dist_id > 0) {
+            whr += ` AND (a.dist_id = ${dist_id} OR a.dist_id = 0 OR a.dist_id IS NULL)`;
+        }
+        if (block_id > 0) {
+            whr += ` AND (a.block_id = ${block_id} OR a.block_id = 0 OR a.block_id IS NULL)`;
+        }
+        if (id > 0) {
+            whr += ` OR a.gp_id = ${id}`;
+        }
         var select = "a.gp_id,a.dist_id,a.block_id,a.gp_name,b.block_name,c.dist_name",
         table_name = "md_gp a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code",
-        whr = ` a.block_id = ${block_id} AND a.dist_id = ${dist_id}`,
-        order = null;
+        order = "a.gp_name ASC";
         // if (id > 0) {
         //     whr += ` AND a.gp_id = ${id}`;
         // }
@@ -82,18 +83,22 @@ gpvillRouter = express.Router();
         const block_id = parseInt(req.query.block_id || 0);
         const gp_id = parseInt(req.query.gp_id || 0);
 
-        // DIST ID AND BLOCK ID AND GP ID IS MANDATORY
-            if (!dist_id || dist_id <= 0 || !block_id || block_id <= 0 || !gp_id || gp_id <= 0) {
-                return res.send({
-                    success: true,
-                    msg: "dist id and block id and gp id is required"
-                });
-            }
-
+        let whr = "1=1";
+        if (dist_id > 0) {
+            whr += ` AND (a.dist_id = ${dist_id} OR a.dist_id = 0 OR a.dist_id IS NULL)`;
+        }
+        if (block_id > 0) {
+            whr += ` AND (a.block_id = ${block_id} OR a.block_id = 0 OR a.block_id IS NULL)`;
+        }
+        if (gp_id > 0) {
+            whr += ` AND (a.gp_id = ${gp_id} OR a.gp_id = 0 OR a.gp_id IS NULL)`;
+        }
+        if (id > 0) {
+            whr += ` OR a.vill_id = ${id}`;
+        }
         var select = "a.vill_id,a.dist_id,a.block_id,a.gp_id,a.vill_name,b.block_name,c.dist_name,d.gp_name",
         table_name = "md_village a LEFT JOIN md_block b ON a.block_id = b.block_id LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_gp d ON a.gp_id = d.gp_id",
-        whr = `a.dist_id = ${dist_id} AND a.block_id = ${block_id} AND a.gp_id = ${gp_id}`,
-        order = null;
+        order = "a.vill_name ASC";
         // if (id > 0) {
         //     whr += ` AND a.vill_id = ${id}`;
         // }

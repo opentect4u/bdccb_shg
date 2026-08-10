@@ -18,16 +18,10 @@ ppRouter = express.Router();
 
         var select = "a.po_id,a.dist_id,a.post_name,a.pin,c.dist_name,a.block_id,d.block_name",
         table_name = "md_postoffice a LEFT JOIN md_district c ON a.dist_id = c.dist_code LEFT JOIN md_block d ON a.block_id = d.block_id",
-        whr =  `a.dist_id = ${dist_id}`,
-        order = null;
-        // if (id > 0) {
-        //     whr += ` AND a.po_id = ${id}`;
-        // }
-        // if (dist_id > 0) {
-        //     whr += ` AND a.dist_id = ${dist_id}`;
-        // }
+        whr = `a.dist_id = ${dist_id}`,
+        order = "a.post_name ASC";
         if (block_id > 0) {
-        whr += ` AND a.block_id = ${block_id}`;
+            whr += ` AND (a.block_id = ${block_id} OR a.block_id = 0 OR a.block_id IS NULL)`;
         }
         try {
             // console.log("Where Clause:", whr);

@@ -46,7 +46,7 @@ import { DataTable } from "primereact/datatable"
 import Column from "antd/es/table/Column"
 import { Toast } from "primereact/toast"
 import AlertComp from "../../Components/AlertComp"
-import { Map } from "lucide-react"
+import { Map as MapIcon } from "lucide-react"
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api"
 import { getLocalStoreTokenDts } from "../../Components/getLocalforageTokenDts"
 // import { format } from "date-fns"
@@ -410,26 +410,26 @@ function GroupExtendedForm({ groupDataArr }) {
 
 					setValues({
 
-						g_group_name: res?.data?.data[0]?.group_name,
-						saving_acc_no: res?.data?.data[0]?.sb_ac_no,
-						branch_id: res?.data?.data[0]?.branch_code,
-						packs_id: res?.data?.data[0]?.pacs_id,
+						g_group_name: res?.data?.data[0]?.group_name || "",
+						saving_acc_no: res?.data?.data[0]?.sb_ac_no || "",
+						branch_id: res?.data?.data[0]?.branch_code ? String(res?.data?.data[0]?.branch_code) : "",
+						packs_id: res?.data?.data[0]?.pacs_id ? String(res?.data?.data[0]?.pacs_id) : "",
 						// g_group_type: "J",
-						g_address: res?.data?.data[0]?.group_addr,
-						group_leader_name: res?.data?.data[0]?.group_leader_name,
-						sahayika_id: res?.data?.data[0]?.sahayika_id,
-						g_pin: res?.data?.data[0]?.pin_no,
-						g_phone1: res?.data?.data[0]?.phone1,
-						g_bank_branch: res?.data?.data[0]?.branch_name,
+						g_address: res?.data?.data[0]?.group_addr || "",
+						group_leader_name: res?.data?.data[0]?.group_leader_name || "",
+						sahayika_id: res?.data?.data[0]?.sahayika_id ? String(res?.data?.data[0]?.sahayika_id) : "",
+						g_pin: res?.data?.data[0]?.pin_no ? String(res?.data?.data[0]?.pin_no) : "",
+						g_phone1: res?.data?.data[0]?.phone1 || "",
+						g_bank_branch: res?.data?.data[0]?.branch_name || "",
 						// g_acc1: res?.data?.data[0]?.sb_ac_no,
-						dist_id: res?.data?.data[0]?.dist_id,
-						ps_id: res?.data?.data[0]?.ps_id,
-						po_id: res?.data?.data[0]?.po_id,
-						block_id: res?.data?.data[0]?.block_id,
-						gp_id: res?.data?.data[0]?.gp_id,
-						village_id: res?.data?.data[0]?.village_id,
-						branch_code: res?.data?.data[0]?.branch_code,
-						members: res?.data?.data[0]?.memb_dt,
+						dist_id: res?.data?.data[0]?.dist_id ? String(res?.data?.data[0]?.dist_id) : "",
+						ps_id: res?.data?.data[0]?.ps_id ? String(res?.data?.data[0]?.ps_id) : "",
+						po_id: res?.data?.data[0]?.po_id ? String(res?.data?.data[0]?.po_id) : "",
+						block_id: res?.data?.data[0]?.block_id ? String(res?.data?.data[0]?.block_id) : "",
+						gp_id: res?.data?.data[0]?.gp_id ? String(res?.data?.data[0]?.gp_id) : "",
+						village_id: res?.data?.data[0]?.village_id ? String(res?.data?.data[0]?.village_id) : "",
+						branch_code: res?.data?.data[0]?.branch_code ? String(res?.data?.data[0]?.branch_code) : "",
+						members: res?.data?.data[0]?.memb_dt || [],
 
 					})
 
@@ -443,7 +443,23 @@ function GroupExtendedForm({ groupDataArr }) {
 					)
 
 					setDirectIndirectStatus(res?.data?.data[0]?.direct_indirect_flag)
-					// fetchPacks_Group(res?.data?.data[0]?.branch_code)
+
+					const groupItem = res?.data?.data[0];
+					if (groupItem?.block_id && groupItem?.block_id != "0" && groupItem?.block_name) {
+						setBlocks([{ code: String(groupItem.block_id), name: groupItem.block_name }]);
+					}
+					if (groupItem?.ps_id && groupItem?.ps_id != "0" && groupItem?.ps_name) {
+						setPoliceStation([{ code: String(groupItem.ps_id), name: groupItem.ps_name }]);
+					}
+					if (groupItem?.po_id && groupItem?.po_id != "0") {
+						setPostOffice([{ code: String(groupItem.po_id), name: groupItem.post_name || groupItem.po_name || `Post Office (${groupItem.po_id})` }]);
+					}
+					if (groupItem?.gp_id && groupItem?.gp_id != "0") {
+						setGpName([{ code: String(groupItem.gp_id), name: groupItem.gp_name || `GP (${groupItem.gp_id})` }]);
+					}
+					if (groupItem?.village_id && groupItem?.village_id != "0") {
+						setVillName([{ code: String(groupItem.village_id), name: groupItem.vill_name || groupItem.village_name || `Village (${groupItem.village_id})` }]);
+					}
 
 					fetchBlock(res?.data?.data[0]?.dist_id)
 					fetchPoliceStation(res?.data?.data[0]?.dist_id, res?.data?.data[0]?.block_id)
@@ -721,9 +737,8 @@ function GroupExtendedForm({ groupDataArr }) {
 
 
 	const fetchBlock = async (dist_id) => {
-		setBlocks([])
+		if (!dist_id) return;
 		setLoading(true)
-
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
@@ -738,19 +753,17 @@ function GroupExtendedForm({ groupDataArr }) {
 		})
 			.then((res) => {
 
-				// console.log(res?.data?.data, 'hhhhhhhhhhhhhhhhh');
-
-				if (res?.data?.success) {
-					// setBlocks(res?.data?.data)
-					setBlocks(res?.data?.data?.map((item, i) => ({
-						code: item?.block_id,
+				if (res?.data?.success && Array.isArray(res?.data?.data)) {
+					const newItems = res.data.data.map((item) => ({
+						code: String(item?.block_id),
 						name: item?.block_name,
-					})))
-
-				} else {
-					Message('error', res?.data?.msg)
-					navigate(routePaths.LANDING)
-					localStorage.clear()
+					}));
+					setBlocks((prev) => {
+						const combined = [...(prev || []), ...newItems];
+						const map = new Map();
+						combined.forEach((it) => map.set(String(it.code), it));
+						return Array.from(map.values());
+					});
 				}
 
 			})
@@ -762,13 +775,8 @@ function GroupExtendedForm({ groupDataArr }) {
 	}
 
 	const fetchPoliceStation = async (dist_id, block_id) => {
+		if (!dist_id || !block_id) return;
 		setLoading(true)
-
-		// const creds = {
-		// 	prov_grp_code: 0,
-		// 	user_type: userDetails?.id,
-		// 	branch_code: userDetails?.brn_code,
-		// }
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
@@ -784,26 +792,17 @@ function GroupExtendedForm({ groupDataArr }) {
 			})
 			.then((res) => {
 
-				// if(res?.data?.suc === 0){
-				// Message('error', res?.data?.msg)
-				// navigate(routePaths.LANDING)
-				// localStorage.clear()
-				// } else {
-				// setLoanApplications(res?.data?.msg)
-				// setCopyLoanApplications(res?.data?.msg)
-				// }
-				// console.log(res?.data?.data, 'xxxxxxxxxxxxxxxxxxx');
-
-				if (res?.data?.success) {
-					// setPoliceStation(res?.data?.data)
-					setPoliceStation(res?.data?.data?.map((item, i) => ({
-						code: item?.ps_id,
+				if (res?.data?.success && Array.isArray(res?.data?.data)) {
+					const newItems = res.data.data.map((item) => ({
+						code: String(item?.ps_id),
 						name: item?.ps_name,
-					})))
-				} else {
-					Message('error', res?.data?.msg)
-					navigate(routePaths.LANDING)
-					localStorage.clear()
+					}));
+					setPoliceStation((prev) => {
+						const combined = [...(prev || []), ...newItems];
+						const map = new Map();
+						combined.forEach((it) => map.set(String(it.code), it));
+						return Array.from(map.values());
+					});
 				}
 
 			})
@@ -815,6 +814,7 @@ function GroupExtendedForm({ groupDataArr }) {
 	}
 
 	const fetchPosOffice = async (dist_id, block_id) => {
+		if (!dist_id || !block_id) return;
 		setLoading(true)
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
@@ -830,16 +830,17 @@ function GroupExtendedForm({ groupDataArr }) {
 		})
 			.then((res) => {
 
-
-				if (res?.data?.success) {
-					setPostOffice(res?.data?.data?.map((item, i) => ({
-						code: item?.po_id,
+				if (res?.data?.success && Array.isArray(res?.data?.data)) {
+					const newItems = res.data.data.map((item) => ({
+						code: String(item?.po_id),
 						name: item?.post_name,
-					})))
-				} else {
-					Message('error', res?.data?.msg)
-					navigate(routePaths.LANDING)
-					localStorage.clear()
+					}));
+					setPostOffice((prev) => {
+						const combined = [...(prev || []), ...newItems];
+						const map = new Map();
+						combined.forEach((it) => map.set(String(it.code), it));
+						return Array.from(map.values());
+					});
 				}
 
 			})
@@ -851,13 +852,8 @@ function GroupExtendedForm({ groupDataArr }) {
 	}
 
 	const fetchGPList = async (dist_id, block_id) => {
+		if (!dist_id || !block_id) return;
 		setLoading(true)
-
-		// const creds = {
-		// 	prov_grp_code: 0,
-		// 	user_type: userDetails?.id,
-		// 	branch_code: userDetails?.brn_code,
-		// }
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
@@ -872,16 +868,17 @@ function GroupExtendedForm({ groupDataArr }) {
 		})
 			.then((res) => {
 
-
-				if (res?.data?.success) {
-					setGpName(res?.data?.data?.map((item, i) => ({
-						code: item?.gp_id,
+				if (res?.data?.success && Array.isArray(res?.data?.data)) {
+					const newItems = res.data.data.map((item) => ({
+						code: String(item?.gp_id),
 						name: item?.gp_name,
-					})))
-				} else {
-					Message('error', res?.data?.msg)
-					navigate(routePaths.LANDING)
-					localStorage.clear()
+					}));
+					setGpName((prev) => {
+						const combined = [...(prev || []), ...newItems];
+						const map = new Map();
+						combined.forEach((it) => map.set(String(it.code), it));
+						return Array.from(map.values());
+					});
 				}
 
 			})
@@ -893,13 +890,8 @@ function GroupExtendedForm({ groupDataArr }) {
 	}
 
 	const fetchVillList = async (dist_id, block_id, gp_id) => {
-
+		if (!dist_id || !block_id || !gp_id) return;
 		setLoading(true)
-
-
-		// console.log(dist_id, block_id, gp_id, 'vvvvvvvvvvvvvvvvvvv');
-
-		// return;
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
@@ -914,17 +906,17 @@ function GroupExtendedForm({ groupDataArr }) {
 		})
 			.then((res) => {
 
-				// console.log('gggggggggggggggggggggggg', res?.data?.data);
-
-				if (res?.data?.success) {
-					setVillName(res?.data?.data?.map((item, i) => ({
-						code: item?.vill_id,
+				if (res?.data?.success && Array.isArray(res?.data?.data)) {
+					const newItems = res.data.data.map((item) => ({
+						code: String(item?.vill_id),
 						name: item?.vill_name,
-					})))
-				} else {
-					Message('error', res?.data?.msg)
-					navigate(routePaths.LANDING)
-					localStorage.clear()
+					}));
+					setVillName((prev) => {
+						const combined = [...(prev || []), ...newItems];
+						const map = new Map();
+						combined.forEach((it) => map.set(String(it.code), it));
+						return Array.from(map.values());
+					});
 				}
 
 			})
@@ -996,21 +988,20 @@ function GroupExtendedForm({ groupDataArr }) {
 		// 1️⃣ Always update Formik first
 		formik.setFieldValue(name, value);
 
+		const isValValid = (val) => val !== undefined && val !== null && String(val).trim() !== "" && String(val) !== "0";
+
 		// 2️⃣ District changed
 		if (name === "dist_id") {
-			if (value?.length > 0) {
+			if (isValValid(value)) {
 				fetchBlock(value);
-				// fetchPoliceStation(value);
-				// fetchPosOffice(value);
 				fetchBranch(value);
-				console.log("load district");
+				console.log("load district", value);
 			} else {
 				setBlocks([]);
 				setPoliceStation([]);
 				setPostOffice([]);
 				setBranch([]);
 				setPinCodeList([]);
-				// console.log("reset district");
 			}
 
 			// reset dependent Formik fields
@@ -1026,36 +1017,34 @@ function GroupExtendedForm({ groupDataArr }) {
 
 		// 3️⃣ Block changed
 		if (name === "block_id") {
-			
-			const distId = formik.values.dist_id;
+			const distId = formik.values.dist_id || value;
 
-			// if (distId?.length > 0 && value?.length > 0) {
-			fetchPoliceStation(distId, value);
-	  		fetchPosOffice(distId, value);
-			fetchGPList(distId, value);
-			fetchPINCodeList(distId, value);
+			if (isValValid(distId) && isValValid(value)) {
+				fetchPoliceStation(distId, value);
+				fetchPosOffice(distId, value);
+				fetchGPList(distId, value);
+				fetchPINCodeList(distId, value);
+			} else {
+				setGpName([]);
+				setPoliceStation([]);
+				setPostOffice([]);
+			}
 
-			// } else {
 			// reset downstream
 			formik.setFieldValue("gp_id", "");
 			formik.setFieldValue("village_id", "");
 			setVillName([]);
-			setPoliceStation([]);
-	  		setPostOffice([]);
-			// setPinCodeList([]);
-			// }
 		}
 
 		// 4️⃣ GP changed
 		if (name === "gp_id") {
 			const distId = formik.values.dist_id;
 			const blockId = formik.values.block_id;
-			fetchVillList(distId, blockId, value);
-			// if (distId?.length > 0 && blockId?.length > 0 && value?.length > 0) {
-			// 	fetchVillList(distId, blockId, value);
-			// } else {
-			// 	setVillName([]);
-			// }
+			if (isValValid(distId) && isValValid(blockId) && isValValid(value)) {
+				fetchVillList(distId, blockId, value);
+			} else {
+				setVillName([]);
+			}
 
 			// reset village
 			formik.setFieldValue("village_id", "");
@@ -1288,7 +1277,7 @@ function GroupExtendedForm({ groupDataArr }) {
 				spinning={loading}
 			>
 				{/* {(userDetails.id == 4 || userDetails.id == 3 || userDetails.id == 2 || userDetails.id == 13) && 
-				<Button htmlType="button" type="primary" icon={<Map />} onClick={() => showModal()} className="my-3">View Distance</Button>} */}
+				<Button htmlType="button" type="primary" icon={<MapIcon />} onClick={() => showModal()} className="my-3">View Distance</Button>} */}
 
 	 {/* {JSON.stringify(loanAppData, null, 2)} */}
 

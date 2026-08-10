@@ -49,11 +49,11 @@ function TDInputTemplateBr(props) {
 					className="w-full text-sm min-h-[38px]"
 					id={props.name}
 					name={props.name}
-					value={(props.formControlName && props.formControlName !== "undefined") ? props.formControlName : undefined}
+					value={(props.formControlName !== undefined && props.formControlName !== null && props.formControlName !== "undefined" && props.formControlName !== "" && String(props.formControlName) !== "0") ? String(props.formControlName) : undefined}
 					placeholder={props.placeholder}
 					onChange={(value) => {
 						if (props.handleChange) {
-							props.handleChange({ target: { name: props.name, value: value || "" } });
+							props.handleChange({ target: { name: props.name, value: value !== undefined && value !== null ? String(value) : "" } });
 						}
 					}}
 					onBlur={() => props.handleBlur && props.handleBlur({ target: { name: props.name } })}
@@ -63,7 +63,7 @@ function TDInputTemplateBr(props) {
 					}
 					disabled={props.disabled}
 					options={props?.data?.map((item) => ({
-						value: item.code,
+						value: item.code !== undefined && item.code !== null ? String(item.code) : "",
 						label: item.name,
 					}))}
 				/>
