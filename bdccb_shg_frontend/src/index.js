@@ -22,6 +22,8 @@ const LoanStatementMain =  lazy(() => import("./Screens/Reports/LoanStatements/L
 // const AdvanceCollectionReportMain = lazy(() => import("./Screens/Reports/AdvanceCollectionReport/AdvanceCollectionReportMain.jsx__BDCCB"));
 // const GroupClose =  lazy(() => import("./Screens/Reports/GroupClose/GroupClose.jsx__BDCCB"));
 const OutstaningReportMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstaningReportMain"));
+const OutstandingReportIndirectMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstandingReportIndirectMain"));
+const OutstandingReportSocietyMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstandingReportSocietyMain"));
 // const OverdueReport = lazy(() => import("./Screens/Reports/OverdueReport/OverdueReport.jsx__BDCCB"));
 // const GroupReport = lazy(() => import("./Screens/Reports/GroupReport/GroupReport.jsx__BDCCB"));
 // const PortfolioReport =  lazy(() => import("./Screens/Reports/PortfolioReport/PortfolioReport.jsx__BDCCB"));
@@ -552,6 +554,22 @@ const router = createBrowserRouter([
 							{
 								path: "loanoutstanding",
 								element: <OutstaningReportMain />,
+							},
+							{
+								path: "outstasndingreport_indirect",
+								element: <OutstandingReportIndirectMain />,
+							},
+							{
+								path: "loanoutstanding_indirect",
+								element: <OutstandingReportIndirectMain />,
+							},
+							{
+								path: "outstasndingreport_society",
+								element: <OutstandingReportSocietyMain />,
+							},
+							{
+								path: "loanoutstanding_society",
+								element: <OutstandingReportSocietyMain />,
 							},
 							{
 								path: "loan_branch_shg-recovery",

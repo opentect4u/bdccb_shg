@@ -477,7 +477,25 @@ function Sidebar({ mode = 0 }) {
 												icon: <BarChartOutlined />,
 												label: (
 													<Link to={"/homebm/outstasndingreport"}>
-														Outstanding Report
+														Outstanding Report (Direct)
+													</Link>
+												),
+											},
+											{
+												key: "sub6-7-indirect",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/outstasndingreport_indirect"}>
+														Outstanding Report (Indirect)
+													</Link>
+												),
+											},
+											{
+												key: "sub6-7-society",
+												icon: <BarChartOutlined />,
+												label: (
+													<Link to={"/homebm/outstasndingreport_society"}>
+														Outstanding Report (Society)
 													</Link>
 												),
 											},

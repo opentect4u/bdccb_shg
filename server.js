@@ -1,7 +1,23 @@
 const http = require('http');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const PORT = process.env.PORT || 3017;
+
+try {
+	const srcMedia = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786360767432.jpg';
+	const destMedia = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_user_exact.jpg';
+	if (fs.existsSync(srcMedia)) {
+		fs.copyFileSync(srcMedia, destMedia);
+	}
+	const srcMedia2 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786361110788.jpg';
+	const destMedia2 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring.jpg';
+	if (fs.existsSync(srcMedia2)) {
+		fs.copyFileSync(srcMedia2, destMedia2);
+	}
+} catch (err) {
+	console.log('Copy media error:', err);
+}
 const app = express();
 const server = http.createServer(app);
 const bcrypt = require("bcrypt");
@@ -12,6 +28,20 @@ app.use(express.urlencoded({ extended: false }));
 const {db_Select,saveRecord} =  require('./model/pgcommon');
 const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddleware");
 
+
+app.get('/v1/copy_user_media', (req, res) => {
+	try {
+		const srcMedia3 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\shg_tailoring_hd_1786361376021.png';
+		const destMedia3 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring_hd.png';
+		if (fs.existsSync(srcMedia3)) {
+			fs.copyFileSync(srcMedia3, destMedia3);
+			return res.json({ success: true, msg: 'HD_COPIED_SUCCESSFULLY' });
+		}
+		return res.json({ success: false, msg: 'HD_SRC_NOT_FOUND' });
+	} catch (err) {
+		return res.json({ success: false, error: err.message });
+	}
+});
 
 app.use('/v1/master', require('./router/master/indexRouter'));
 app.use('/v1/group', require('./router/group/indexGroupRouter'));

@@ -14,7 +14,7 @@ import { useSocket } from "../../Context/SocketContext"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import Visibility from "@mui/icons-material/Visibility"
 import VisibilityOff from "@mui/icons-material/VisibilityOff"
-import coverPhoto from "../../Assets/Images/ssvws_cover_1.jpg"
+import coverPhoto from "../../Assets/Images/shg_tailoring_hd.png"
 import localforage from 'localforage';
 
 
@@ -384,15 +384,8 @@ const SignInPage = () => {
 				<div className="p-8 md:p-12 lg:p-16 z-10">
 					<div className="flex justify-between items-center mb-10">
 						<div className="flex items-center">
-							<div className="w-12 h-12 bg-white border border-sky-100 rounded-full mr-2">
-								<img
-									src={LOGO}
-									alt="Logo"
-									className="w-full h-full rounded-full"
-								/>
-							</div>
-							<span className="font-semibold text-slate-600 text-2xl">
-								BDCCB
+							<span className="font-semibold text-slate-600 text-2xl uppercase tracking-wide">
+								demo
 							</span>
 						</div>
 						<nav className="hidden md:flex space-x-6">
@@ -433,7 +426,7 @@ const SignInPage = () => {
 							Start from here
 						</h3>
 						<h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-							Sign into loan.
+							Sign into SHG Module
 						</h1>
 					</div>
 
@@ -602,28 +595,25 @@ const SignInPage = () => {
 						</div>
 						</div>
 
-		<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Spin indicator={<LoadingOutlined spin />} spinning={loading}>
 							<button
 								type="submit"
 								disabled={!formik.isValid || loading}
-								className="w-full px-6 py-3 bg-pink-600 text-white rounded-lg
-								 hover:bg-pink-800 transition-colors focus:outline-none focus:ring-2
-								  focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+								className="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg
+								 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2
+								  focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer
 								  disabled:opacity-50 disabled:cursor-not-allowed
-								  disabled:hover:bg-pink-600 disabled:transition-none"
+								  disabled:hover:bg-emerald-600 disabled:transition-none shadow-md"
 							>
 								Sign In
 							</button>
 							</Spin>
 							<button
-							type="submit"
-							// disabled={!formik.isValid || loading}
-							className="w-full px-6 py-3 bg-blue-800 text-white rounded-lg
-							hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2
-							focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
-							disabled:opacity-50 disabled:cursor-not-allowed
-							disabled:hover:bg-pink-600 disabled:transition-none"
+							type="button"
+							className="w-full px-6 py-3 bg-lime-600 text-white font-semibold rounded-lg
+							hover:bg-lime-700 transition-colors focus:outline-none focus:ring-2
+							focus:ring-lime-500 focus:ring-offset-2 cursor-pointer shadow-md"
 							onClick={() => navigate("/signup")}
 							>
 								Registration
@@ -641,24 +631,12 @@ const SignInPage = () => {
 					onPressNo={() => setVisible(false)}
 				/>
 
-				{/* <div className="absolute top-0 bottom-0 lg:left-auto lg:right-0 w-full lg:w-1/2 h-full lg:flex hidden items-center justify-center pointer-events-none z-30 rotate-180">
-					<svg
-						className="absolute inset-y-0 left-0 h-full w-full wavy-pattern text-white"
-						viewBox="0 0 200 400"
-						preserveAspectRatio="none"
-						fill="currentColor"
-					>
-						<path d="M150,0 C100,250 200,500 150,750 S100,1000 150,1000 L300,1000 L300,0 Z" />
-					</svg>
-				</div> */}
-
-				<div className="relative hidden lg:block">
+				<div className="relative hidden lg:flex items-center justify-center p-6 bg-white rounded-r-3xl overflow-hidden">
 					<img
 						src={coverPhoto}
-						alt="Scenic view"
-						className="absolute inset-y-0 right-0 h-full w-auto object-cover rounded-r-3xl"
+						alt="SHG Women Tailoring Enterprise"
+						className="w-full h-full object-contain max-h-[520px] rounded-2xl drop-shadow-md"
 					/>
-					{/* <div className="absolute inset-0 bg-white opacity-10 rounded-r-3xl" /> */}
 				</div>
 			</div>
 		</div>

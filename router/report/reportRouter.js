@@ -677,28 +677,348 @@ reportRouter.post("/loan_statement_group_report", async (req, res) => {
 // 	}
 // });
 
-// 4. Fetch Loan Statement Member Report Transactions
-reportRouter.post("/loan_statement_report", async (req, res) => {
+// 5. Fetch Direct Groupwise / Memberwise Outstanding Report
+reportRouter.post("/fetch_direct_groupwise_outstanding_report", async (req, res) => {
 	try {
-		const { from_dt, to_dt, loan_id } = req.body;
-		let select = "a.trans_no, a.trans_date, a.tr_type, COALESCE(a.dr_amt, 0) as debit, COALESCE(a.cr_amt, 0) as credit, COALESCE(a.curr_prn_recov, 0) as curr_prn_recov, COALESCE(a.curr_intt_recov, 0) as curr_intt_recov, a.loan_id";
-		let table_name = "bdccb.td_loan_member_trans a";
+		const { branch_code, branch_shg_id, option_type, as_on_date, tenant_id } = req.body;
+		const filterDate = as_on_date || new Date().toISOString().split("T")[0];
+		const optType = option_type || "G";
+		const shgId = branch_shg_id || "111";
 
-		let whr = `a.loan_id = '${loan_id}'`;
-		if (from_dt && to_dt) {
-			whr += ` AND a.trans_date BETWEEN '${from_dt}' AND '${to_dt}'`;
-		}
+		if (optType === "G") {
+			// Groupwise Outstanding directly from bdccb.td_loan_ccb
+			let select = `DISTINCT ON (a.group_code::text)
+				a.loan_id,
+				a.group_code,
+				COALESCE(g.group_name::text, 'N/A') as group_name,
+				COALESCE(br.branch_name::text, 'N/A') as branch_name,
+				COALESCE(a.period, 0) as period,
+				COALESCE(a.curr_roi, 0) as curr_roi,
+				COALESCE(a.penal_roi::numeric, 0) as penal_roi,
+				a.disb_dt as disb_date,
+				COALESCE(a.disb_amt, 0) as disb_amt,
+				COALESCE(a.pay_mode::text, 'N/A') as period_mode,
+				COALESCE(a.rep_start_dt, a.disb_dt) as start_date,
+				COALESCE(a.rep_end_dt, a.disb_dt) as end_date,
+				(COALESCE(a.curr_prn, 0) + COALESCE(a.curr_intt, 0))::numeric as group_outstanding
+			`;
 
-		let order = "a.trans_date ASC, a.trans_no ASC";
-		let result = await db_Select(select, table_name, whr, order);
+			let table_name = `
+				bdccb.td_loan_ccb a
+				LEFT JOIN bdccb.md_group g ON (a.group_code::text = g.group_code::text)
+				LEFT JOIN public.md_branch br ON (a.branch_id::text = br.branch_id::text OR g.branch_code::text = br.branch_id::text)
+			`;
 
-		if (result.suc === 1) {
-			return res.send({ suc: 1, msg: result.msg });
+			let whr = `1=1`;
+
+			if (branch_code && branch_code !== "0" && branch_code !== "112" && branch_code !== "ALL") {
+				if (Array.isArray(branch_code) && branch_code.length > 0) {
+					whr += ` AND (a.branch_id::text IN ('${branch_code.join("','")}') OR g.branch_code::text IN ('${branch_code.join("','")}'))`;
+				} else {
+					whr += ` AND (a.branch_id::text = '${branch_code}' OR g.branch_code::text = '${branch_code}')`;
+				}
+			}
+
+			whr += ` AND (a.branch_shg_id::text = '${shgId}' OR a.branch_shg_id::text = '111' OR g.pacs_id::text = '111' OR g.pacs_id IS NULL OR g.pacs_id::text = '0')`;
+
+			if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+				whr += ` AND a.tenant_id::text = '${tenant_id}'`;
+			}
+
+			whr += ` AND (a.disb_dt::date <= '${filterDate}'::date OR a.disb_dt IS NULL)`;
+			whr += ` AND (COALESCE(a.curr_prn, 0) + COALESCE(a.curr_intt, 0)) > 0`;
+
+			let order = `a.group_code::text ASC, a.disb_dt DESC, a.loan_id DESC`;
+
+			let result = await db_Select(select, table_name, whr, order);
+
+			if (result.suc === 1 && result.msg && result.msg.length > 0) {
+				const filteredData = result.msg.filter((item) => Number(item?.group_outstanding || 0) > 0);
+				if (filteredData.length > 0) {
+					return res.send({
+						suc: 1,
+						msg: filteredData,
+						message: "Direct groupwise outstanding details fetched successfully"
+					});
+				}
+			}
+			return res.send({
+				suc: 0,
+				msg: "No groupwise loan outstanding records found for selected branch"
+			});
 		} else {
-			return res.send({ suc: 0, msg: "No transaction records found" });
+			// Memberwise Outstanding directly from bdccb.td_loan_member
+			let select = `DISTINCT ON (a.member_code, a.loan_id)
+				a.loan_id,
+				COALESCE(a.ccb_loan_id::text, a.loan_acc_no::text, a.loan_id::text) as ccb_loan_id,
+				a.member_code,
+				COALESCE(m.member_name::text, 'N/A') as member_name,
+				a.group_code,
+				COALESCE(g.group_name::text, 'N/A') as group_name,
+				COALESCE(br.branch_name::text, 'N/A') as branch_name,
+				COALESCE(a.period, 0) as period,
+				COALESCE(a.curr_roi, 0) as curr_roi,
+				COALESCE(a.penal_roi::numeric, 0) as penal_roi,
+				a.disb_dt as disb_date,
+				COALESCE(a.disb_amt, 0) as disb_amt,
+				COALESCE(a.period_mode::text, 'N/A') as period_mode,
+				COALESCE(a.rep_start_dt, a.disb_dt) as start_date,
+				COALESCE(a.rep_end_dt, a.disb_dt) as end_date,
+				(COALESCE(a.prn_amt, 0) + COALESCE(a.intt_amt, 0))::numeric as member_outstanding
+			`;
+
+			let table_name = `
+				bdccb.td_loan_member a
+				LEFT JOIN bdccb.md_member m ON (a.member_code = m.member_code)
+				LEFT JOIN bdccb.md_group g ON (a.group_code = g.group_code)
+				LEFT JOIN public.md_branch br ON (a.branch_id::text = br.branch_id::text OR g.branch_code::text = br.branch_id::text)
+			`;
+
+			let whr = `1=1`;
+
+			if (branch_code && branch_code !== "0" && branch_code !== "112" && branch_code !== "ALL") {
+				if (Array.isArray(branch_code) && branch_code.length > 0) {
+					whr += ` AND (a.branch_id::text IN ('${branch_code.join("','")}') OR g.branch_code::text IN ('${branch_code.join("','")}'))`;
+				} else {
+					whr += ` AND (a.branch_id::text = '${branch_code}' OR g.branch_code::text = '${branch_code}')`;
+				}
+			}
+
+			whr += ` AND (a.branch_shg_id::text = '${shgId}' OR a.branch_shg_id::text = '111' OR g.pacs_id::text = '111' OR g.pacs_id IS NULL OR g.pacs_id::text = '0')`;
+
+			if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+				whr += ` AND a.tenant_id::text = '${tenant_id}'`;
+			}
+
+			whr += ` AND (a.disb_dt::date <= '${filterDate}'::date OR a.disb_dt IS NULL)`;
+			whr += ` AND (COALESCE(a.prn_amt, 0) + COALESCE(a.intt_amt, 0)) > 0`;
+
+			let order = `a.member_code ASC, a.loan_id DESC`;
+
+			let result = await db_Select(select, table_name, whr, order);
+
+			if (result.suc === 1 && result.msg && result.msg.length > 0) {
+				const filteredData = result.msg.filter((item) => Number(item?.member_outstanding || 0) > 0);
+				if (filteredData.length > 0) {
+					return res.send({
+						suc: 1,
+						msg: filteredData,
+						message: "Direct memberwise outstanding details fetched successfully"
+					});
+				}
+			}
+			return res.send({
+				suc: 0,
+				msg: "No memberwise loan outstanding records found for selected branch"
+			});
 		}
 	} catch (error) {
-		console.error("Error in loan_statement_report:", error);
+		console.error("Error in fetch_direct_groupwise_outstanding_report:", error);
+		return res.send({ suc: 0, msg: "Internal server error" });
+	}
+});
+
+// 6. Fetch Indirect Groupwise / Memberwise Outstanding Report
+reportRouter.post("/fetch_indirect_groupwise_outstanding_report", async (req, res) => {
+	try {
+		const { branch_code, option_type, as_on_date, tenant_id } = req.body;
+		const filterDate = as_on_date || new Date().toISOString().split("T")[0];
+		const optType = option_type || "G";
+
+		if (optType === "G") {
+			// Groupwise Outstanding (Indirect / PACS level from bdccb.td_loan_ccb)
+			let select = `DISTINCT ON (a.loan_id::text)
+				a.loan_id,
+				a.group_code,
+				COALESCE(g.group_name::text, 'N/A') as group_name,
+				COALESCE(br.branch_name::text, 'N/A') as branch_name,
+				COALESCE(b.branch_name::text, 'N/A') as society_name,
+				COALESCE(a.branch_shg_id::text, b.branch_id::text, '') as society_code,
+				COALESCE(a.period, 0) as period,
+				COALESCE(a.curr_roi, 0) as curr_roi,
+				COALESCE(a.penal_roi::numeric, 0) as penal_roi,
+				a.disb_dt as disb_date,
+				COALESCE(a.disb_amt, 0) as disb_amt,
+				COALESCE(a.pay_mode::text, 'N/A') as period_mode,
+				COALESCE(a.rep_start_dt, a.disb_dt) as start_date,
+				COALESCE(a.rep_end_dt, a.disb_dt) as end_date,
+				(COALESCE(a.curr_prn, 0) + COALESCE(a.curr_intt, 0))::numeric as group_outstanding
+			`;
+
+			let table_name = `
+				bdccb.td_loan_ccb a
+				LEFT JOIN bdccb.md_group g ON (a.group_code::text = g.group_code::text)
+				LEFT JOIN public.md_branch b ON (a.branch_shg_id::text = b.branch_id::text)
+				LEFT JOIN public.md_branch br ON (a.branch_id::text = br.branch_id::text OR g.branch_code::text = br.branch_id::text OR b.branch_jurisdiction_id::text = br.branch_id::text)
+			`;
+
+			let whr = `a.branch_shg_id::text NOT IN ('111') AND a.loan_to = 'P'`;
+
+			if (branch_code && branch_code !== "0" && branch_code !== "112" && branch_code !== "ALL") {
+				if (Array.isArray(branch_code) && branch_code.length > 0) {
+					whr += ` AND (a.branch_id::text IN ('${branch_code.join("','")}') OR g.branch_code::text IN ('${branch_code.join("','")}') OR b.branch_jurisdiction_id::text IN ('${branch_code.join("','")}'))`;
+				} else {
+					whr += ` AND (a.branch_id::text = '${branch_code}' OR g.branch_code::text = '${branch_code}' OR b.branch_jurisdiction_id::text = '${branch_code}')`;
+				}
+			}
+
+			if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+				whr += ` AND a.tenant_id::text = '${tenant_id}'`;
+			}
+
+			whr += ` AND (a.disb_dt::date <= '${filterDate}'::date OR a.disb_dt IS NULL)`;
+
+			let order = `a.loan_id::text DESC, a.disb_dt DESC`;
+
+			let result = await db_Select(select, table_name, whr, order);
+
+			if (result.suc === 1 && result.msg && result.msg.length > 0) {
+				return res.send({
+					suc: 1,
+					msg: result.msg,
+					message: "Indirect groupwise outstanding details fetched successfully"
+				});
+			}
+			return res.send({
+				suc: 0,
+				msg: "No indirect groupwise loan outstanding records found for selected branch"
+			});
+		} else {
+			// Memberwise Outstanding (Indirect / PACS level from bdccb.td_loan_member)
+			let select = `DISTINCT ON (a.member_code::text)
+				a.loan_id,
+				COALESCE(l.loan_id::text, a.loan_id::text) as ccb_loan,
+				a.member_code,
+				COALESCE(m.member_name::text, 'N/A') as member_name,
+				a.group_code,
+				COALESCE(g.group_name::text, 'N/A') as group_name,
+				COALESCE(br.branch_name::text, 'N/A') as branch_name,
+				COALESCE(b.branch_name::text, 'N/A') as society_name,
+				COALESCE(a.branch_shg_id::text, b.branch_id::text, '') as society_code,
+				COALESCE(a.period, 0) as period,
+				COALESCE(a.curr_roi, 0) as curr_roi,
+				COALESCE(a.penal_roi::numeric, 0) as penal_roi,
+				a.disb_dt as disb_date,
+				COALESCE(a.disb_amt, 0) as disb_amt,
+				COALESCE(a.period_mode::text, 'N/A') as period_mode,
+				COALESCE(a.rep_start_dt, a.disb_dt) as start_date,
+				COALESCE(a.rep_end_dt, a.disb_dt) as end_date,
+				(COALESCE(a.prn_amt, 0) + COALESCE(a.intt_amt, 0))::numeric as member_outstanding
+			`;
+
+			let table_name = `
+				bdccb.td_loan_member a
+				LEFT JOIN bdccb.td_loan_ccb l ON (a.group_code::text = l.group_code::text AND a.branch_shg_id::text = l.branch_shg_id::text)
+				LEFT JOIN bdccb.md_member m ON (a.member_code::text = m.member_code::text)
+				LEFT JOIN bdccb.md_group g ON (a.group_code::text = g.group_code::text)
+				LEFT JOIN public.md_branch b ON (a.branch_shg_id::text = b.branch_id::text OR g.pacs_id::text = b.branch_id::text)
+				LEFT JOIN public.md_branch br ON (a.branch_id::text = br.branch_id::text OR g.branch_code::text = br.branch_id::text OR b.branch_jurisdiction_id::text = br.branch_id::text)
+			`;
+
+			let whr = `a.branch_shg_id::text NOT IN ('111')`;
+
+			if (branch_code && branch_code !== "0" && branch_code !== "100" && branch_code !== "112" && branch_code !== "ALL") {
+				if (Array.isArray(branch_code) && branch_code.length > 0) {
+					whr += ` AND (a.branch_id::text IN ('${branch_code.join("','")}') OR g.branch_code::text IN ('${branch_code.join("','")}') OR b.branch_jurisdiction_id::text IN ('${branch_code.join("','")}'))`;
+				} else {
+					whr += ` AND (a.branch_id::text = '${branch_code}' OR g.branch_code::text = '${branch_code}' OR b.branch_jurisdiction_id::text = '${branch_code}')`;
+				}
+			}
+
+			if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+				whr += ` AND a.tenant_id::text = '${tenant_id}'`;
+			}
+
+			whr += ` AND (a.disb_dt::date <= '${filterDate}'::date OR a.disb_dt IS NULL)`;
+
+			let order = `a.member_code::text ASC, a.disb_dt DESC, a.loan_id::text DESC`;
+
+			let result = await db_Select(select, table_name, whr, order);
+
+			if (result.suc === 1 && result.msg && result.msg.length > 0) {
+				return res.send({
+					suc: 1,
+					msg: result.msg,
+					message: "Indirect memberwise outstanding details fetched successfully"
+				});
+			}
+			return res.send({
+				suc: 0,
+				msg: "No indirect memberwise loan outstanding records found for selected branch"
+			});
+		}
+	} catch (error) {
+		console.error("Error in fetch_indirect_groupwise_outstanding_report:", error);
+		return res.send({ suc: 0, msg: "Internal server error" });
+	}
+});
+
+// 7. Fetch Society Loan Outstanding Report
+reportRouter.post("/fetch_society_loan_outstanding_report", async (req, res) => {
+	try {
+		const { branch_code, as_on_date, tenant_id } = req.body;
+		const filterDate = as_on_date || new Date().toISOString().split("T")[0];
+
+		let select = `DISTINCT ON (a.loan_id::text)
+			a.loan_id,
+			a.group_code,
+			COALESCE(g.group_name::text, 'N/A') as group_name,
+			COALESCE(a.branch_shg_id::text, b.branch_id::text, '') as society_code,
+			COALESCE(b.branch_name::text, 'N/A') as branch_shg_id_name,
+			COALESCE(b.branch_name::text, 'N/A') as society_name,
+			COALESCE(br.branch_name::text, 'N/A') as branch_name,
+			COALESCE(a.period, 0) as period,
+			COALESCE(a.curr_roi, 0) as curr_roi,
+			COALESCE(a.penal_roi::numeric, 0) as penal_roi,
+			a.disb_dt as disb_date,
+			COALESCE(a.disb_amt, 0) as disb_amt,
+			COALESCE(a.pay_mode::text, 'N/A') as period_mode,
+			COALESCE(a.rep_start_dt, a.disb_dt) as start_date,
+			COALESCE(a.rep_end_dt, a.disb_dt) as end_date,
+			(COALESCE(a.curr_prn, 0) + COALESCE(a.curr_intt, 0))::numeric as group_outstanding
+		`;
+
+		let table_name = `
+			bdccb.td_loan a
+			LEFT JOIN public.md_branch b ON (a.branch_shg_id::text = b.branch_id::text OR a.branch_shg_id::text = b.branch_id::text)
+			LEFT JOIN bdccb.md_group g ON (a.group_code::text = g.group_code::text)
+			LEFT JOIN public.md_branch br ON (a.branch_id::text = br.branch_id::text OR g.branch_code::text = br.branch_id::text OR b.branch_jurisdiction_id::text = br.branch_id::text)
+		`;
+
+		let whr = `a.branch_shg_id::text NOT IN ('111') AND a.loan_to = 'P'`;
+
+		if (branch_code && branch_code !== "0" && branch_code !== "112" && branch_code !== "ALL") {
+			if (Array.isArray(branch_code) && branch_code.length > 0) {
+				whr += ` AND (a.branch_id::text IN ('${branch_code.join("','")}') OR g.branch_code::text IN ('${branch_code.join("','")}') OR b.branch_jurisdiction_id::text IN ('${branch_code.join("','")}'))`;
+			} else {
+				whr += ` AND (a.branch_id::text = '${branch_code}' OR g.branch_code::text = '${branch_code}' OR b.branch_jurisdiction_id::text = '${branch_code}')`;
+			}
+		}
+
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND a.tenant_id::text = '${tenant_id}'`;
+		}
+
+		whr += ` AND (a.disb_dt::date <= '${filterDate}'::date OR a.disb_dt IS NULL)`;
+
+		let order = `a.loan_id::text DESC, a.disb_dt DESC`;
+
+		let result = await db_Select(select, table_name, whr, order);
+
+		if (result.suc === 1 && result.msg && result.msg.length > 0) {
+			return res.send({
+				suc: 1,
+				msg: result.msg,
+				message: "Society loan outstanding details fetched successfully"
+			});
+		}
+
+		return res.send({
+			suc: 0,
+			msg: "No society loan outstanding records found for selected branch"
+		});
+	} catch (error) {
+		console.error("Error in fetch_society_loan_outstanding_report:", error);
 		return res.send({ suc: 0, msg: "Internal server error" });
 	}
 });
