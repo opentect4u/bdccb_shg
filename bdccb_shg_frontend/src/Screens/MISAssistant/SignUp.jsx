@@ -20,6 +20,8 @@ import Radiobtn from "../../Components/Radiobtn"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import HomeIcon from '@mui/icons-material/Home';
 import { Height, Visibility, VisibilityOff } from "@mui/icons-material"
+import { BDCCBEmblem } from "../../Components/BDCCBLogo"
+import BDCCBFullHeaderLogo from "../../Components/BDCCBFullHeaderLogo"
 
 
 const department = [
@@ -71,7 +73,9 @@ function SignUp() {
 		shg_group: Yup.string(),
 		user_name: Yup.string().required("User Name is required"),
 		desig_name: Yup.string().required("Designation is required"),
-		user_id: Yup.string().required("User ID is required"),
+		user_id: Yup.string()
+			.matches(/^[a-zA-Z0-9@.]+$/, "User ID must be valid")
+			.required("User ID is required"),
 		// password: Yup.string().required("Password is required"),
 		// cnf_password: Yup.string().required("Confirm Password is required"),
 
@@ -114,22 +118,29 @@ function SignUp() {
 
 			console.log(res?.data?.user_status, "user_idddddddddddddddd", res?.data)
 			if(res?.data?.success){
+				const msg = res?.data?.msg || ""
+				const is10Digit = msg.toLowerCase().includes("10 digit") || msg.toLowerCase().includes("10-digit")
+
 				if(res?.data?.user_status === 0){ // Available User ID
-				// Message('success', res?.data?.msg)
-				setUserIDAvailable(true)
-				setUserIDAvailableMsg(res?.data?.msg)
+					setUserIDAvailable(true)
+					setUserIDAvailableMsg(is10Digit ? "" : msg)
 				}
 
 				if(res?.data?.user_status === 1){ // Exist User ID
-				// Message('success', res?.data?.msg)
-				setUserIDAvailable(false)
-				setUserIDAvailableMsg(res?.data?.msg)
+					if (is10Digit) {
+						setUserIDAvailable(null)
+						setUserIDAvailableMsg("")
+					} else {
+						setUserIDAvailable(false)
+						setUserIDAvailableMsg(msg)
+					}
 				}
 			
 			} else {
-			Message('error', res?.data?.msg)
-			// navigate(routePaths.LANDING)
-			// localStorage.clear()
+				const msg = res?.data?.msg || ""
+				if (!msg.toLowerCase().includes("10 digit")) {
+					Message('error', msg)
+				}
 			}
 		// if(res?.data?.suc === 0){
 		// navigate(routePaths.LANDING)
@@ -375,318 +386,259 @@ function SignUp() {
 
 
 	return (
-		<div className="bg-blue-800 p-20 flex justify-center min-h-screen min-w-screen">
-			<div className="bg-white p-20 rounded-3xl flex flex-col gap-8 justify-center items-center">
-				<div className="top-32">
-					<motion.img
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ delay: 1, type: "spring" }}
-						src={LOGO}
-						className="h-20"
-						alt="Flowbite Logo"
-					/>
-				</div>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{width: 580}}>
-					<nav className="flex items-center justify-left gap-3">
-					<a href={"/"}
-						rel="noreferrer"
-						className="text-gray-600 hover:text-blue-600"
-					>
-						<ArrowBackIcon />
-						{/* <HomeIcon /> */}
-					</a>
+		<div className="flex items-center justify-center min-h-screen bg-slate-800 p-4 md:p-6">
+			<div className="relative bg-white rounded-3xl shadow-xl overflow-hidden max-w-5xl w-full p-6 md:p-8 z-10">
+				<div>
+					{/* Header with Full Bank Logo Image */}
+					<div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+						<BDCCBFullHeaderLogo />
+					</div>
 
-					<span className="text-4xl font-thin text-blue-800">
-						Sign Up 
-					</span>
-					</nav>
-				
-				{/* <div className="text-4xl text-left font-thin text-blue-800">
-					Sign Up
-				</div> */}
-				</div>
+					{/* Title with Arrow to Login Page */}
+					<div className="flex items-center gap-2 mb-4">
+						<button
+							type="button"
+							onClick={() => navigate("/")}
+							className="p-1 text-slate-600 hover:text-blue-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+							title="Back to Login"
+						>
+							<ArrowBackIcon fontSize="medium" />
+						</button>
+						<h1 className="text-2xl font-bold text-slate-800">
+							Registration
+						</h1>
+					</div>
 
-				<form
-					onSubmit={formik.handleSubmit}
-					className="flex flex-col justify-center items-center gap-5"
-				>
-
-<div className="grid grid-cols-1 md:grid-cols-1 gap-4" style={{width: 580}}>
-
-							<div className="radioBtn_Signup">
+					{/* Form */}
+					<form onSubmit={formik.handleSubmit} className="flex flex-col gap-3">
+						{/* Department Radio Selection */}
+						<div className="radioBtn_Signup mb-1">
 							<Radiobtn
-							data={department}
-							val={departmentStatus}
-							onChangeVal={(value) => {
-							onChange(value)
-							}}
+								data={department}
+								val={departmentStatus}
+								onChangeVal={(value) => {
+									onChange(value)
+								}}
 							/>
+						</div>
+
+						{/* Row 1: Select Branch (col-6) & User Name (col-6) aligned */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+							<div>
+								<label className="block mb-2 text-sm capitalize font-bold text-slate-800">
+									Select Branch <span className="text-red-500">*</span>
+								</label>
+								<Select
+									showSearch
+									placeholder="Select Branch..."
+									value={formik.values.branch_id || undefined}
+									style={{ width: "100%", height: "38px" }}
+									name="branch_id"
+									optionFilterProp="label"
+									filterOption={(input, option) =>
+										option?.label?.toLowerCase().includes(input.toLowerCase())
+									}
+									onChange={(value) => {
+										formik.setFieldValue("branch_id", value)
+									}}
+									onBlur={formik.handleBlur}
+								>
+									{branch?.map((item) => (
+										<Select.Option key={item.code} value={item.code} label={item.name}>
+											{item.name}
+										</Select.Option>
+									))}
+								</Select>
+								{formik.errors.branch_id && formik.touched.branch_id ? (
+									<VError title={formik.errors.branch_id} />
+								) : null}
 							</div>
 
-					<div>
-													
-					<label for="loan_to" class="block mb-2 text-sm capitalize font-bold text-slate-800
-					dark:text-gray-100"> 
-					Select Branch *
-					</label>
-
-					<Select
-					showSearch
-					placeholder="Select Branch..."
-					value={formik.values.branch_id || undefined}
-					style={{ width: "100%" }}
-					name="branch_id"
-					optionFilterProp="label"
-					filterOption={(input, option) =>
-					option?.label?.toLowerCase().includes(input.toLowerCase())
-					}
-
-					onChange={(value) => {formik.setFieldValue("branch_id", value);}}
-
-					onBlur={formik.handleBlur}
-					>
-					{branch?.map((item) => (
-					<Select.Option key={item.code} value={item.code} label={item.name}>
-					{item.name}
-					</Select.Option>
-					))}
-					</Select>
-
-					{formik.errors.branch_id && formik.touched.branch_id ? (
-					<VError title={formik.errors.branch_id} />
-					) : null}
-					</div>
-
-					{departmentStatus == "S" && (
-						<div>
-					<label for="loan_to" class="block mb-2 text-sm capitalize font-bold text-slate-800
-					dark:text-gray-100"> 
-					Select SHG Group
-					{/* Select PACS/SHG * */}
-					</label>
-					<Select
-					showSearch
-					placeholder={'Choose SHG Group '}
-					value={formik.values.shg_group}
-					style={{ width: "100%" }}
-					optionFilterProp="children"
-					name="shg_group"
-					// 🔍 typing search
-					onSearch={(value) => {
-					handleSearchChange(value);   // your search function
-					// userDetails[0]?.user_type == 'B' ? 'P' : userDetails[0]?.user_type == 'P' ? 'S' : '',
-					}}
-					onChange={(value) => {
-
-					formik.setFieldValue("shg_group", value)
-					}}
-					onBlur={formik.handleBlur}
-					filterOption={(input, option) =>
-					option?.children?.toLowerCase().includes(input.toLowerCase())
-					}
-
-					>
-					<Select.Option value="" disabled>{'Choose SHG Group'}</Select.Option>
-
-					{PACS_SHGList?.map((data) => (
-					<Select.Option key={data.code} value={data.code}>
-					{data.name}
-					</Select.Option>
-					))}
-					</Select>
-
-
-					{formik.errors.shg_group && formik.touched.shg_group ? (
-					<VError title={formik.errors.shg_group} />
-					) : null}
-
-					</div>
-					)}
-					
-
-					</div>
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{width: 580}}>
-					<div>
-						<TDInputTemplateBr
-							placeholder="Type user name..."
-							type="text"
-							label="User Name"
-							name="user_name"
-							formControlName={formik.values.user_name}
-							handleChange={formik.handleChange}
-							handleBlur={formik.handleBlur}
-							mode={1}
-							// disabled
-						/>
-						{formik.errors.user_name && formik.touched.user_name ? (
-							<VError title={formik.errors.user_name} />
-						) : null}
-					</div>
-					
-
-					<div>
-						<TDInputTemplateBr
-							placeholder="Type designation..."
-							type="text"
-							label="Designation"
-							name="desig_name"
-							formControlName={formik.values.desig_name}
-							handleChange={formik.handleChange}
-							handleBlur={formik.handleBlur}
-							mode={1}
-							// disabled
-						/>
-						{formik.errors.desig_name && formik.touched.desig_name ? (
-							<VError title={formik.errors.desig_name} />
-						) : null}
-					</div>
-
-					</div>
-<div className="grid grid-cols-1 md:grid-cols-1 gap-4" style={{width: 580}}>
-					<div>
-						<TDInputTemplateBr
-							placeholder="Type user id..."
-							type="text"
-							label="User ID"
-							name="user_id"
-							formControlName={formik.values.user_id}
-							// handleChange={(e) => {
-							// 	formik.handleChange(e)   // update formik
-							// 	handleEmployeeIdChange(e.target.value) // call API
-							// }}
-							handleChange={(e) => {
-								const value = e.target.value.replace(/\s/g, "");
-								formik.setFieldValue("user_id", value);
-								handleEmployeeIdChange(value);
-							}}
-							handleBlur={formik.handleBlur}
-							onChange={()=>{}}
-							mode={1}
-						/>
-						{formik.errors.user_id && formik.touched.user_id ? (
-							<VError title={formik.errors.user_id} />
-						) : null}
-
-						{/* {uerIDAvailable === true && (
-						<p className="text-green-600 text-sm mt-1">
-						{uerIDAvailableMsg} ✓
-						</p>
-						)} */}
-
-						{uerIDAvailable === false && (
-						<p className="text-red-600 text-sm mt-1">
-						{/* User ID already exists ✗ */}
-						{uerIDAvailableMsg} ✗
-						</p>
-						)}
-
-					</div>
-</div>		
-
-		<div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{width: 580}}>	
-					
-					<div className="relative">
-						
-
-						<TDInputTemplateBr
-							placeholder="*****"
-							// type="password"
-							type={showPassword ? "text" : "password"}
-							label="New Password"
-							name="password"
-							formControlName={formik.values.password}
-							handleChange={formik.handleChange}
-							handleBlur={formik.handleBlur}
-							mode={1}
-						/>
-						{formik.errors.password && formik.touched.password ? (
-							<VError title={formik.errors.password} />
-						) : null}
-
-						<div className="absolute right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword((prev) => !prev)} 
-						style={{height:'38px', top:'27px', right:0}}>
-						{showPassword ? (
-						<VisibilityOff className="text-slate-700" />
-						) : (
-						<Visibility className="text-slate-700" />
-						)}
+							<div>
+								<TDInputTemplateBr
+									placeholder="Type user name..."
+									type="text"
+									label="User Name"
+									name="user_name"
+									formControlName={formik.values.user_name}
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									mode={1}
+								/>
+								{formik.errors.user_name && formik.touched.user_name ? (
+									<VError title={formik.errors.user_name} />
+								) : null}
+							</div>
 						</div>
 
-
-						
-					</div>
-					<div className="relative">
-						<TDInputTemplateBr
-							placeholder="*****"
-							// type="password"
-							type={showPassword_2 ? "text" : "password"}
-							label="Confirm Password"
-							name="cnf_password"
-							formControlName={formik.values.cnf_password}
-							handleChange={formik.handleChange}
-							handleBlur={formik.handleBlur}
-							mode={1}
-						/>
-						{formik.errors.cnf_password && formik.touched.cnf_password ? (
-							<VError title={formik.errors.cnf_password} />
-						) : null}
-
-						{formik.values.cnf_password &&
-						formik.values.password === formik.values.cnf_password && (
-						<p className="text-green-600 text-sm mt-1">
-							Passwords match ✓
-						</p>
+						{/* SHG Group selection if department is 'S' */}
+						{departmentStatus === "S" && (
+							<div>
+								<label className="block mb-2 text-sm capitalize font-bold text-slate-800">
+									Select SHG Group
+								</label>
+								<Select
+									showSearch
+									placeholder={"Choose SHG Group"}
+									value={formik.values.shg_group}
+									style={{ width: "100%", height: "38px" }}
+									optionFilterProp="children"
+									name="shg_group"
+									onSearch={(value) => {
+										handleSearchChange(value)
+									}}
+									onChange={(value) => {
+										formik.setFieldValue("shg_group", value)
+									}}
+									onBlur={formik.handleBlur}
+									filterOption={(input, option) =>
+										option?.children?.toLowerCase().includes(input.toLowerCase())
+									}
+								>
+									<Select.Option value="" disabled>
+										Choose SHG Group
+									</Select.Option>
+									{PACS_SHGList?.map((data) => (
+										<Select.Option key={data.code} value={data.code}>
+											{data.name}
+										</Select.Option>
+									))}
+								</Select>
+								{formik.errors.shg_group && formik.touched.shg_group ? (
+									<VError title={formik.errors.shg_group} />
+								) : null}
+							</div>
 						)}
 
-						<div className="absolute right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword_2((prev) => !prev)} 
-						style={{height:'38px', top:'27px', right:0}}>
-						{showPassword_2 ? (
-						<VisibilityOff className="text-slate-700" />
-						) : (
-						<Visibility className="text-slate-700" />
-						)}
+						{/* Row 2: Designation & User ID */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<TDInputTemplateBr
+									placeholder="Type designation..."
+									type="text"
+									label="Designation"
+									name="desig_name"
+									formControlName={formik.values.desig_name}
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									mode={1}
+								/>
+								{formik.errors.desig_name && formik.touched.desig_name ? (
+									<VError title={formik.errors.desig_name} />
+								) : null}
+							</div>
+
+							<div>
+								<TDInputTemplateBr
+									placeholder="Type user id..."
+									type="text"
+									label="User ID"
+									name="user_id"
+									formControlName={formik.values.user_id}
+									handleChange={(e) => {
+										const value = e.target.value.replace(/[^a-zA-Z0-9@.]/g, "");
+										formik.setFieldValue("user_id", value);
+										if (value) {
+											handleEmployeeIdChange(value);
+										}
+									}}
+									handleBlur={formik.handleBlur}
+									onChange={() => {}}
+									mode={1}
+								/>
+								{formik.errors.user_id && formik.touched.user_id ? (
+									<VError title={formik.errors.user_id} />
+								) : null}
+								{uerIDAvailable === false && uerIDAvailableMsg && !uerIDAvailableMsg.toLowerCase().includes("10 digit") && (
+									<p className="text-red-600 text-xs mt-0.5 font-semibold">
+										{uerIDAvailableMsg} ✗
+									</p>
+								)}
+								{uerIDAvailable === true && (
+									<p className="text-green-600 text-xs mt-0.5 font-semibold">
+										{uerIDAvailableMsg} ✓
+									</p>
+								)}
+							</div>
 						</div>
-					</div>
 
-					</div>
-					
-					
-						<div className="grid grid-cols-1 md:grid-cols-1 gap-4" style={{width: 580}}>
-							<Spin
-						indicator={<LoadingOutlined spin />}
-						size={5}
-						// className="text-blue-800 w-52 dark:text-gray-400"
-						spinning={loading}
-					>
-							<button
-								disabled={!formik.isValid}
-								type="submit"
-								className="w-full px-6 py-3 bg-blue-800 text-white rounded-lg
-							hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2
-							focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
-							disabled:opacity-50 disabled:cursor-not-allowed
-							disabled:hover:bg-blue-600 disabled:transition-none"
-							>
-								Submit
-							</button>
+						{/* Row 3: Password & Confirm Password */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="relative">
+								<TDInputTemplateBr
+									placeholder="*****"
+									type={showPassword ? "text" : "password"}
+									label="New Password"
+									name="password"
+									formControlName={formik.values.password}
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									mode={1}
+								/>
+								{formik.errors.password && formik.touched.password ? (
+									<VError title={formik.errors.password} />
+								) : null}
+								<div
+									className="absolute right-0 pr-3 flex items-center cursor-pointer"
+									onClick={() => setShowPassword((prev) => !prev)}
+									style={{ height: "38px", top: "27px", right: 0 }}
+								>
+									{showPassword ? (
+										<VisibilityOff className="text-slate-700" />
+									) : (
+										<Visibility className="text-slate-700" />
+									)}
+								</div>
+							</div>
+
+							<div className="relative">
+								<TDInputTemplateBr
+									placeholder="*****"
+									type={showPassword_2 ? "text" : "password"}
+									label="Confirm Password"
+									name="cnf_password"
+									formControlName={formik.values.cnf_password}
+									handleChange={formik.handleChange}
+									handleBlur={formik.handleBlur}
+									mode={1}
+								/>
+								{formik.errors.cnf_password && formik.touched.cnf_password ? (
+									<VError title={formik.errors.cnf_password} />
+								) : null}
+								{formik.values.cnf_password &&
+									formik.values.password === formik.values.cnf_password && (
+										<p className="text-green-600 text-xs mt-0.5 font-semibold">
+											Passwords match ✓
+										</p>
+									)}
+								<div
+									className="absolute right-0 pr-3 flex items-center cursor-pointer"
+									onClick={() => setShowPassword_2((prev) => !prev)}
+									style={{ height: "38px", top: "27px", right: 0 }}
+								>
+									{showPassword_2 ? (
+										<VisibilityOff className="text-slate-700" />
+									) : (
+										<Visibility className="text-slate-700" />
+									)}
+								</div>
+							</div>
+						</div>
+
+						{/* Medium-Sized Submit Button Only */}
+						<div className="flex justify-center mt-3">
+							<Spin spinning={loading} indicator={<LoadingOutlined spin />}>
+								<button
+									disabled={!formik.isValid}
+									type="submit"
+									className="w-48 py-2.5 px-6 bg-[#1D4ED8] hover:bg-blue-800 text-white font-semibold rounded-lg shadow transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									Submit
+								</button>
 							</Spin>
-
-							{/* <button
-								// disabled={!formik.isValid}
-								type="submit"
-								className="w-full px-6 py-3 bg-pink-600 text-white rounded-lg
-								 hover:bg-pink-800 transition-colors focus:outline-none focus:ring-2
-								  focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
-								  disabled:opacity-50 disabled:cursor-not-allowed
-								  disabled:hover:bg-pink-600 disabled:transition-none"
-							>
-								Sign In
-							</button> */}
 						</div>
-					
-				</form>
+					</form>
+				</div>
 			</div>
 		</div>
 	)

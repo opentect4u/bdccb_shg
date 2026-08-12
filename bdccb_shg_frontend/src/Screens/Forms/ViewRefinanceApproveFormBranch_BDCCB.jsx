@@ -910,7 +910,7 @@ function ViewRefinanceApproveFormBranch_BDCCB({ groupDataArr }) {
 									setVisible(true);
 								}}
 							>
-								<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
+								<CheckCircleOutlined /> <span className={`ml-2`}>Approved Transaction</span>
 							</button>
 
 

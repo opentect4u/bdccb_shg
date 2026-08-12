@@ -48,7 +48,8 @@ function BtnComp({
 
 					<button
 						type="submit"
-						className="inline-flex items-center px-5 py-2.5 mt-4 ml-2 sm:mt-6 text-sm font-medium text-center text-white border hover:border-green-600 border-teal-500 bg-teal-500 transition ease-in-out hover:bg-green-600 duration-300 rounded-full  dark:focus:ring-primary-900"
+						disabled={condition}
+						className="inline-flex items-center px-5 py-2.5 mt-4 ml-2 sm:mt-6 text-sm font-medium text-center text-white border hover:border-green-600 border-teal-500 bg-teal-500 transition ease-in-out hover:bg-green-600 duration-300 rounded-full dark:focus:ring-primary-900 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<SaveOutlined className="mr-2" />
 						{param?.id > 0 ? "Update" : "Submit"}

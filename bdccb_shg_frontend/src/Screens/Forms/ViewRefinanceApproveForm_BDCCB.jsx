@@ -924,7 +924,7 @@ const s2ab = (s) => {
 						setVisible(true);
 						}}
 						>
-						<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
+						<CheckCircleOutlined /> <span className={`ml-2`}>Approved Transaction</span>
 						</button>
 
 

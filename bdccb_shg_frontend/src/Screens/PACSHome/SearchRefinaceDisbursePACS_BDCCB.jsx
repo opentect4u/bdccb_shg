@@ -20,11 +20,11 @@ import TDInputTemplateBr from "../../Components/TDInputTemplateBr"
 import RefinaceDisburseTable_BDCCB from "../../Components/RefinaceDisburseTable_BDCCB"
 const options_Disburs = [
 	{
-		label: "Acceptance Pending",
+		label: "Approved Pending",
 		value: "U",
 	},
 	{
-		label: "Accepted",
+		label: "Approved",
 		value: "A",
 	},
 	// {

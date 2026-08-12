@@ -1106,24 +1106,41 @@ function MemberEditExtendedForm({ groupDataArr }) {
 
 
 	const handleGroupLeaderChange = (index) => {
-		const updated = formik.values.members.map((m, i) => ({
-			...m,
-			gp_leader_flag: i === index ? "Y" : "N",
-			asst_gp_leader_flag: i === index ? "N" : m.asst_gp_leader_flag,
-		}));
+		const isCurrentlyLeader = formik.values.members[index]?.gp_leader_flag === "Y";
+
+		const updated = formik.values.members.map((m, i) => {
+			if (i === index) {
+				return {
+					...m,
+					gp_leader_flag: isCurrentlyLeader ? "N" : "Y",
+					asst_gp_leader_flag: "N",
+				};
+			}
+			return {
+				...m,
+				gp_leader_flag: "N",
+			};
+		});
 
 		formik.setFieldValue("members", updated);
 	};
 
-
-
-
 	const handleAssistantChange = (index) => {
-		const updated = formik.values.members.map((m, i) => ({
-			...m,
-			asst_gp_leader_flag: i === index ? "Y" : "N",
-			gp_leader_flag: i === index ? "N" : m.gp_leader_flag,
-		}));
+		const isCurrentlyAsst = formik.values.members[index]?.asst_gp_leader_flag === "Y";
+
+		const updated = formik.values.members.map((m, i) => {
+			if (i === index) {
+				return {
+					...m,
+					asst_gp_leader_flag: isCurrentlyAsst ? "N" : "Y",
+					gp_leader_flag: "N",
+				};
+			}
+			return {
+				...m,
+				asst_gp_leader_flag: "N",
+			};
+		});
 
 		formik.setFieldValue("members", updated);
 	};

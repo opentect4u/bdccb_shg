@@ -26,11 +26,11 @@ const options = [
 ]
 const options_Disburs = [
 	{
-		label: "Acceptance Pending",
+		label: "Approved Pending",
 		value: "U",
 	},
 	{
-		label: "Accepted",
+		label: "Approved",
 		value: "A",
 	},
 	// {

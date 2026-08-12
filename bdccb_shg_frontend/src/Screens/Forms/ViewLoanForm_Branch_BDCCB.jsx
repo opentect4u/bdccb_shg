@@ -1480,7 +1480,7 @@ function ViewLoanForm_Branch_BDCCB({ flag }) {
 						}}
 
 						>
-						<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
+						<CheckCircleOutlined /> <span className={`ml-2`}>Approved Transaction</span>
 						</button>
 
 						<button

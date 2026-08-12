@@ -564,7 +564,7 @@ function BranchSHGLoanRecoveryAcceptReject() {
 			<section className=" dark:bg-[#001529] flex justify-center align-middle p-5">
 				<div className="p-5 w-4/5 min-h-screen rounded-3xl">
 					<div className="w-auto my-4">
-						<FormHeader text={`SHG Loan Recovery Accept/Reject`} mode={2} />
+						<FormHeader text={`SHG Loan Recovery Approved/Reject`} mode={2} />
 					</div>
 					{/* <Sidebar mode={2} /> */}
 

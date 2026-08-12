@@ -37,17 +37,38 @@ function ManageUser() {
 	// const [value2, setValue2] = useState("S")
 	const navigate = useNavigate()
 
-	const fetchLoanApplications = async () => {
+	const fetchLoanApplications = async (status) => {
 		setLoading(true)
 		const tokenValue = await getLocalStoreTokenDts(navigate);
+
+		const loggedInUserType = userDetails[0]?.user_type
+		let targetBranchId = 0
+		let targetUserType = ""
+
+		// HO ('H', 'M', 'A'): Approves all Branch users ('B')
+		// Branch ('B'): Approves all PACS users ('P')
+		// PACS ('P'): Approves all SHG users ('S')
+		if (loggedInUserType === "H" || loggedInUserType === "M" || loggedInUserType === "A") {
+			targetBranchId = userDetails[0]?.brn_code || 9999
+			targetUserType = "B"
+		} else if (loggedInUserType === "B") {
+			targetBranchId = userDetails[0]?.brn_code || 0
+			targetUserType = "P"
+		} else if (loggedInUserType === "P") {
+			targetBranchId = userDetails[0]?.brn_code || 0
+			targetUserType = "S"
+		} else {
+			targetBranchId = userDetails[0]?.brn_code || 9999
+			targetUserType = ""
+		}
 
 		await axios.get(`${url_bdccb}/user/user_list`, {
 		params: {
 			tenant_id: userDetails[0]?.tenant_id, 
-			branch_id: userDetails[0]?.user_type == 'H' ? 0 : userDetails[0]?.brn_code, 
-			user_type: userDetails[0]?.user_type == 'B' ? 'P' : userDetails[0]?.user_type == 'P' ? 'S' : '',
-			branch_type: userDetails[0]?.user_type,
-			user_status: approvalStatus
+			branch_id: targetBranchId, 
+			user_type: targetUserType,
+			branch_type: loggedInUserType,
+			user_status: status || approvalStatus
 		},
 		headers: {
 		Authorization: `${tokenValue?.token}`, // example header
@@ -58,17 +79,13 @@ function ManageUser() {
 				console.log(res, 'resresresresres');
 
 				if(res?.data?.success){
-				
-
-				setMasterData(res?.data?.data)
-				setCopyLoanApplications(res?.data?.data)
+					setMasterData(res?.data?.data || [])
+					setCopyLoanApplications(res?.data?.data || [])
 				} else {
-				Message('error', res?.data?.msg)
-				navigate(routePaths.LANDING)
-				localStorage.clear()
-
+					Message('error', res?.data?.msg)
+					navigate(routePaths.LANDING)
+					localStorage.clear()
 				}
-
 			})
 			.catch((err) => {
 				Message("error", "Some error occurred while fetching users!")

@@ -31,15 +31,18 @@ userRouter = express.Router();
             whr += ` AND a.active_flag = '${user_status}'`;
         }
         if(branch_type == 'B' ){
-        if(user_type){whr += ` AND a.user_type != 'S'`; }
+            if(user_type){whr += ` AND a.user_type != 'S'`; }
+        }else if(branch_type == 'H'){
+            whr += ` AND a.user_type = '${user_type || 'B'}'`;
         }else{
              if(user_type){whr += ` AND a.user_type = '${user_type}'`; }
         }
        
         if(branch_type == 'B' ){
-        var branch_ids = await get_pacs_of_branch(branch_id);
-        whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids},${branch_id})`:` AND a.brn_code IN (${branch_id})`; 
-        
+            var branch_ids = await get_pacs_of_branch(branch_id);
+            whr += branch_ids.length > 0  ? ` AND a.brn_code IN (${branch_ids},${branch_id})`:` AND a.brn_code IN (${branch_id})`; 
+        }else if(branch_type == 'H'){
+            // Head Office (branch_type = 'H') fetches branch users across all branches, so do not filter by a.brn_code = 9999
         }else{
             whr += branch_id > 0 ? ` AND a.brn_code = ${branch_id}` : ""; 
         }

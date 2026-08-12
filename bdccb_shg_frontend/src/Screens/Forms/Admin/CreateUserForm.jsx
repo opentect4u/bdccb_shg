@@ -44,7 +44,7 @@ function CreateUserForm() {
 	const userDetails = JSON.parse(localStorage.getItem("user_details"))
 
 	const [visible, setVisible] = useState(() => false)
-	const [radioBtnStatus, setRadioBtnStatus] = useState("Y")
+	const [radioBtnStatus, setRadioBtnStatus] = useState(() => userState?.active_flag?.trim()?.toUpperCase() || "N")
 	const [masterData, setMasterData] = useState([])
 
 	const [pendingValues, setPendingValues] = useState(null);
@@ -209,46 +209,58 @@ function CreateUserForm() {
 		setLoading(true)
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
-		await axios.get(`${url_bdccb}/user/user_list`, {
-		params: {
-			tenant_id: userDetails[0]?.tenant_id, 
-			branch_id: userDetails[0]?.user_type == 'H' ? 0 : userDetails[0]?.brn_code, 
-			user_type: userDetails[0]?.user_type == 'B' ? 'P' : userDetails[0]?.user_type == 'P' ? 'S' : '',
-			user_status: userState?.active_flag,
-			branch_type: userDetails[0]?.user_type,
-			user_id: params?.id
-		},
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
+		const loggedInUserType = userDetails[0]?.user_type
+		let targetBranchId = 0
+		let targetUserType = ""
+
+		if (loggedInUserType === "H" || loggedInUserType === "M" || loggedInUserType === "A") {
+			targetBranchId = userDetails[0]?.brn_code || 9999
+			targetUserType = "B"
+		} else if (loggedInUserType === "B") {
+			targetBranchId = userDetails[0]?.brn_code || 0
+			targetUserType = "P"
+		} else if (loggedInUserType === "P") {
+			targetBranchId = userDetails[0]?.brn_code || 0
+			targetUserType = "S"
+		} else {
+			targetBranchId = userDetails[0]?.brn_code || 9999
+			targetUserType = ""
 		}
+
+		await axios.get(`${url_bdccb}/user/user_list`, {
+			params: {
+				tenant_id: userDetails[0]?.tenant_id, 
+				branch_id: targetBranchId, 
+				user_type: targetUserType,
+				user_status: userState?.active_flag,
+				branch_type: loggedInUserType,
+				user_id: params?.id
+			},
+			headers: {
+				Authorization: `${tokenValue?.token}`,
+				"Content-Type": "application/json",
+			}
 		})
 			.then((res) => {
-				console.log(res?.data?.data, 'resresresresres', res?.data?.data[0]?.active_flag);
+				console.log(res?.data?.data, 'resresresresres', res?.data?.data?.[0]?.active_flag);
 
-				if(res?.data?.success){
-				
+				if (res?.data?.success && res?.data?.data?.length > 0) {
+					const userObj = res?.data?.data[0]
+					setMasterData(res?.data?.data)
 
-				setMasterData(res?.data?.data)
-
-				setValues({
-				user_name: res?.data?.data[0]?.user_name,
-				user_id: res?.data?.data[0]?.user_id,
-				designation: res?.data?.data[0]?.designation,
-				user_type: res?.data?.data[0]?.user_type,
-				})
-				setRadioBtnStatus(res?.data?.data[0]?.active_flag)
-
-				
-
-				// setCopyLoanApplications(res?.data?.data)
-				} else {
-				Message('error', res?.data?.msg)
-				navigate(routePaths.LANDING)
-				localStorage.clear()
-
+					setValues({
+						user_name: userObj?.user_name,
+						user_id: userObj?.user_id,
+						designation: userObj?.designation,
+						user_type: userObj?.user_type,
+					})
+					const flag = userObj?.active_flag?.trim()?.toUpperCase() || userState?.active_flag?.trim()?.toUpperCase() || "N"
+					setRadioBtnStatus(flag)
+				} else if (!res?.data?.success) {
+					Message('error', res?.data?.msg)
+					navigate(routePaths.LANDING)
+					localStorage.clear()
 				}
-
 			})
 			.catch((err) => {
 				Message("error", "Some error occurred while fetching users!")

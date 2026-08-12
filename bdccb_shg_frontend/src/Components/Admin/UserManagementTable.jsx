@@ -135,14 +135,11 @@ function UserManagementTable({
 							<th scope="col" className="p-4">
 								User Name
 							</th>
-							{/* <th scope="col" className="p-4">
-								Branch ID
+							<th scope="col" className="p-4">
+								Branch / PACS Name
 							</th>
 							<th scope="col" className="p-4">
-								Branch Name
-							</th> */}
-							<th scope="col" className="p-4">
-								Branch Name
+								User Type
 							</th>
 							<th scope="col" className="p-4">
 								Status
@@ -161,33 +158,28 @@ function UserManagementTable({
 									}
 									key={i}
 								>
-									{/* <th
-										scope="row"
-										className="px-3 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-									>
-										{item.sl_no}
-									</th> */}
-									<td className="px-6 py-3 text-slate-800">
+									<td className="px-6 py-3 font-semibold text-slate-800">
 										{item?.user_id}
 									</td>
-									<td className="px-6 py-3  text-slate-700">
+									<td className="px-6 py-3 text-slate-700">
 										{item?.user_name}
 									</td>
-									<td className="px-6 py-3  text-slate-700">
-										{item?.branch_society_name}
-									</td>
-									{/* <td className="px-6 py-3 text-slate-700">{item?.brn_code}</td>
 									<td className="px-6 py-3 text-slate-700">
-										{item?.branch_name}
-									</td> */}
-									<td
-										className={`px-6 py-3 ${
-											item?.active_flag === "Y"
-												? "text-green-500"
-												: "text-red-500"
-										}`}
-									>
-										{item?.active_flag === "Y" ? "Approved" : item?.active_flag === "N" ? "Unapproved" : "Block"}
+										{item?.branch_society_name || item?.branch_name || "-"}
+									</td>
+									<td className="px-6 py-3 font-medium text-slate-700">
+										{item?.user_type === 'B' ? 'Branch User' : item?.user_type === 'P' ? 'PACS User' : item?.user_type === 'S' ? 'SHG User' : item?.user_type === 'H' ? 'HO User' : item?.user_type || "-"}
+									</td>
+									<td className="px-6 py-3">
+										<span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+											(item?.active_flag?.trim()?.toUpperCase() === "Y")
+												? "bg-green-100 text-green-700"
+												: (item?.active_flag?.trim()?.toUpperCase() === "B")
+												? "bg-orange-100 text-orange-700"
+												: "bg-red-100 text-red-700"
+										}`}>
+											{item?.active_flag?.trim()?.toUpperCase() === "Y" ? "Approved" : item?.active_flag?.trim()?.toUpperCase() === "B" ? "Block" : "Unapproved"}
+										</span>
 									</td>
 
 									<td className="px-6 py-3 text-slate-700">

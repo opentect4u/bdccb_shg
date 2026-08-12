@@ -548,7 +548,7 @@ function LoanRecoveryAcceptReject() {
 		<section className=" dark:bg-[#001529] flex justify-center align-middle p-5">
 				<div className="p-5 w-4/5 min-h-screen rounded-3xl">
 					<div className="w-auto my-4">
-						<FormHeader text={`Loan Recovery Accept/Reject`} mode={2} />
+						<FormHeader text={`Loan Recovery Approved/Reject`} mode={2} />
 					</div>
 					{/* <Sidebar mode={2} /> */}
 			{/* <Sidebar mode={2} /> */}
@@ -1119,7 +1119,7 @@ function LoanRecoveryAcceptReject() {
 					setVisible(true);
 					}}
 					>
-					<CheckCircleOutlined /> <span className={`ml-2`}>Accept Recovery Loan</span>
+					<CheckCircleOutlined /> <span className={`ml-2`}>Approved Recovery Loan</span>
 					</button>
 
 					<DialogBox

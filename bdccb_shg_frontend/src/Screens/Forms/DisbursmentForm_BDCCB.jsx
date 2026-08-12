@@ -248,8 +248,21 @@ function DisbursmentForm_BDCCB({ flag }) {
 
 
 
-	// wherever you open popup (e.g. on submit)
 	const handleOpenConfirm = (values) => {
+		const totalGroupAmt = (values?.rows || []).reduce((sum, r) => sum + Number(r?.amount || 0), 0);
+		const disbAmt = Number(values?.disb_amt || 0);
+		const targetGroupCount = Number(values?.group_total || 0);
+
+		if (totalGroupAmt !== disbAmt) {
+			Message("error", `Add Group details total amount (₹${totalGroupAmt}) must match Disbursement Amount (₹${disbAmt}) exactly. It cannot be less or more.`);
+			return;
+		}
+
+		if (targetGroupCount > 0 && (values?.rows || []).length !== targetGroupCount) {
+			Message("error", `Number of added groups (${(values?.rows || []).length}) must match No. of Group (${targetGroupCount}).`);
+			return;
+		}
+
 		setPendingValues(values);   // store formik values
 		setVisible(true);           // open dialog
 	};
@@ -332,7 +345,7 @@ function DisbursmentForm_BDCCB({ flag }) {
 			disb_amt: loanAppData?.disb_amt,
 			approved_by: loanAppData?.approved_by,
 			approved_dt: formatDateToYYYYMMDD_CurrentDT(new Date(loanAppData?.approved_dt)),
-			group_total: loanAppData?.tot_grp,
+			group_total: formattedRows.length > 0 ? formattedRows.length : (loanAppData?.tot_grp || 1),
 
 			// 🔥 THIS IS IMPORTANT
 			rows: formattedRows.length > 0
@@ -350,8 +363,11 @@ function DisbursmentForm_BDCCB({ flag }) {
 
 
 	const editGroup = async (formData) => {
-		if (formik.values.rows.reduce((sum, r) => sum + Number(r.amount || 0), 0) > Number(formik.values.disb_amt)) {
-			return Message("error", "Total Amount Greater Than Disbursement Amount")
+		const totalGroupAmt = (formData?.rows || []).reduce((sum, r) => sum + Number(r?.amount || 0), 0);
+		const disbAmt = Number(formData?.disb_amt || 0);
+
+		if (totalGroupAmt !== disbAmt) {
+			return Message("error", `Add Group details total amount (₹${totalGroupAmt}) must match Disbursement Amount (₹${disbAmt}) exactly. It cannot be less or more.`);
 		}
 		// return;
 		// const formattedRows = formData?.rows?.map(row => ({
@@ -419,9 +435,11 @@ function DisbursmentForm_BDCCB({ flag }) {
 	}
 
 	const saveGroupData = async (formData) => {
+		const totalGroupAmt = (formData?.rows || []).reduce((sum, r) => sum + Number(r?.amount || 0), 0);
+		const disbAmt = Number(formData?.disb_amt || 0);
 
-		if (formik.values.rows.reduce((sum, r) => sum + Number(r.amount || 0), 0) > Number(formik.values.disb_amt)) {
-			return Message("error", "Total Amount Greater Than Disbursement Amount")
+		if (totalGroupAmt !== disbAmt) {
+			return Message("error", `Add Group details total amount (₹${totalGroupAmt}) must match Disbursement Amount (₹${disbAmt}) exactly. It cannot be less or more.`);
 		}
 		const formattedRows = formData?.rows?.map(row => ({
 			// mem_loan_id: 0,
@@ -1468,26 +1486,39 @@ function DisbursmentForm_BDCCB({ flag }) {
 
 												{index === formik.values.rows.length - 1 &&
 													Number(params?.id) <= 0 && (
-														<div className="col-span-12 text-right mt-2">
-															<Button
-																type="primary"
-																disabled={!isRowFilled}
-																icon={<UsergroupAddOutlined />}
-																onClick={() =>
-																	formik.setFieldValue("rows", [
-																		...formik.values.rows,
-																		{
-																			sb_acc_no: "",
-																			shg_id: "",
-																			member_id: "",
-																			// loany_member: "",
-																			amount: "",
-																		},
-																	])
-																}
-															>
-																Add New
-															</Button>
+														<div className="col-span-12 text-right mt-2 flex items-center justify-end gap-3">
+															{(() => {
+																const maxGroups = Number(formik.values.group_total || 0);
+																const canAddNew = maxGroups > 0 ? formik.values.rows.length < maxGroups : true;
+
+																return (
+																	<>
+																		{maxGroups > 0 && (
+																			<span className="text-xs font-semibold text-slate-600">
+																				Groups Added: {formik.values.rows.length} / {maxGroups}
+																			</span>
+																		)}
+																		<Button
+																			type="primary"
+																			disabled={!isRowFilled || !canAddNew}
+																			icon={<UsergroupAddOutlined />}
+																			onClick={() =>
+																				formik.setFieldValue("rows", [
+																					...formik.values.rows,
+																					{
+																						sb_acc_no: "",
+																						shg_id: "",
+																						member_id: "",
+																						amount: "",
+																					},
+																				])
+																			}
+																		>
+																			Add New
+																		</Button>
+																	</>
+																);
+															})()}
 														</div>
 													)}
 											</div>
@@ -1495,15 +1526,37 @@ function DisbursmentForm_BDCCB({ flag }) {
 									})}
 
 									{/* Total */}
-									<div className="text-right mt-3">
-										<Tag color="blue" style={{ fontSize: 14 }}>
-											Total Amount : ₹{" "}
-											{formik.values.rows.reduce(
-												(sum, r) => sum + Number(r.amount || 0),
-												0
-											)}
-										</Tag>
-									</div>
+									{Number(params?.id) <= 0 && (
+										<div className="text-right mt-3 flex items-center justify-end gap-3">
+											{(() => {
+												const totalGroupAmt = formik.values.rows.reduce(
+													(sum, r) => sum + Number(r.amount || 0),
+													0
+												);
+												const disbAmt = Number(formik.values.disb_amt || 0);
+												const targetGroupCount = Number(formik.values.group_total || 0);
+												const isMatchAmt = disbAmt > 0 && totalGroupAmt === disbAmt;
+												const isOverAmt = totalGroupAmt > disbAmt;
+												const isCountMatch = targetGroupCount > 0 ? formik.values.rows.length === targetGroupCount : true;
+
+												return (
+													<div className="flex flex-wrap items-center gap-2 justify-end">
+														{targetGroupCount > 0 && (
+															<Tag color={isCountMatch ? "green" : "red"} style={{ fontSize: 13, padding: "4px 10px" }}>
+																Group Count: {formik.values.rows.length} / {targetGroupCount} {isCountMatch ? "✓" : " (Mismatch ✗)"}
+															</Tag>
+														)}
+														<Tag
+															color={isMatchAmt ? "green" : "red"}
+															style={{ fontSize: 14, padding: "4px 12px" }}
+														>
+															Total Group Amount: ₹ {totalGroupAmt} / ₹ {disbAmt} {disbAmt > 0 ? (isMatchAmt ? " (Matched ✓)" : isOverAmt ? " (Exceeded ✗)" : " (Short ✗)") : ""}
+														</Tag>
+													</div>
+												);
+											})()}
+										</div>
+									)}
 								</div>
 
 								{loanAppData?.approval_status == 'R' && (
@@ -1524,14 +1577,29 @@ function DisbursmentForm_BDCCB({ flag }) {
 
 
 
-								{/* {userDetails?.id != 3 &&  */}
-								{loanAppData?.approval_status == 'U' && (
-									<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
-								)}
+								{(() => {
+									const totalGroupAmt = formik.values.rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+									const disbAmt = Number(formik.values.disb_amt || 0);
+									const targetGroupCount = Number(formik.values.group_total || 0);
 
-								{params?.id == 0 && (
-									<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
-								)}
+									const isSubmitDisabled = 
+										!formik.isValid ||
+										disbAmt <= 0 ||
+										totalGroupAmt !== disbAmt ||
+										(targetGroupCount > 0 && formik.values.rows.length !== targetGroupCount);
+
+									return (
+										<>
+											{loanAppData?.approval_status == 'U' && (
+												<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} condition={isSubmitDisabled} />
+											)}
+
+											{params?.id == 0 && (
+												<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} condition={isSubmitDisabled} />
+											)}
+										</>
+									);
+								})()}
 
 								{/* } */}
 							</form>

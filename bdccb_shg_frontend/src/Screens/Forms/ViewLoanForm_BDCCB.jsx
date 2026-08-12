@@ -601,7 +601,7 @@ function ViewLoanForm_BDCCB({ groupDataArr }) {
 
 				<div className="flex flex-col justify-start gap-5 mb-5">
 					{LoanApproveORUnApprov== 'A' && (<div className="accept_dis_3"><CheckCircleFilled style={{ color: "#fff", marginRight: 6 }} />
-						Accepted Transaction </div>)}
+						Approved Transaction </div>)}
 						{LoanApproveORUnApprov == 'U' && (<div className="pending_dis_3"><SyncOutlined style={{ color: "#fff", marginRight: 6 }} />
 						Unapproved Transaction </div>)}
 						
@@ -685,7 +685,7 @@ function ViewLoanForm_BDCCB({ groupDataArr }) {
 						setVisible(true);
 						}}
 						>
-						<CheckCircleOutlined /> <span className={`ml-2`}>Accept Transaction</span>
+						<CheckCircleOutlined /> <span className={`ml-2`}>Approved Transaction</span>
 						</button>
 
 
