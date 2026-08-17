@@ -14,8 +14,9 @@ import { useSocket } from "../../Context/SocketContext"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import Visibility from "@mui/icons-material/Visibility"
 import VisibilityOff from "@mui/icons-material/VisibilityOff"
-import coverPhoto from "../../Assets/Images/shg_tailoring_hd.png"
+import coverPhoto from "../../Assets/Images/ssvws_cover.jpg"
 import localforage from 'localforage';
+import { BDCCBEmblem } from "../../Components/BDCCBLogo"
 
 
 import CryptoJS from "crypto-js";
@@ -383,9 +384,10 @@ const SignInPage = () => {
 			<div className="relative bg-white rounded-3xl shadow-xl overflow-hidden max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2">
 				<div className="p-8 md:p-12 lg:p-16 z-10">
 					<div className="flex justify-between items-center mb-10">
-						<div className="flex items-center">
+						<div className="flex items-center gap-3">
+							<BDCCBEmblem className="w-10 h-10 shrink-0" />
 							<span className="font-semibold text-slate-600 text-2xl uppercase tracking-wide">
-								demo
+								BDCCB
 							</span>
 						</div>
 						<nav className="hidden md:flex space-x-6">
@@ -426,7 +428,7 @@ const SignInPage = () => {
 							Start from here
 						</h3>
 						<h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-							Sign into SHG Module
+							Sign into loan.
 						</h1>
 					</div>
 
@@ -595,25 +597,28 @@ const SignInPage = () => {
 						</div>
 						</div>
 
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+		<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Spin indicator={<LoadingOutlined spin />} spinning={loading}>
 							<button
 								type="submit"
 								disabled={!formik.isValid || loading}
-								className="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg
-								 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2
-								  focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer
+								className="w-full px-6 py-3 bg-pink-600 text-white rounded-lg
+								 hover:bg-pink-800 transition-colors focus:outline-none focus:ring-2
+								  focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
 								  disabled:opacity-50 disabled:cursor-not-allowed
-								  disabled:hover:bg-emerald-600 disabled:transition-none shadow-md"
+								  disabled:hover:bg-pink-600 disabled:transition-none"
 							>
 								Sign In
 							</button>
 							</Spin>
 							<button
-							type="button"
-							className="w-full px-6 py-3 bg-lime-600 text-white font-semibold rounded-lg
-							hover:bg-lime-700 transition-colors focus:outline-none focus:ring-2
-							focus:ring-lime-500 focus:ring-offset-2 cursor-pointer shadow-md"
+							type="submit"
+							// disabled={!formik.isValid || loading}
+							className="w-full px-6 py-3 bg-blue-800 text-white rounded-lg
+							hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2
+							focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+							disabled:opacity-50 disabled:cursor-not-allowed
+							disabled:hover:bg-pink-600 disabled:transition-none"
 							onClick={() => navigate("/signup")}
 							>
 								Registration
@@ -631,11 +636,22 @@ const SignInPage = () => {
 					onPressNo={() => setVisible(false)}
 				/>
 
-				<div className="relative hidden lg:flex items-center justify-center p-6 bg-white rounded-r-3xl overflow-hidden">
+				{/* <div className="absolute top-0 bottom-0 lg:left-auto lg:right-0 w-full lg:w-1/2 h-full lg:flex hidden items-center justify-center pointer-events-none z-30 rotate-180">
+					<svg
+						className="absolute inset-y-0 left-0 h-full w-full wavy-pattern text-white"
+						viewBox="0 0 200 400"
+						preserveAspectRatio="none"
+						fill="currentColor"
+					>
+						<path d="M150,0 C100,250 200,500 150,750 S100,1000 150,1000 L300,1000 L300,0 Z" />
+					</svg>
+				</div> */}
+
+				<div className="relative hidden lg:flex items-center justify-end p-6 bg-white rounded-r-3xl overflow-hidden">
 					<img
 						src={coverPhoto}
-						alt="SHG Women Tailoring Enterprise"
-						className="w-full h-full object-contain max-h-[520px] rounded-2xl drop-shadow-md"
+						alt="BDCCB Cover Banner"
+						className="w-full h-full object-contain max-h-[520px] rounded-2xl drop-shadow-sm"
 					/>
 				</div>
 			</div>

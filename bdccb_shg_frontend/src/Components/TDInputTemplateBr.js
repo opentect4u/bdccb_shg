@@ -49,7 +49,7 @@ function TDInputTemplateBr(props) {
 					className="w-full text-sm min-h-[38px]"
 					id={props.name}
 					name={props.name}
-					value={(props.formControlName !== undefined && props.formControlName !== null && props.formControlName !== "undefined" && props.formControlName !== "" && String(props.formControlName) !== "0") ? String(props.formControlName) : undefined}
+					value={(props.formControlName !== undefined && props.formControlName !== null && props.formControlName !== "undefined" && props.formControlName !== "") ? (String(props.formControlName) === "0" ? (props?.data?.some(item => String(item.code) === "0") ? "0" : undefined) : String(props.formControlName)) : undefined}
 					placeholder={props.placeholder}
 					onChange={(value) => {
 						if (props.handleChange) {

@@ -351,7 +351,7 @@ export default function Dashboard() {
 		<div className="p-8 space-y-6 bg-slate-50 min-h-screen rounded-3xl">
 			<div className="flex flex-col md:flex-row justify-between items-center">
 				<h1 className="text-2xl font-bold text-slate-700 uppercase">
-					Welcome back,{" "}
+					Welcome,{" "}
 					<span className="text-slate-600 text-2xl font-thin">
 						{userDetails?.emp_name}
 					</span>{" "}

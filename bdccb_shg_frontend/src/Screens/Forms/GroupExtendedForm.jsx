@@ -194,42 +194,42 @@ function GroupExtendedForm({ groupDataArr }) {
 		village_id: Yup.mixed(),
 		g_phone1: Yup.mixed().required("Mobile No. is required"),
 
-		members: Yup.array()
-			.of(
-				Yup.object({
-					member_name: Yup.string().required("Member name required"),
+		// members: Yup.array()
+		// 	.of(
+		// 		Yup.object({
+		// 			member_name: Yup.string().required("Member name required"),
 
-					address: Yup.string().required("Address required"),
-					sb_acc_no: Yup.string().required("SB Acc No. required"),
-					aadhar_no: Yup.string().matches(/^[0-9]{12}$/, "Aadhaar must be 12 digits").required("Aadhaar required"),
-					// aadhar_no: Yup.string(),
+		// 			address: Yup.string().required("Address required"),
+		// 			sb_acc_no: Yup.string().required("SB Acc No. required"),
+		// 			aadhar_no: Yup.string().matches(/^[0-9]{12}$/, "Aadhaar must be 12 digits").required("Aadhaar required"),
+		// 			// aadhar_no: Yup.string(),
 
-					gp_leader_flag: Yup.string()
-						.oneOf(["Y", "N"])
-						.required(),
+		// 			gp_leader_flag: Yup.string()
+		// 				.oneOf(["Y", "N"])
+		// 				.required(),
 
-					asst_gp_leader_flag: Yup.string()
-						.oneOf(["Y", "N"])
-						.required(),
-				})
-			).min(1, "At least one member required")
+		// 			asst_gp_leader_flag: Yup.string()
+		// 				.oneOf(["Y", "N"])
+		// 				.required(),
+		// 		})
+		// 	).min(1, "At least one member required")
 
-			// 🔐 ROLE VALIDATION
-			.test(
-				"leader-assistant-rule",
-				"Only one Group Leader and one Assistant Member allowed",
-				(members = []) => {
-					const leaderCount = members.filter(
-						(m) => m.gp_leader_flag === "Y"
-					).length;
+		// 	// 🔐 ROLE VALIDATION
+		// 	.test(
+		// 		"leader-assistant-rule",
+		// 		"Only one Group Leader and one Assistant Member allowed",
+		// 		(members = []) => {
+		// 			const leaderCount = members.filter(
+		// 				(m) => m.gp_leader_flag === "Y"
+		// 			).length;
 
-					const assistantCount = members.filter(
-						(m) => m.asst_gp_leader_flag === "Y"
-					).length;
+		// 			const assistantCount = members.filter(
+		// 				(m) => m.asst_gp_leader_flag === "Y"
+		// 			).length;
 
-					return leaderCount <= 1 && assistantCount <= 1;
-				}
-			)
+		// 			return leaderCount <= 1 && assistantCount <= 1;
+		// 		}
+		// 	)
 
 
 
@@ -338,7 +338,7 @@ function GroupExtendedForm({ groupDataArr }) {
 						// g_group_type: "J",
 						g_address: res?.data?.data[0]?.group_addr,
 						group_leader_name: res?.data?.data[0]?.group_leader_name,
-						sahayika_id: res?.data?.data[0]?.sahayika_id,
+						sahayika_id: res?.data?.data[0]?.sahayika_id !== undefined && res?.data?.data[0]?.sahayika_id !== null ? String(res?.data?.data[0]?.sahayika_id) : "",
 						g_pin: res?.data?.data[0]?.pin_no,
 						g_phone1: res?.data?.data[0]?.phone1,
 						g_bank_branch: res?.data?.data[0]?.branch_name,
@@ -417,7 +417,7 @@ function GroupExtendedForm({ groupDataArr }) {
 						// g_group_type: "J",
 						g_address: res?.data?.data[0]?.group_addr || "",
 						group_leader_name: res?.data?.data[0]?.group_leader_name || "",
-						sahayika_id: res?.data?.data[0]?.sahayika_id ? String(res?.data?.data[0]?.sahayika_id) : "",
+						sahayika_id: res?.data?.data[0]?.sahayika_id !== undefined && res?.data?.data[0]?.sahayika_id !== null ? String(res?.data?.data[0]?.sahayika_id) : "",
 						g_pin: res?.data?.data[0]?.pin_no ? String(res?.data?.data[0]?.pin_no) : "",
 						g_phone1: res?.data?.data[0]?.phone1 || "",
 						g_bank_branch: res?.data?.data[0]?.branch_name || "",
@@ -1383,7 +1383,7 @@ function GroupExtendedForm({ groupDataArr }) {
 										// disabled={userDetails[0]?.user_type == 'P' ? true : false}
 										disabled={userDetails[0]?.user_type === 'P' && params?.id > 0}
 										formControlName={formik.values.packs_id}
-										handleChange={formik.handleChange}
+										handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
 										handleBlur={formik.handleBlur}
 										data={PACKSList}
 										mode={2}
@@ -1410,7 +1410,7 @@ function GroupExtendedForm({ groupDataArr }) {
 										// disabled={userDetails[0]?.user_type == 'P' ? true : false}
 										disabled={userDetails[0]?.user_type === 'P' && params?.id > 0}
 										formControlName={formik.values.packs_id}
-										handleChange={formik.handleChange}
+										handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
 										handleBlur={formik.handleBlur}
 										data={PACKSList}
 										mode={2}
@@ -1493,7 +1493,7 @@ function GroupExtendedForm({ groupDataArr }) {
 									label="Sahayika Name"
 									name="sahayika_id"
 									formControlName={formik.values.sahayika_id}
-									handleChange={formik.handleChange}
+									handleChange={(e) => formik.setFieldValue("sahayika_id", e.target.value)}
 									handleBlur={formik.handleBlur}
 									mode={2}
 									data={sahayikaList}

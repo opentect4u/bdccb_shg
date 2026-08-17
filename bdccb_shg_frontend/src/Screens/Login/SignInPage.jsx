@@ -14,9 +14,9 @@ import { useSocket } from "../../Context/SocketContext"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import Visibility from "@mui/icons-material/Visibility"
 import VisibilityOff from "@mui/icons-material/VisibilityOff"
-import coverPhoto from "../../Assets/Images/ssvws_cover.jpg"
+import AccountBalance from "@mui/icons-material/AccountBalance"
+import coverPhoto from "../../Assets/Images/shg_tailoring_hd.png"
 import localforage from 'localforage';
-import { BDCCBEmblem } from "../../Components/BDCCBLogo"
 
 
 import CryptoJS from "crypto-js";
@@ -381,14 +381,21 @@ const SignInPage = () => {
 
 	return (
 		<div className="flex items-center justify-center min-h-screen bg-slate-800 p-4">
-			<div className="relative bg-white rounded-3xl shadow-xl overflow-hidden max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2">
-				<div className="p-8 md:p-12 lg:p-16 z-10">
-					<div className="flex justify-between items-center mb-10">
-						<div className="flex items-center gap-3">
-							<BDCCBEmblem className="w-10 h-10 shrink-0" />
-							<span className="font-semibold text-slate-600 text-2xl uppercase tracking-wide">
-								BDCCB
-							</span>
+			<div className="relative bg-white rounded-3xl shadow-xl overflow-hidden max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2">
+				<div className="p-8 md:p-12 z-10">
+					<div className="flex justify-between items-center mb-8">
+						<div className="flex items-center space-x-3">
+							<div className="p-2 bg-emerald-100 rounded-lg">
+								<AccountBalance className="text-emerald-700" fontSize="large" />
+							</div>
+							<div className="flex flex-col">
+								<span className="font-bold text-slate-800 text-lg md:text-xl leading-none tracking-wide">
+									BANKURA DISTRICT CENTRAL
+								</span>
+								<span className="font-semibold text-slate-500 text-xs md:text-sm tracking-widest mt-1">
+									COOPERATIVE BANK LTD.
+								</span>
+							</div>
 						</div>
 						<nav className="hidden md:flex space-x-6">
 							{/* <a
@@ -428,11 +435,11 @@ const SignInPage = () => {
 							Start from here
 						</h3>
 						<h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-							Sign into loan.
+							Sign into SHG Module
 						</h1>
 					</div>
 
-					<form onSubmit={formik.handleSubmit} className="space-y-6" autoComplete="off">
+					<form onSubmit={formik.handleSubmit} className="space-y-4" autoComplete="off">
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<label
@@ -501,82 +508,57 @@ const SignInPage = () => {
 						
 						
 						{loginUserType && loginUserType === 'H' && (
-							<>
-							<div className="radio_login">
-							<Radiobtn
-							data={listOfBranch}
-							val={branch_Society}
-							onChangeVal={(value) => {
-							onChange(value)
-							}}
-							/>
+							<div className="space-y-3">
+								<div className="radio_login">
+									<Radiobtn
+										data={listOfBranch}
+										val={branch_Society}
+										onChangeVal={(value) => {
+											onChange(value)
+										}}
+									/>
+								</div>
+
+								<div>
+									<label
+										htmlFor="brnch"
+										className="block text-sm font-medium text-slate-700 mb-1"
+									>
+										Choose Branches / Society
+									</label>
+									{formik.touched.brnch && formik.errors.brnch && (
+										<div className="text-red-500 text-sm">
+											{formik.errors.brnch}
+										</div>
+									)}
+
+									<Select
+										showSearch
+										placeholder="Select a branch"
+										value={formik.values.brnch || undefined}
+										style={{ width: "100%" }}
+										optionFilterProp="children"
+										name="brnch"
+										onChange={(value) => {
+											formik.setFieldValue("brnch", value);
+										}}
+										onBlur={() => formik.setFieldTouched("brnch", true)}
+										filterOption={(input, option) =>
+											option?.children?.toLowerCase().includes(input.toLowerCase())
+										}
+									>
+										<Select.Option value="" disabled>
+											Select Branches / Society
+										</Select.Option>
+
+										{branches.map((opt) => (
+											<Select.Option key={opt.code} value={opt.code}>
+												{opt.name}
+											</Select.Option>
+										))}
+									</Select>
+								</div>
 							</div>
-
-							<div>
-								<label
-									htmlFor="brnch"
-									className="block text-sm font-medium text-slate-700 mb-1"
-								>
-									Choose Branches / Society
-								</label>
-								{/* <select
-									id="brnch"
-									name="brnch"
-									onChange={formik.handleChange}
-									onBlur={formik.handleBlur}
-									value={formik.values.brnch}
-									className="w-full px-4 py-2 bg-slate-100 border border-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-								>
-									<option value="" disabled>
-										Select a branch
-									</option>
-									{branches.map((opt) => (
-										<option key={opt.code} value={opt.code}>
-											{opt.name}
-										</option>
-									))}
-								</select> */}
-								{formik.touched.brnch && formik.errors.brnch && (
-									<div className="text-red-500 text-sm">
-										{formik.errors.brnch}
-									</div>
-								)}
-
-								<Select
-								showSearch
-								placeholder="Select a branch"
-								value={formik.values.brnch || undefined}
-								style={{ width: "100%" }}
-								optionFilterProp="children"
-								name="brnch"
-
-								// ✅ When selecting
-								onChange={(value) => {
-								formik.setFieldValue("brnch", value);
-								}}
-
-								// ✅ Formik touch
-								onBlur={() => formik.setFieldTouched("brnch", true)}
-
-								// 🔍 Search filter
-								filterOption={(input, option) =>
-								option?.children?.toLowerCase().includes(input.toLowerCase())
-								}
-								>
-								<Select.Option value="" disabled>
-								Select Branches / Society
-								</Select.Option>
-
-								{branches.map((opt) => (
-								<Select.Option key={opt.code} value={opt.code}>
-								{opt.name}
-								</Select.Option>
-								))}
-								</Select>
-
-							</div>
-
-						</>
 						)}
 						{/* )} */}
 
@@ -597,28 +579,25 @@ const SignInPage = () => {
 						</div>
 						</div>
 
-		<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<Spin indicator={<LoadingOutlined spin />} spinning={loading}>
 							<button
 								type="submit"
 								disabled={!formik.isValid || loading}
-								className="w-full px-6 py-3 bg-pink-600 text-white rounded-lg
-								 hover:bg-pink-800 transition-colors focus:outline-none focus:ring-2
-								  focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+								className="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg
+								 hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2
+								  focus:ring-emerald-500 focus:ring-offset-2 cursor-pointer
 								  disabled:opacity-50 disabled:cursor-not-allowed
-								  disabled:hover:bg-pink-600 disabled:transition-none"
+								  disabled:hover:bg-emerald-600 disabled:transition-none shadow-md"
 							>
 								Sign In
 							</button>
 							</Spin>
 							<button
-							type="submit"
-							// disabled={!formik.isValid || loading}
-							className="w-full px-6 py-3 bg-blue-800 text-white rounded-lg
-							hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2
-							focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
-							disabled:opacity-50 disabled:cursor-not-allowed
-							disabled:hover:bg-pink-600 disabled:transition-none"
+							type="button"
+							className="w-full px-6 py-3 bg-lime-600 text-white font-semibold rounded-lg
+							hover:bg-lime-700 transition-colors focus:outline-none focus:ring-2
+							focus:ring-lime-500 focus:ring-offset-2 cursor-pointer shadow-md"
 							onClick={() => navigate("/signup")}
 							>
 								Registration
@@ -636,22 +615,11 @@ const SignInPage = () => {
 					onPressNo={() => setVisible(false)}
 				/>
 
-				{/* <div className="absolute top-0 bottom-0 lg:left-auto lg:right-0 w-full lg:w-1/2 h-full lg:flex hidden items-center justify-center pointer-events-none z-30 rotate-180">
-					<svg
-						className="absolute inset-y-0 left-0 h-full w-full wavy-pattern text-white"
-						viewBox="0 0 200 400"
-						preserveAspectRatio="none"
-						fill="currentColor"
-					>
-						<path d="M150,0 C100,250 200,500 150,750 S100,1000 150,1000 L300,1000 L300,0 Z" />
-					</svg>
-				</div> */}
-
-				<div className="relative hidden lg:flex items-center justify-end p-6 bg-white rounded-r-3xl overflow-hidden">
+				<div className="relative hidden lg:flex items-center justify-center p-6 bg-white rounded-r-3xl overflow-hidden">
 					<img
 						src={coverPhoto}
-						alt="BDCCB Cover Banner"
-						className="w-full h-full object-contain max-h-[520px] rounded-2xl drop-shadow-sm"
+						alt="SHG Women Tailoring Enterprise"
+						className="w-full h-full object-contain max-h-[520px] rounded-2xl drop-shadow-md"
 					/>
 				</div>
 			</div>

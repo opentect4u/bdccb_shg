@@ -39,6 +39,7 @@ function OutstandingReportIndirectMain() {
 	const [loading, setLoading] = useState(false)
 	const [reportData, setReportData] = useState([])
 	const [metadataDtls, setMetadataDtls] = useState(null)
+	const [searchTerm, setSearchTerm] = useState("")
 
 	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1)
@@ -195,26 +196,54 @@ function OutstandingReportIndirectMain() {
 		setReportData([])
 		setMetadataDtls(null)
 		setCurrentPage(1)
+		setSearchTerm("")
 	}, [branch, reportType])
 
+	// Filter data by search query
+	const filteredReportData = React.useMemo(() => {
+		if (!searchTerm || !searchTerm.trim()) return reportData;
+		const query = searchTerm.toLowerCase().trim();
+		return reportData.filter((item) => {
+			const socName = String(item?.society_name || item?.branch_shg_id_name || "").toLowerCase();
+			const socCode = String(item?.society_code || item?.branch_shg_id || "").toLowerCase();
+			const grpName = String(item?.group_name || "").toLowerCase();
+			const grpCode = String(item?.group_code || "").toLowerCase();
+			const memName = String(item?.member_name || "").toLowerCase();
+			const memCode = String(item?.member_code || "").toLowerCase();
+			const loanId = String(item?.loan_id || "").toLowerCase();
+			const ccbLoan = String(item?.ccb_loan || "").toLowerCase();
+
+			return (
+				socName.includes(query) ||
+				socCode.includes(query) ||
+				grpName.includes(query) ||
+				grpCode.includes(query) ||
+				memName.includes(query) ||
+				memCode.includes(query) ||
+				loanId.includes(query) ||
+				ccbLoan.includes(query)
+			);
+		});
+	}, [reportData, searchTerm]);
+
 	// Slicing logic for pagination
-	const totalRecords = reportData.length
+	const totalRecords = filteredReportData.length
 	const totalPages = Math.ceil(totalRecords / itemsPerPage) || 1
 	const indexOfLastItem = currentPage * itemsPerPage
 	const indexOfFirstItem = indexOfLastItem - itemsPerPage
-	const currentData = reportData.slice(indexOfFirstItem, indexOfLastItem)
+	const currentData = filteredReportData.slice(indexOfFirstItem, indexOfLastItem)
 
 	const isGroup = reportType === "G"
 
 	// Excel Export Handler
 	const handleExcelExport = async () => {
-		if (!reportData || reportData.length === 0) return
+		if (!filteredReportData || filteredReportData.length === 0) return
 
 		const workbook = new ExcelJS.Workbook()
 		const worksheet = workbook.addWorksheet(isGroup ? "Groupwise Outstanding" : "Memberwise Outstanding")
 
 		// Title rows
-		worksheet.mergeCells(isGroup ? "A1:M1" : "A1:P1")
+		worksheet.mergeCells(isGroup ? "A1:N1" : "A1:P1")
 		const subTitleCell = worksheet.getCell("A1")
 		subTitleCell.value = isGroup
 			? "BRANCH GROUPWISE LOAN OUTSTANDING REPORT (INDIRECT)"
@@ -223,9 +252,9 @@ function OutstandingReportIndirectMain() {
 		subTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF115E59" } }
 		subTitleCell.alignment = { horizontal: "center", vertical: "middle" }
 
-		worksheet.mergeCells(isGroup ? "A2:M2" : "A2:P2")
+		worksheet.mergeCells(isGroup ? "A2:N2" : "A2:P2")
 		const metaCell = worksheet.getCell("A2")
-		metaCell.value = `Branch: ${metadataDtls?.branch_name || "N/A"}   |   As on Date: ${metadataDtls?.as_on_date || ""}   |   Total Records: ${reportData.length}`
+		metaCell.value = `Branch: ${metadataDtls?.branch_name || "N/A"}   |   As on Date: ${metadataDtls?.as_on_date || ""}   |   Total Records: ${filteredReportData.length}`
 		metaCell.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF334155" } }
 		metaCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } }
 		metaCell.alignment = { horizontal: "center", vertical: "middle" }
@@ -239,6 +268,7 @@ function OutstandingReportIndirectMain() {
 				"Loan ID",
 				"Group Code",
 				"Group Name",
+				"Society Name",
 				"Period",
 				"Curr ROI (%)",
 				"Penal ROI (%)",
@@ -277,8 +307,10 @@ function OutstandingReportIndirectMain() {
 		})
 
 		// Data Rows
-		reportData.forEach((item, index) => {
+		filteredReportData.forEach((item, index) => {
 			const disbAmtVal = Number(item?.disb_amt || 0)
+			const socCodeTag = (item?.society_code || item?.branch_shg_id) ? ` (${item?.society_code || item?.branch_shg_id})` : ""
+			const socDisplayName = `${item?.society_name || item?.branch_shg_id_name || "N/A"}${socCodeTag}`
 
 			if (isGroup) {
 				const outstandingVal = Number(item?.group_outstanding || 0)
@@ -287,6 +319,7 @@ function OutstandingReportIndirectMain() {
 					item?.loan_id || "",
 					item?.group_code || "",
 					item?.group_name || "N/A",
+					socDisplayName,
 					Number(item?.period || 0),
 					Number(item?.curr_roi || 0),
 					Number(item?.penal_roi || 0),
@@ -299,23 +332,21 @@ function OutstandingReportIndirectMain() {
 				]
 
 				const addedRow = worksheet.addRow(rowData)
-				addedRow.getCell(9).numFmt = "#,##0.00"
-				addedRow.getCell(13).numFmt = "#,##0.00"
+				addedRow.getCell(10).numFmt = "#,##0.00"
+				addedRow.getCell(14).numFmt = "#,##0.00"
 
 				addedRow.getCell(1).alignment = { horizontal: "center" }
-				addedRow.getCell(5).alignment = { horizontal: "center" }
-				addedRow.getCell(6).alignment = { horizontal: "right" }
+				addedRow.getCell(6).alignment = { horizontal: "center" }
 				addedRow.getCell(7).alignment = { horizontal: "right" }
-				addedRow.getCell(8).alignment = { horizontal: "center" }
-				addedRow.getCell(9).alignment = { horizontal: "right" }
-				addedRow.getCell(10).alignment = { horizontal: "center" }
+				addedRow.getCell(8).alignment = { horizontal: "right" }
+				addedRow.getCell(9).alignment = { horizontal: "center" }
+				addedRow.getCell(10).alignment = { horizontal: "right" }
 				addedRow.getCell(11).alignment = { horizontal: "center" }
 				addedRow.getCell(12).alignment = { horizontal: "center" }
-				addedRow.getCell(13).alignment = { horizontal: "right" }
+				addedRow.getCell(13).alignment = { horizontal: "center" }
+				addedRow.getCell(14).alignment = { horizontal: "right" }
 			} else {
 				const outstandingVal = Number(item?.member_outstanding || 0)
-				const socCodeTag = (item?.society_code || item?.branch_shg_id) ? ` (${item?.society_code || item?.branch_shg_id})` : ""
-				const socDisplayName = `${item?.society_name || item?.branch_shg_id_name || "N/A"}${socCodeTag}`
 
 				const rowData = [
 					index + 1,
@@ -355,11 +386,11 @@ function OutstandingReportIndirectMain() {
 		})
 
 		// Total Row
-		const totalDisbAmt = reportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0)
-		const totalOutstanding = reportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0)
+		const totalDisbAmt = filteredReportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0)
+		const totalOutstanding = filteredReportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0)
 
 		const totalRowData = isGroup
-			? ["TOTAL SUMMARY", "", "", "", "", "", "", "", totalDisbAmt, "", "", "", totalOutstanding]
+			? ["TOTAL SUMMARY", "", "", "", "", "", "", "", "", totalDisbAmt, "", "", "", totalOutstanding]
 			: ["TOTAL SUMMARY", "", "", "", "", "", "", "", "", "", "", "", totalDisbAmt, "", "", "", totalOutstanding]
 
 		const totalRow = worksheet.addRow(totalRowData)
@@ -370,8 +401,8 @@ function OutstandingReportIndirectMain() {
 		})
 
 		if (isGroup) {
-			totalRow.getCell(9).numFmt = "#,##0.00"
-			totalRow.getCell(13).numFmt = "#,##0.00"
+			totalRow.getCell(10).numFmt = "#,##0.00"
+			totalRow.getCell(14).numFmt = "#,##0.00"
 		} else {
 			totalRow.getCell(13).numFmt = "#,##0.00"
 			totalRow.getCell(17).numFmt = "#,##0.00"
@@ -389,12 +420,12 @@ function OutstandingReportIndirectMain() {
 
 	// Print View Handler
 	const handlePrintReport = () => {
-		if (!reportData || reportData.length === 0) return
+		if (!filteredReportData || filteredReportData.length === 0) return
 
 		const printWindow = window.open("", "_blank")
 
-		const totalDisbAmt = reportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0)
-		const totalOutstanding = reportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0)
+		const totalDisbAmt = filteredReportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0)
+		const totalOutstanding = filteredReportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0)
 
 		const tableHeaderHtml = isGroup
 			? `
@@ -403,6 +434,7 @@ function OutstandingReportIndirectMain() {
 					<th>Loan ID</th>
 					<th>Group Code</th>
 					<th>Group Name</th>
+					<th>Society Name</th>
 					<th>Period</th>
 					<th>Curr ROI (%)</th>
 					<th>Penal ROI (%)</th>
@@ -436,8 +468,10 @@ function OutstandingReportIndirectMain() {
 				</tr>
 			`
 
-		const tableRowsHtml = reportData.map((item, index) => {
+		const tableRowsHtml = filteredReportData.map((item, index) => {
 			const disbAmtVal = Number(item?.disb_amt || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })
+			const socCodeTag = (item?.society_code || item?.branch_shg_id) ? ` (${item?.society_code || item?.branch_shg_id})` : ""
+			const socDisplayName = `${item?.society_name || item?.branch_shg_id_name || "N/A"}${socCodeTag}`
 
 			if (isGroup) {
 				const outstandingVal = Number(item?.group_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })
@@ -448,6 +482,7 @@ function OutstandingReportIndirectMain() {
 						<td style="font-family: monospace;">${item?.loan_id || ""}</td>
 						<td style="font-family: monospace;">${item?.group_code || ""}</td>
 						<td style="font-weight: 600;">${item?.group_name || "N/A"}</td>
+						<td style="font-weight: 600;">${socDisplayName}</td>
 						<td style="text-align: center;">${item?.period || 0}</td>
 						<td style="text-align: right;">${Number(item?.curr_roi || 0).toFixed(2)}</td>
 						<td style="text-align: right;">${Number(item?.penal_roi || 0).toFixed(2)}</td>
@@ -471,7 +506,7 @@ function OutstandingReportIndirectMain() {
 						<td style="font-weight: 600;">${item?.group_name || "N/A"}</td>
 						<td style="font-family: monospace;">${item?.member_code || ""}</td>
 						<td style="font-weight: 600;">${item?.member_name || "N/A"}</td>
-						<td style="font-weight: 600; white-space: nowrap;">${item?.society_name || item?.branch_shg_id_name || "N/A"}${(item?.society_code || item?.branch_shg_id) ? ` (${item?.society_code || item?.branch_shg_id})` : ''}</td>
+						<td style="font-weight: 600; white-space: nowrap;">${socDisplayName}</td>
 						<td style="text-align: center;">${item?.period || 0}</td>
 						<td style="text-align: right;">${Number(item?.curr_roi || 0).toFixed(2)}</td>
 						<td style="text-align: right;">${Number(item?.penal_roi || 0).toFixed(2)}</td>
@@ -663,8 +698,31 @@ function OutstandingReportIndirectMain() {
 										</span>
 									</h3>
 									<p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-										{reportData.length} Record(s) Found {metadataDtls?.branch_name ? `for ${metadataDtls.branch_name}` : ""} as on {metadataDtls?.as_on_date}
+										{filteredReportData.length} Record(s) Found {metadataDtls?.branch_name ? `for ${metadataDtls.branch_name}` : ""} as on {metadataDtls?.as_on_date}
 									</p>
+								</div>
+
+								{/* Search Society Name / Code input */}
+								<div className="relative w-full sm:w-80">
+									<input
+										type="text"
+										placeholder="Search Society Name / Code / Group..."
+										value={searchTerm}
+										onChange={(e) => {
+											setSearchTerm(e.target.value)
+											setCurrentPage(1)
+										}}
+										className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-xs text-slate-800 dark:text-slate-200"
+									/>
+									<SearchOutlined className="absolute left-3 top-3 text-slate-400 text-xs" />
+									{searchTerm && (
+										<button
+											onClick={() => setSearchTerm("")}
+											className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
+										>
+											✕
+										</button>
+									)}
 								</div>
 							</div>
 
@@ -677,6 +735,7 @@ function OutstandingReportIndirectMain() {
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider">Loan ID</th>
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider">Group Code</th>
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider">Group Name</th>
+												<th scope="col" className="px-4 py-3 font-bold tracking-wider">Society Name</th>
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider text-center">Period</th>
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider text-right">Curr ROI (%)</th>
 												<th scope="col" className="px-4 py-3 font-bold tracking-wider text-right">Penal ROI (%)</th>
@@ -714,13 +773,20 @@ function OutstandingReportIndirectMain() {
 											<tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
 												<td className="px-4 py-3 text-center font-medium text-slate-700 dark:text-slate-300">{indexOfFirstItem + i + 1}</td>
 												<td className="px-4 py-3 font-mono text-teal-600 font-medium">{item?.loan_id}</td>
-												{!isGroup && (
-													<td className="px-4 py-3 font-mono text-teal-600 font-medium">{item?.ccb_loan || item?.loan_id}</td>
-												)}
-												<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.group_code || "N/A"}</td>
-												<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{item?.group_name || "N/A"}</td>
-												{!isGroup && (
+												{isGroup ? (
 													<>
+														<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.group_code || "N/A"}</td>
+														<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{item?.group_name || "N/A"}</td>
+														<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+															{item?.society_name || item?.branch_shg_id_name || "N/A"}
+															{(item?.society_code || item?.branch_shg_id) ? ` (${item?.society_code || item?.branch_shg_id})` : ""}
+														</td>
+													</>
+												) : (
+													<>
+														<td className="px-4 py-3 font-mono text-teal-600 font-medium">{item?.ccb_loan || item?.loan_id}</td>
+														<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.group_code || "N/A"}</td>
+														<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{item?.group_name || "N/A"}</td>
 														<td className="px-4 py-3 font-mono text-slate-700 dark:text-slate-300">{item?.member_code || "N/A"}</td>
 														<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">{item?.member_name || "N/A"}</td>
 														<td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
@@ -745,13 +811,13 @@ function OutstandingReportIndirectMain() {
 									</tbody>
 									<tfoot className="bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-slate-100 border-t-2 border-slate-300 dark:border-slate-700">
 										<tr>
-											<td colSpan={isGroup ? 8 : 12} className="px-4 py-3 text-right uppercase tracking-wider">Total Summary:</td>
+											<td colSpan={isGroup ? 9 : 12} className="px-4 py-3 text-right uppercase tracking-wider">Total Summary:</td>
 											<td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
-												{reportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+												{filteredReportData.reduce((sum, item) => sum + Number(item?.disb_amt || 0), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 											</td>
 											<td colSpan={3}></td>
 											<td className="px-4 py-3 text-right text-teal-600 dark:text-teal-400">
-												{reportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+												{filteredReportData.reduce((sum, item) => sum + Number(isGroup ? (item?.group_outstanding || 0) : (item?.member_outstanding || 0)), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
 											</td>
 										</tr>
 									</tfoot>
@@ -759,7 +825,7 @@ function OutstandingReportIndirectMain() {
 							</div>
 
 							{/* Pagination Bar */}
-							{reportData.length > 0 && (
+							{filteredReportData.length > 0 && (
 								<div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
 									<div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
 										<span>

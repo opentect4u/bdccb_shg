@@ -31,6 +31,7 @@ import {
 	EyeFilled,
 	TableOutlined,
 	LoadingOutlined,
+	WalletOutlined,
 } from "@ant-design/icons"
 
 import { useSocket } from "../Context/SocketContext"
@@ -496,6 +497,24 @@ function Sidebar({ mode = 0 }) {
 												label: (
 													<Link to={"/homebm/outstasndingreport_society"}>
 														Outstanding Report (Society)
+													</Link>
+												),
+											},
+											{
+												key: "membermasterreport",
+												icon: <UserOutlined />,
+												label: (
+													<Link to={"/homebm/membermasterreport"}>
+														Member Master Report
+													</Link>
+												),
+											},
+											{
+												key: "shgsavingsbalancereport",
+												icon: <WalletOutlined />,
+												label: (
+													<Link to={"/homebm/shg_savings_balance_report"}>
+														SHG Savings Balance Report
 													</Link>
 												),
 											},

@@ -771,7 +771,7 @@ const getBranchList = async () => {
 
 			<div className="flex flex-col md:flex-row justify-between items-center">
 				<h1 className="text-lg font-bold text-slate-700 uppercase pl-6">
-					Welcome back,{" "}
+					Welcome,{" "}
 					<span className="text-slate-600 text-lg font-thin">
 						{userDetails[0]?.emp_name}
 					</span>{" "}

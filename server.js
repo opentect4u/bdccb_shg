@@ -58,6 +58,7 @@ app.use('/v1', require('./router/report/indexReportRouter'));
 app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
 app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 app.use('/v1/sbledger', require('./router/sbledger/indexsbledgerRouter'));
+app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRouter'));
 
 
 // app.post("/v1/login", async (req, res) => {
