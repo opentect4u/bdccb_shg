@@ -135,7 +135,11 @@ function ViewBranchSHGLoanTableBr({
 								Group Name
 							</th>
 							
-							
+							{flag === "LOAN_CLOSE" && (
+								<th scope="col" className="p-4">
+									Status
+								</th>
+							)}
 							<th scope="col" className="p-4">
 								Action
 							</th>
@@ -165,6 +169,19 @@ function ViewBranchSHGLoanTableBr({
 									</td>
 									<td className="px-6 py-3 font-bold text-slate-800">{item.group_code || "-----"}</td>
 									<td className="px-6 py-3 text-slate-700">{item.group_name}</td>
+									{flag === "LOAN_CLOSE" && (
+										<td className="px-6 py-3">
+											{item.acc_status === 'C' ? (
+												<span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-300">
+													Closed
+												</span>
+											) : (
+												<span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full border border-blue-300">
+													Open
+												</span>
+											)}
+										</td>
+									)}
 									
 									<td className="px-6 py-3 text-slate-700">
 										{/* {flag !== "SOC" ? (
@@ -200,18 +217,21 @@ function ViewBranchSHGLoanTableBr({
 
 										<button
 										onClick={() => {
-
-										navigate(`/homepacs/viewloan-branch-shg/${item?.group_code}`, {
-										state: item,
-										})
-
-										// navigate(`/homepacs/viewloan-society/${item?.group_code}`, {
-										// state: {
-										// 	item: item,
-										// 	branch_id: selectedPacs   // 👈 send this
-										// },
-										// })
-										
+											if(flag === "LOAN_CLOSE") {
+												const basePath = window.location.pathname.includes('/homepacs') ? '/homepacs' : '/homebm';
+												navigate(`${basePath}/loancloseflag/groupdetails/${item?.group_code}`, {
+													state: item,
+												})
+											} else if (flag === "LOAN_CLOSE_GROUP") {
+												const basePath = window.location.pathname.includes('/homepacs') ? '/homepacs' : '/homebm';
+												navigate(`${basePath}/loancloseflag-group/groupdetails/${item?.group_code}`, {
+													state: item,
+												})
+											} else {
+												navigate(`/homepacs/viewloan-branch-shg/${item?.group_code}`, {
+													state: item,
+												})
+											}
 										}}
 										>
 										<EditOutlined

@@ -558,18 +558,10 @@ function DisbursmentForm_BDCCB({ flag }) {
 					console.log(creds, 'credscredscredscreds', res?.data?.data);
 
 
-					if (userDetails[0]?.user_type == 'B') {
+					if (userDetails[0]?.user_type == 'B' || userDetails[0]?.user_type == 'P') {
 						setPACS_SHGList(res?.data?.data?.map((item, i) => ({
 							code: item?.branch_id,
 							name: item?.branch_name,
-						})))
-					}
-
-					// if(formik.values.loan_to == "S" || loanAppData?.loan_to == "S"){
-					if (userDetails[0]?.user_type == 'P') {
-						setPACS_SHGList(res?.data?.data?.map((item, i) => ({
-							code: item?.group_code,
-							name: item?.group_name,
 						})))
 					}
 
@@ -733,7 +725,7 @@ function DisbursmentForm_BDCCB({ flag }) {
 				}
 
 			} else {
-				// Message('error', res?.data?.msg)
+				Message('error', res?.data?.msg || "Failed to fetch group data");
 				// navigate(routePaths.LANDING)
 				// localStorage.clear()
 			}

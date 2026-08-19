@@ -58,7 +58,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			if (!items) return bestMatch;
 
 			let currentPath = location.pathname.toLowerCase().replace(/\/$/, "");
-			
+
 			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
 			const isBranch = uTypeChar === 'B' || uTypeChar === 'P';
 

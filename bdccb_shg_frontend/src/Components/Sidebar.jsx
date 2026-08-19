@@ -1308,7 +1308,7 @@ function Sidebar({ mode = 0 }) {
 			</aside>
 
 			<div
-				className={`w-full h-7 p-0.5 py-1 bg-slate-600 text-white justify-center align-middle items-center text-left
+				className={`w-full h-7 p-0.5 py-1 bg-slate-700 text-white justify-center align-middle items-center text-left
 				 font-thin text-sm fixed left-0 top-20 shadow-sm z-10`}
 			>
 				<div className="flex items-center justify-between">

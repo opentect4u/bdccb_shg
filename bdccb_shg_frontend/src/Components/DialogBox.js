@@ -82,7 +82,7 @@ const DialogBox = ({
 			visible={visible}
 			maximizable
 			style={{
-				width: "50vw",
+				width: flag == 7 ? "90vw" : "50vw",
 				background: "black",
 			}}
 			onHide={() => {

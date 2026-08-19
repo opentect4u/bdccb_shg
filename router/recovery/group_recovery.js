@@ -216,7 +216,7 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
     }
 
     let branch_condition = '';
-    
+
     if (branch_type === 'B') {
       branch_condition = `a.branch_code = '${branch_id}'`;
     } else if (branch_type === 'P') {
@@ -247,6 +247,17 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
     }
 
     const first_grp = fetch_grp_code.msg[0];
+
+    // Check if any member in this group has an account status of 'C' (Closed)
+    var check_closed = await db_Select("acc_status", "bdccb.td_loan_member", `group_code = '${first_grp.group_code}' AND acc_status = 'C' AND fund_type = 'B'`, null);
+    if (check_closed.suc === 1 && check_closed.msg.length > 0) {
+      return res.send({
+        success: true,
+        msg: "Account closed",
+        data: []
+      });
+    }
+
     if (branch_type === 'B' && first_grp.loan_to === 'P') {
       return res.send({
         success: true,
@@ -273,19 +284,19 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
       const society_acc_no = loan_to == 'S' ? "a.loan_acc_no" : "a.society_acc_no";
 
       let branch_conditions = '';
-    
-    if (branch_type === 'B') {
-      branch_conditions = `a.branch_id = '${branch_id}'`;
-    } else if (branch_type === 'P') {
-      branch_conditions = `a.branch_shg_id = '${branch_id}'`;
-    } else if (branch_type === 'H') {
-      branch_conditions = `1=1`; // No branch filter
-    } else {
-      return res.send({
-        success: false,
-        msg: "Invalid branch type"
-      });
-    }
+
+      if (branch_type === 'B') {
+        branch_conditions = `a.branch_id = '${branch_id}'`;
+      } else if (branch_type === 'P') {
+        branch_conditions = `a.branch_shg_id = '${branch_id}'`;
+      } else if (branch_type === 'H') {
+        branch_conditions = `1=1`; // No branch filter
+      } else {
+        return res.send({
+          success: false,
+          msg: "Invalid branch type"
+        });
+      }
 
       var select_loan = `a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,${roi_column} AS curr_roi,${penal_roi_column} AS penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,${society_acc_no} society_acc_no,b.trans_type`,
         table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
@@ -299,6 +310,14 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
             mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code LEFT JOIN bdccb.td_loan_member_trans_temp e ON a.ccb_loan_id = e.ccb_loan_id AND a.tenant_id = e.tenant_id AND a.loan_id = e.loan_id",
             mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}' AND b.approval_status = 'A'  AND a.fund_type = 'B' GROUP BY a.loan_id,a.group_code,c.group_name,a.member_code,d.member_name,a.prn_amt,d.member_account_no,e.approval_status,a.disb_amt`;
           let shg_member_dtls = await db_Select(mem_select, mem_table, mem_whr, null);
+
+          if (shg_member_dtls.suc === 1 && shg_member_dtls.msg.some(m => m.acc_status === 'C')) {
+            return res.send({
+              success: true,
+              msg: "Account closed",
+              data: []
+            });
+          }
 
           loan.group_code = group_code;
           loan.group_name = group_name;
@@ -397,7 +416,7 @@ groupRecoveryRouter.post("/fetch_group_recovery_list", async (req, res) => {
     const { tenant_id, branch_id, from_dt, to_dt, approval_status, branch_type } = req.body;
 
     let branch_condition = '';
-    
+
     if (branch_type === 'B') {
       branch_condition = `c.branch_id = '${branch_id}' AND c.loan_to = 'S'`;
     } else if (branch_type === 'P') {
@@ -414,11 +433,11 @@ groupRecoveryRouter.post("/fetch_group_recovery_list", async (req, res) => {
     var select = "a.ccb_loan_id AS loan_id, a.group_code, b.group_name, 0 AS disb_amt, TO_CHAR(c.trans_date, 'YYYY-MM-DD') AS trans_dt, MAX(c.trans_id) AS transaction_id, SUM(COALESCE(c.cr_amt,0)) AS credit_amount, c.approval_status";
     var table_name = `bdccb.td_loan_member_trans_temp c JOIN bdccb.td_loan_member a ON c.ccb_loan_id = a.ccb_loan_id AND c.loan_id = a.loan_id AND c.tenant_id = a.tenant_id JOIN bdccb.md_group b ON a.group_code = b.group_code`;
     var whr = `c.tenant_id = '${tenant_id}' AND ${branch_condition} AND c.trans_type = 'R' AND c.approval_status = '${approval_status}'`;
-    
+
     if (from_dt && to_dt) {
       whr += ` AND c.trans_date::date BETWEEN '${from_dt}' AND '${to_dt}'`;
     }
-    
+
     whr += ` GROUP BY a.ccb_loan_id, a.group_code, b.group_name, c.trans_date, c.approval_status`;
     var order = `c.trans_date DESC`;
 
@@ -455,16 +474,16 @@ groupRecoveryRouter.post("/fetch_group_mem_recov_dtls", async (req, res) => {
     var select_loan = "MAX(a.ccb_loan_id) AS loan_id, a.group_code, b.group_name, MAX(a.period) AS period, MAX(a.curr_roi) AS curr_roi, MAX(a.penal_roi) AS penal_roi, TO_CHAR(MAX(a.disb_dt), 'YYYY-MM-DD') AS disb_dt, SUM(COALESCE(a.disb_amt,0)) AS disb_amt";
     var table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code";
     var whr_loan = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND a.fund_type = 'B' GROUP BY a.group_code, b.group_name`;
-    
+
     var fetch_loan_dtls = await db_Select(select_loan, table_name_loan, whr_loan, null);
 
     if (fetch_loan_dtls.suc === 1 && fetch_loan_dtls.msg.length > 0) {
       let mem_table = "bdccb.td_loan_member_trans_temp";
-      
+
       var select_mem = `a.loan_id AS mem_loan_id, a.member_code, b.member_name, COALESCE(a.prn_amt,0) AS principal_amt, b.member_account_no AS sb_acc_no, COALESCE(c.cr_amt, 0) AS cr_amt, COALESCE(c.sb_amt, 0) AS sb_amt`;
       var table_name_mem = `bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.group_code = b.group_code AND a.member_code = b.member_code LEFT JOIN ${mem_table} c ON a.ccb_loan_id = c.ccb_loan_id AND a.loan_id = c.loan_id AND c.trans_type = 'R' AND DATE(c.trans_date) = '${trans_dt}' AND c.approval_status = '${approval_status}'`;
       var whr_mem = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}'  AND a.fund_type = 'B'`;
-      
+
       var fetch_mem_dtls = await db_Select(select_mem, table_name_mem, whr_mem, null);
 
       let loan = fetch_loan_dtls.msg[0];

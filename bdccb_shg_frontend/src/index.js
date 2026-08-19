@@ -121,6 +121,10 @@ const SearchViewLoanBM_Branch_BDCCB = lazy(() => import("./Screens/BMHome/Search
 const EditViewLoanFormBM_Branch_BDCCB = lazy(() => import("./Screens/BMHome/EditViewLoanFormBM_Branch_BDCCB.jsx"))
 
 const LoanTransactionsMain = lazy(() => import("./Screens/Reports/LoanTransactions/LoanTransactionsMain.jsx"));
+const LoanCloseFlag = lazy(() => import("./Screens/BMHome/LoanCloseFlag.jsx"));
+const LoanCloseFlagGroupDetails = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroupDetails.jsx"));
+const LoanCloseFlagGroup = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroup.jsx"));
+const LoanCloseFlagGroupLevelDetails = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroupLevelDetails.jsx"));
 
 //////////////// BDCCB BM End ////////////////
 
@@ -426,6 +430,22 @@ const router = createBrowserRouter([
 							{
 								path: "editgroupform/:id",
 								element: <EditGroupFormBM />,
+							},
+							{
+								path: "loancloseflag",
+								element: <LoanCloseFlag />,
+							},
+							{
+								path: "loancloseflag/groupdetails/:id",
+								element: <LoanCloseFlagGroupDetails />,
+							},
+							{
+								path: "loancloseflag-group",
+								element: <LoanCloseFlagGroup />,
+							},
+							{
+								path: "loancloseflag-group/groupdetails/:id",
+								element: <LoanCloseFlagGroupLevelDetails />,
 							},
 							{
 								path: "searchmember",
@@ -734,6 +754,14 @@ const router = createBrowserRouter([
 							{
 								path: "loandetails-branch-shg/:id",
 								element: <LoanBranchSHGDetailsBM_BDCCB />,
+							},
+							{
+								path: "loancloseflag",
+								element: <LoanCloseFlag />,
+							},
+							{
+								path: "loancloseflag/groupdetails/:id",
+								element: <LoanCloseFlagGroupDetails />,
 							},
 							{
 								path: "refinace",

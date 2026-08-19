@@ -4,20 +4,20 @@ const express = require('express');
 const cors = require('cors');
 const PORT = process.env.PORT || 3017;
 
-try {
-	const srcMedia = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786360767432.jpg';
-	const destMedia = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_user_exact.jpg';
-	if (fs.existsSync(srcMedia)) {
-		fs.copyFileSync(srcMedia, destMedia);
-	}
-	const srcMedia2 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786361110788.jpg';
-	const destMedia2 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring.jpg';
-	if (fs.existsSync(srcMedia2)) {
-		fs.copyFileSync(srcMedia2, destMedia2);
-	}
-} catch (err) {
-	console.log('Copy media error:', err);
-}
+// try {
+// 	const srcMedia = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786360767432.jpg';
+// 	const destMedia = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_user_exact.jpg';
+// 	if (fs.existsSync(srcMedia)) {
+// 		fs.copyFileSync(srcMedia, destMedia);
+// 	}
+// 	const srcMedia2 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\media__1786361110788.jpg';
+// 	const destMedia2 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring.jpg';
+// 	if (fs.existsSync(srcMedia2)) {
+// 		fs.copyFileSync(srcMedia2, destMedia2);
+// 	}
+// } catch (err) {
+// 	console.log('Copy media error:', err);
+// }
 const app = express();
 const server = http.createServer(app);
 const bcrypt = require("bcrypt");
@@ -25,23 +25,23 @@ const bcrypt = require("bcrypt");
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-const {db_Select,saveRecord} =  require('./model/pgcommon');
-const {createToken,verifyToken,newfuncttion} = require("./middleware/authMiddleware");
+const { db_Select, saveRecord } = require('./model/pgcommon');
+const { createToken, verifyToken, newfuncttion } = require("./middleware/authMiddleware");
 
 
-app.get('/v1/copy_user_media', (req, res) => {
-	try {
-		const srcMedia3 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\shg_tailoring_hd_1786361376021.png';
-		const destMedia3 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring_hd.png';
-		if (fs.existsSync(srcMedia3)) {
-			fs.copyFileSync(srcMedia3, destMedia3);
-			return res.json({ success: true, msg: 'HD_COPIED_SUCCESSFULLY' });
-		}
-		return res.json({ success: false, msg: 'HD_SRC_NOT_FOUND' });
-	} catch (err) {
-		return res.json({ success: false, error: err.message });
-	}
-});
+// app.get('/v1/copy_user_media', (req, res) => {
+// 	try {
+// 		const srcMedia3 = 'C:\\Users\\ssspl\\.gemini\\antigravity-ide\\brain\\f8b06fe4-1d6a-4788-ba3e-741def0d35c5\\shg_tailoring_hd_1786361376021.png';
+// 		const destMedia3 = 'd:\\Sayantika\\bdccb_shg\\bdccb_shg\\bdccb_shg_frontend\\src\\Assets\\Images\\shg_tailoring_hd.png';
+// 		if (fs.existsSync(srcMedia3)) {
+// 			fs.copyFileSync(srcMedia3, destMedia3);
+// 			return res.json({ success: true, msg: 'HD_COPIED_SUCCESSFULLY' });
+// 		}
+// 		return res.json({ success: false, msg: 'HD_SRC_NOT_FOUND' });
+// 	} catch (err) {
+// 		return res.json({ success: false, error: err.message });
+// 	}
+// });
 
 app.use('/v1/master', require('./router/master/indexRouter'));
 app.use('/v1/group', require('./router/group/indexGroupRouter'));
@@ -59,6 +59,7 @@ app.use('/v1/refinance', require('./router/refinance/indexRefinanceRouter'));
 app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 app.use('/v1/sbledger', require('./router/sbledger/indexsbledgerRouter'));
 app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRouter'));
+app.use('/v1/loanclose', require('./router/loanclose/indexLoanCloseRouter'));
 
 
 // app.post("/v1/login", async (req, res) => {
@@ -92,7 +93,7 @@ app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRout
 //               success: false,
 //               msg: "Invalid username"
 //             });
-   
+
 //     }
 //     // CREATE TOKEN
 //     const userData = res_dt.msg[0];
@@ -103,7 +104,7 @@ app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRout
 //                msg: "Account is inactive. Please contact administrator."
 //             });
 //     }
-    
+
 //     const isMatch = await bcrypt.compare(password.toString(), userData.password);
 
 //      if (!isMatch) {
@@ -155,8 +156,8 @@ app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRout
 app.post("/v1/login", async (req, res) => {
   try {
     const { username, password, user_type, branch_id } = req.body;
-    console.log(req.body,'login');
-    
+    console.log(req.body, 'login');
+
 
     if (!username || !password) {
       return res.send({
@@ -189,25 +190,25 @@ app.post("/v1/login", async (req, res) => {
 
     // Validate login response structure safely
     if (!res_dt || res_dt.suc !== 1 || res_dt.msg.length === 0) {
-         return res.send({
-              success: false,
-              msg: "Invalid username"
-            });
-   
+      return res.send({
+        success: false,
+        msg: "Invalid username"
+      });
+
     }
     // CREATE TOKEN
     const userData = res_dt.msg[0];
     // Check if user is active
     if (userData.active_flag !== 'Y') {
-            return res.send({
-               success: false,
-               msg: "Account is inactive. Please contact administrator."
-            });
+      return res.send({
+        success: false,
+        msg: "Account is inactive. Please contact administrator."
+      });
     }
-    
+
     const isMatch = await bcrypt.compare(password.toString(), userData.password);
 
-     if (!isMatch) {
+    if (!isMatch) {
       return res.send({ success: false, msg: "Invalid Password" });
     }
 
@@ -321,6 +322,6 @@ process.on('unhandledRejection', (reason) => {
 });
 
 
-server.listen(PORT, '0.0.0.0',() => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });

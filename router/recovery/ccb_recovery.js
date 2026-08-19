@@ -1540,6 +1540,8 @@ ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   branchCondition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`;
   } else if (branch_type === 'P'){
   branchCondition = `a.branch_shg_id = '${pacs_id}'`;
+  } else if (branch_type === 'BP') {
+  branchCondition = `a.branch_id = '${branch_id}'`;
   }
 
   if (branch_type === 'B') {
@@ -1548,9 +1550,11 @@ ccb_recovRouter.post("/fetch_ccb_loan_dtls", async (req, res) => {
   acc_no = '';
   } else if (branch_type === 'P'){
   acc_no = `b.society_acc_no = '${society_acc_no}'`;
+  } else if (branch_type === 'BP') {
+  acc_no = `b.loan_acc_no = '${loan_acc_no}'`;
   }
 
-  var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+  var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.curr_prn,a.curr_intt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding,a.acc_status",
   table_name = "bdccb.td_loan_ccb a",
   whr = `a.tenant_id = '${tenant_id}' AND ${branchCondition} AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
     FROM bdccb.td_loan_member b
@@ -1626,7 +1630,7 @@ ccb_recovRouter.post("/fetch_society_loan_dtls", async (req, res) => {
   branch_condition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`
   }
 
-  var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+  var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.curr_prn,a.curr_intt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding,a.acc_status",
   table_name = "bdccb.td_loan a",
   whr = `a.tenant_id = '${tenant_id}' AND ${branch_condition} AND a.group_code = '${group_code}' AND a.branch_shg_id NOT IN ('111') AND EXISTS ( SELECT 1 
     FROM bdccb.td_loan_member b
@@ -1704,7 +1708,7 @@ ccb_recovRouter.post("/fetch_indivitual_shg_member", async (req, res) => {
   acc_no = '';
   }
 
-  var select = "b.member_name,a.loan_id,a.ccb_loan_id,a.member_code,COALESCE(a.prn_amt + a.intt_amt,0) AS member_outstanding",
+  var select = "b.member_name,a.loan_id,a.ccb_loan_id,a.member_code,a.acc_status,COALESCE(a.prn_amt + a.intt_amt,0) AS member_outstanding",
   table_name = "bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.tenant_id = b.tenant_id AND a.member_code = b.member_code AND a.group_code = b.group_code",
   whr = `a.ccb_loan_id = '${loan_id}' AND a.tenant_id = '${tenant_id}' AND ${branchcondition} AND a.group_code = '${group_code}' ${acc_no ? `AND ${acc_no}` : ''}`,
   order = `a.loan_id`;

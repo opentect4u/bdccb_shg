@@ -19,6 +19,7 @@ import {
 	FilePdfOutlined,
 	MinusCircleOutlined,
 	ClockCircleOutlined,
+	CheckCircleOutlined,
 	ArrowRightOutlined,
 	UserOutlined,
 	EyeOutlined,
@@ -77,6 +78,167 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 	const containerRef = useRef(null)
 
 	const [isHovered, setIsHovered] = useState(false)
+	const [ccbLoanModalOpen, setCcbLoanModalOpen] = useState(false)
+	const [societyLoanModalOpen, setSocietyLoanModalOpen] = useState(false)
+
+	const [currentPrincipal, setCurrentPrincipal] = useState("");
+	const [currentInterest, setCurrentInterest] = useState("");
+	const [closingLoan, setClosingLoan] = useState(false);
+
+	const [memberCloseInputs, setMemberCloseInputs] = useState({});
+
+	const handleMemberInputChange = (loanId, field, value) => {
+		setMemberCloseInputs(prev => ({
+			...prev,
+			[loanId]: {
+				...prev[loanId],
+				[field]: value
+			}
+		}));
+	};
+
+	const handleMemberLoanClose = async (item) => {
+		const prn = parseFloat(memberCloseInputs[item.loan_id]?.principal || 0);
+		const intt = parseFloat(memberCloseInputs[item.loan_id]?.interest || 0);
+		const totalEntered = prn + intt;
+		const outstanding = parseFloat(item.member_outstanding || 0);
+
+		if (totalEntered !== outstanding) {
+			Modal.warning({
+				title: 'Amount Mismatch',
+				content: `The sum of Close Principal and Interest (₹${totalEntered}) does not match the Member Outstanding (₹${outstanding}).`,
+				centered: true,
+				okText: 'Got it',
+			});
+			return;
+		}
+
+		Modal.confirm({
+			title: 'Confirm Member Loan Closure',
+			content: `Are you sure you want to close the loan for ${item.member_name}?`,
+			okText: 'Yes, Close Loan',
+			cancelText: 'Cancel',
+			onOk: async () => {
+				setLoading(true);
+				const creds = {
+					loan_id: item.loan_id,
+					group_code: item.group_code,
+					curr_prn: prn,
+					curr_intt: intt,
+					tenant_id: userDetails[0]?.tenant_id || userDetails?.tenant_id,
+					created_by: userDetails[0]?.emp_id || userDetails?.emp_id,
+				};
+				const tokenValue = await getLocalStoreTokenDts(navigate);
+				
+				try {
+					const res = await axios.post(`${url_bdccb}/loanclose/close_loan_group`, creds, {
+						headers: { Authorization: `${tokenValue.token}` }
+					});
+					if (res.data.success || res.data.suc === 1) {
+						Message('success', 'Member loan has been closed successfully.');
+						
+						// Instantly update the UI to show 'Loan Closed' without reloading
+						setMemberData(prev => 
+							prev.map(member => 
+								member.loan_id === item.loan_id 
+									? { ...member, acc_status: 'C', member_outstanding: 0 } 
+									: member
+							)
+						);
+
+						// Clear the inputs for that member just in case
+						setMemberCloseInputs(prev => ({
+							...prev,
+							[item.loan_id]: { principal: '', interest: '' }
+						}));
+					} else {
+						Message('error', res.data.msg || "Failed to close member loan");
+					}
+				} catch (err) {
+					console.error(err);
+					Message('error', "An error occurred while closing the member loan.");
+				} finally {
+					setLoading(false);
+				}
+			}
+		});
+	};
+
+	const handleCloseLoan = async () => {
+		if (!currentPrincipal || !currentInterest) {
+			Message("warning", "Please enter both Current Principal and Current Interest!");
+			return;
+		}
+
+		const isSociety = window.location.pathname.includes('/homepacs');
+		const targetLoanDetails = isSociety ? groupData : ccbLoanDetails;
+
+		const principal = parseFloat(currentPrincipal) || 0;
+		const interest = parseFloat(currentInterest) || 0;
+		const outstanding = parseFloat(targetLoanDetails[0]?.cuurent_loan_outstanding) || 0;
+
+		if (principal + interest !== outstanding) {
+			Modal.warning({
+				title: 'Amount Mismatch',
+				content: `The sum of Current Principal and Interest (₹${principal + interest}) does not match the Total Outstanding (₹${outstanding}). Please correct the amounts before closing the loan.`,
+				centered: true,
+				okText: 'Got it',
+			});
+			return;
+		}
+
+		Modal.confirm({
+			title: 'Confirm Loan Closure',
+			content: 'Are you sure you want to close this loan? This action cannot be undone.',
+			okText: 'Yes, Close Loan',
+			cancelText: 'Cancel',
+			onOk: async () => {
+				setClosingLoan(true);
+				const creds = {
+					loan_id: targetLoanDetails[0]?.loan_id,
+					loan_acc_no: targetLoanDetails[0]?.loan_acc_no,
+					group_code: formik.values.g_code || params.id,
+					curr_prn: currentPrincipal,
+					curr_intt: currentInterest,
+					tenant_id: userDetails[0]?.tenant_id,
+					branch_id: userDetails[0]?.brn_code,
+					created_by: userDetails[0]?.emp_id,
+				};
+
+				const isSociety = window.location.pathname.includes('/homepacs');
+				const isGroup = window.location.pathname.includes('loancloseflag-group');
+				const endpoint = isGroup ? '/loanclose/close_loan_group' : (isSociety ? '/loanclose/close_loan_society' : '/loanclose/close_loan_ccb');
+
+				const tokenValue = await getLocalStoreTokenDts(navigate);
+
+				try {
+					const res = await axios.post(`${url_bdccb}${endpoint}`, creds, {
+						headers: {
+							Authorization: `${tokenValue?.token}`,
+							"Content-Type": "application/json",
+						},
+					});
+
+					if (res?.data?.success) {
+						Message("success", "Loan closed successfully!");
+						// Reset inputs
+						setCurrentPrincipal("");
+						setCurrentInterest("");
+						setTimeout(() => {
+							window.location.reload();
+						}, 1500);
+					} else {
+						Message("error", res?.data?.msg || "Failed to close loan");
+					}
+				} catch (err) {
+					Message("error", "Some error occurred while closing loan...");
+					console.log("ERR", err);
+				} finally {
+					setClosingLoan(false);
+				}
+			}
+		});
+	};
 
 	const handleWheel = (event) => {
 		if (isHovered && containerRef.current) {
@@ -229,11 +391,11 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 		setLoading(true)
 		const creds = {
 			// group_code: params?.id,
-			tenant_id: userDetails[0]?.tenant_id,
-			branch_code: userDetails[0]?.brn_code,
+			tenant_id: userDetails?.[0]?.tenant_id || userDetails?.tenant_id,
+			branch_code: userDetails?.[0]?.brn_code || userDetails?.brn_code,
 			group_code: loanAppData?.group_code,
-			society_acc_no: loanAppData?.group_details[0]?.society_acc_no,
-			branch_type: userDetails[0]?.branch_type
+			society_acc_no: loanAppData?.group_details?.[0]?.society_acc_no,
+			branch_type: userDetails?.[0]?.branch_type || userDetails?.branch_type
 		}
 
 
@@ -272,15 +434,15 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 		const creds = {
 			// group_code: params?.id,
 			loan_id: loan_id,
-			tenant_id: userDetails[0]?.tenant_id,
+			tenant_id: userDetails?.[0]?.tenant_id || userDetails?.tenant_id,
 			// branch_code: userDetails[0]?.brn_code,
-			branch_code: userDetails[0]?.brn_code,
+			branch_code: userDetails?.[0]?.brn_code || userDetails?.brn_code,
 			group_code: loanAppData?.group_code,
 			loan_acc_no: loanAppData?.loan_acc_no,
 			///////
-			society_acc_no: loanAppData?.group_details[0]?.society_acc_no,
-			branch_type: userDetails[0]?.branch_type,
-			pacs_id: loanAppData?.group_details[0]?.pacs_id
+			society_acc_no: loanAppData?.group_details?.[0]?.society_acc_no,
+			branch_type: userDetails?.[0]?.branch_type || userDetails?.branch_type,
+			pacs_id: loanAppData?.group_details?.[0]?.pacs_id
 		}
 
 
@@ -325,19 +487,19 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 
 		setValues({
 			// g_branch_name: res?.data?.msg[0]?.emp_name,
-			g_group_name: loanAppData?.group_details[0]?.group_name,
-			g_branch_name: loanAppData?.group_details[0]?.branch_name,
-			pacs_name: loanAppData?.group_details[0]?.pacs_name,
-			sahayika_name: loanAppData?.group_details[0]?.sahayika_name,
-			g_phone1: loanAppData?.group_details[0]?.phone1,
-			g_address: loanAppData?.group_details[0]?.group_addr,
-			dist_name: loanAppData?.group_details[0]?.dist_name,
-			g_group_block: loanAppData?.group_details[0]?.block_name,
-			ps_name: loanAppData?.group_details[0]?.ps_name,
-			post_name: loanAppData?.group_details[0]?.post_name,
-			gp_name: loanAppData?.group_details[0]?.gp_name,
-			vill_name: loanAppData?.group_details[0]?.vill_name,
-			pin_no: loanAppData?.group_details[0]?.pin_no,
+			g_group_name: loanAppData?.group_details?.[0]?.group_name,
+			g_branch_name: loanAppData?.group_details?.[0]?.branch_name,
+			pacs_name: loanAppData?.group_details?.[0]?.pacs_name,
+			sahayika_name: loanAppData?.group_details?.[0]?.sahayika_name,
+			g_phone1: loanAppData?.group_details?.[0]?.phone1,
+			g_address: loanAppData?.group_details?.[0]?.group_addr,
+			dist_name: loanAppData?.group_details?.[0]?.dist_name,
+			g_group_block: loanAppData?.group_details?.[0]?.block_name,
+			ps_name: loanAppData?.group_details?.[0]?.ps_name,
+			post_name: loanAppData?.group_details?.[0]?.post_name,
+			gp_name: loanAppData?.group_details?.[0]?.gp_name,
+			vill_name: loanAppData?.group_details?.[0]?.vill_name,
+			pin_no: loanAppData?.group_details?.[0]?.pin_no,
 		})
 		// setGroupData(res?.data?.msg)
 		// setPeriodMode(res?.data?.msg[0].disb_details[0]?.period_mode)
@@ -356,14 +518,14 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 	setLoading(true)
 
 		const creds = {
-			tenant_id: userDetails[0]?.tenant_id,
-			branch_id: userDetails[0]?.brn_code,
+			tenant_id: userDetails?.[0]?.tenant_id || userDetails?.tenant_id,
+			branch_id: userDetails?.[0]?.brn_code || userDetails?.brn_code,
 			group_code: loanAppData?.group_code,
-			pacs_id: loanAppData?.group_details[0]?.pacs_id,
+			pacs_id: loanAppData?.group_details?.[0]?.pacs_id,
 			loan_acc_no: loanAppData?.loan_acc_no,
 			//////
-			branch_type: userDetails[0]?.branch_type,
-			society_acc_no: loanAppData?.group_details[0]?.society_acc_no
+			branch_type: window.location.pathname.includes('/homepacs') ? 'BP' : (userDetails?.[0]?.branch_type || userDetails?.branch_type),
+			society_acc_no: loanAppData?.group_details?.[0]?.society_acc_no
 		}
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
@@ -401,7 +563,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 		fetchLoanDetails()
 		society_member_details()
 		ccbloandetails()
-		console.log(userDetails[0]?.user_type, 'gggggggggggggggggggg');
+		console.log(userDetails?.[0]?.user_type || userDetails?.user_type, 'gggggggggggggggggggg');
 
 	}, [])
 
@@ -490,6 +652,8 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 	)
 
 
+	const activeLoanDetails = location.pathname.includes('/homepacs') ? groupData : ccbLoanDetails;
+
 	return (
 		<>
 			{
@@ -506,7 +670,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 				<form onSubmit={formik.handleSubmit} className={`${isOverdue == 'Y' ? 'mt-5' : ''}`}>
 					<div className="flex flex-col justify-start gap-5">
 						{/* {JSON.stringify(loanAppData)}  */}
-						<div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
+						<div className={`grid gap-4 ${location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails') ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} sm:gap-6`}>
 							{/* {params?.id > 0 && (
 								<div className="sm:col-span-2">
 									<TDInputTemplateBr
@@ -617,11 +781,11 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 								/>
 							</div>
 
-							<div className="sm:col-span-2">
+							<div className={location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails') ? "sm:col-span-3" : "sm:col-span-2"}>
 								<TDInputTemplateBr
 									placeholder="Type Address..."
 									type="text"
-									label={`Address and PIN`}
+									label={location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails') ? "Address" : "Address and PIN"}
 									name="g_address"
 									formControlName={formik.values.g_address}
 									handleChange={formik.handleChange}
@@ -733,8 +897,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 								/>
 							</div>
 							<div>
-								<button onClick={() => setVisible(true)} className=" disabled:bg-gray-400 disabled:dark:bg-gray-400 inline-flex items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-teal-500 transition ease-in-out hover:-translate-y-1 hover:scale-110 duration-300  rounded-full focus:ring-gray-600  dark:focus:ring-primary-900 dark:bg-[#22543d] dark:hover:bg-gray-600">View Member Details</button>
-
+								<button onClick={() => setVisible(true)} className="disabled:bg-gray-400 disabled:dark:bg-gray-400 inline-flex items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-emerald-600 hover:bg-emerald-700 transition duration-300 rounded-md focus:ring-gray-600 dark:focus:ring-primary-900 dark:bg-[#22543d] dark:hover:bg-gray-600 shadow-sm">View Member Details</button>
 							</div>
 
 							{/* <div>
@@ -829,6 +992,8 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 						
 							</div> */}
 						</div>
+
+
 						{/* <Divider
 							type="horizontal"
 							style={{
@@ -1036,60 +1201,223 @@ Authorization: `${tokenValue?.token}`, // example header
 								</button>
 							</div>}
 						</div> */}
-						<div className="text-[#DA4167] text-lg font-bold">CCB Loan Details</div>
+						{location.pathname.includes('loancloseflag/groupdetails') ? (
+							<>
+								<div className="w-full my-2 border-t-4 border-gray-400 border-dashed"></div>
+								<div className="flex items-center justify-between bg-slate-50 dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm my-2">
+									<div className="flex flex-col">
+										<span className="text-[#DA4167] text-lg font-bold">
+											CCB Loan Details
+										</span>
+										<span className="text-sm text-gray-500 dark:text-gray-400">Click to view complete loan and transaction history</span>
+									</div>
+									<button 
+										type="button" 
+										onClick={() => setCcbLoanModalOpen(true)} 
+										className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-300 shadow-md"
+									>
+										View Details
+									</button>
+								</div>
 
-						<div>
+								<Modal
+									title={<div className="text-[#DA4167] text-xl font-bold border-b pb-2">
+										CCB Loan Details
+									</div>}
+									open={ccbLoanModalOpen}
+									onCancel={() => setCcbLoanModalOpen(false)}
+									footer={null}
+									width={"90vw"}
+									style={{ top: 20 }}
+								>
+									<div>
 
 
-							<DynamicTailwindTable
-								data={
-									ccbLoanDetails?.length
-										? [
-											{
-												loan_id: ccbLoanDetails[0].loan_id,
-												loan_acc_no: ccbLoanDetails[0].loan_acc_no,
-												period: ccbLoanDetails[0].period,
-												curr_roi: ccbLoanDetails[0].curr_roi,
-												penal_roi: ccbLoanDetails[0].penal_roi,
-												disb_dt: ccbLoanDetails[0].disb_dt,
-												disb_amt: ccbLoanDetails[0].disb_amt,
-												pay_mode: ccbLoanDetails[0].pay_mode,
-												rep_start_dt: ccbLoanDetails[0].rep_start_dt,
-												rep_end_dt: ccbLoanDetails[0].rep_end_dt,
-												cuurent_loan_outstanding:
-													ccbLoanDetails[0].cuurent_loan_outstanding,
-												action: (
-													<button
-														onClick={() => {
-															// navigate(
-															// `/homepacs/loandetails/${ccbLoanDetails[0]?.loan_id}`
-															// );
-															navigate(`/homepacs/loandetails-branch-shg/${ccbLoanDetails[0]?.loan_id}`, {
-																state: ccbLoanDetails[0]?.trans_details,
-															})
-														}}
-														className="font-medium text-teal-500 hover:underline"
-													>
-														<EyeFilled />
-													</button>
-												),
-											},
-										]
-										: []
-								}
-								// pageSize={50}
-								// headersMap={disbursementDetailsHeader}
-								pageSize={50}
-								columnTotal={[6, 10]}
-								// headersMap={disbursementDetailsHeader}
-								headersMap={{
-									...disbursementDetailsHeader_SOCIE,
-									action: "Action", // ✅ only addition
-								}}
-							// dateTimeExceptionCols={[16]}
-							// colRemove={[3, 5, 12]}
-							/>
+								<DynamicTailwindTable
+									data={
+										ccbLoanDetails?.length
+											? [
+												{
+													loan_id: ccbLoanDetails[0].loan_id,
+													loan_acc_no: ccbLoanDetails[0].loan_acc_no,
+													period: ccbLoanDetails[0].period,
+													curr_roi: ccbLoanDetails[0].curr_roi,
+													penal_roi: ccbLoanDetails[0].penal_roi,
+													disb_dt: ccbLoanDetails[0].disb_dt,
+													disb_amt: ccbLoanDetails[0].disb_amt,
+													pay_mode: ccbLoanDetails[0].pay_mode,
+													rep_start_dt: ccbLoanDetails[0].rep_start_dt,
+													rep_end_dt: ccbLoanDetails[0].rep_end_dt,
+													cuurent_loan_outstanding:
+														ccbLoanDetails[0].cuurent_loan_outstanding,
+												},
+											]
+											: []
+									}
+									pageSize={50}
+									columnTotal={[6, 10]}
+									headersMap={disbursementDetailsHeader_SOCIE}
+								/>
+								<div className="text-[#DA4167] text-lg font-bold mt-8 mb-4">Transaction Details</div>
+								<DynamicTailwindTable
+									data={
+										ccbLoanDetails?.[0]?.trans_details?.map(item => ({
+											trans_id: item.trans_id,
+											trans_dt: item.trans_dt ? moment(item.trans_dt).format("DD-MM-YYYY") : "--",
+											trans_type: item.trans_type == 'D' ? 'Disbursement' : item.trans_type == 'I' ? 'Interest' : item.trans_type == 'R' ? 'Recovery' : item.trans_type,
+											dr_amt: item.dr_amt || 0,
+											cr_amt: item.cr_amt || 0,
+											outstanding: item.outstanding || 0,
+											approval_status: item.approval_status == "U" ? "Unapproved" : item.approval_status == "A" ? "Approved" : "Rejected"
+										})) || []
+									}
+									pageSize={50}
+									headersMap={{
+										trans_id: "Trans. ID",
+										trans_dt: "Trans. Date",
+										trans_type: "Trans. Type",
+										dr_amt: "Debit Amt.",
+										cr_amt: "Credit Amt.",
+										outstanding: "Outstanding",
+										approval_status: "Status"
+									}}
+								/>
+									</div>
+								</Modal>
 
+								{/* Society Loan Details (Only for PACS) */}
+								{window.location.pathname.includes('/homepacs') && (
+									<>
+										<div className="w-full my-2 border-t-4 border-gray-400 border-dashed"></div>
+										<div className="flex items-center justify-between bg-slate-50 dark:bg-gray-800 p-4 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm my-2">
+											<div className="flex flex-col">
+												<span className="text-[#DA4167] text-lg font-bold">
+													Society Loan Details
+												</span>
+												<span className="text-sm text-gray-500 dark:text-gray-400">Click to view complete loan and transaction history</span>
+											</div>
+											<button 
+												type="button" 
+												onClick={() => setSocietyLoanModalOpen(true)} 
+												className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-300 shadow-md"
+											>
+												View Details
+											</button>
+										</div>
+
+										<Modal
+											title={<div className="text-[#DA4167] text-xl font-bold border-b pb-2">
+												Society Loan Details
+											</div>}
+											open={societyLoanModalOpen}
+											onCancel={() => setSocietyLoanModalOpen(false)}
+											footer={null}
+											width={"90vw"}
+											style={{ top: 20 }}
+										>
+											<div>
+												<DynamicTailwindTable
+													data={
+														groupData?.length
+															? [
+																{
+																	loan_id: groupData[0].loan_id,
+																	loan_acc_no: groupData[0].loan_acc_no,
+																	period: groupData[0].period,
+																	curr_roi: groupData[0].curr_roi,
+																	penal_roi: groupData[0].penal_roi,
+																	disb_dt: groupData[0].disb_dt,
+																	disb_amt: groupData[0].disb_amt,
+																	pay_mode: groupData[0].pay_mode,
+																	rep_start_dt: groupData[0].rep_start_dt,
+																	rep_end_dt: groupData[0].rep_end_dt,
+																	cuurent_loan_outstanding:
+																		groupData[0].cuurent_loan_outstanding,
+																},
+															]
+															: []
+													}
+													pageSize={50}
+													columnTotal={[6, 10]}
+													headersMap={disbursementDetailsHeader_SOCIE}
+												/>
+												<div className="text-[#DA4167] text-lg font-bold mt-8 mb-4">Transaction Details</div>
+												<DynamicTailwindTable
+													data={
+														groupData?.[0]?.trans_details?.map(item => ({
+															trans_id: item.trans_id,
+															trans_dt: item.trans_dt ? moment(item.trans_dt).format("DD-MM-YYYY") : "--",
+															trans_type: item.trans_type == 'D' ? 'Disbursement' : item.trans_type == 'I' ? 'Interest' : item.trans_type == 'R' ? 'Recovery' : item.trans_type,
+															dr_amt: item.dr_amt || 0,
+															cr_amt: item.cr_amt || 0,
+															outstanding: item.outstanding || 0,
+															approval_status: item.approval_status == "U" ? "Unapproved" : item.approval_status == "A" ? "Approved" : "Rejected"
+														})) || []
+													}
+													pageSize={50}
+													headersMap={{
+														trans_id: "Trans. ID",
+														trans_dt: "Trans. Date",
+														trans_type: "Trans. Type",
+														dr_amt: "Debit Amt.",
+														cr_amt: "Credit Amt.",
+														outstanding: "Outstanding",
+														approval_status: "Status"
+													}}
+												/>
+											</div>
+										</Modal>
+									</>
+								)}
+							</>
+						) : location.pathname.includes('loancloseflag-group/groupdetails') ? null : (
+							<>
+								<div className="w-full my-5 border-t-4 border-gray-400 border-dashed"></div>
+								<div className="text-[#DA4167] text-lg font-bold mb-4">CCB Loan Details</div>
+								<div>
+									<DynamicTailwindTable
+										data={
+											ccbLoanDetails?.length
+												? [
+													{
+														loan_id: ccbLoanDetails[0].loan_id,
+														loan_acc_no: ccbLoanDetails[0].loan_acc_no,
+														period: ccbLoanDetails[0].period,
+														curr_roi: ccbLoanDetails[0].curr_roi,
+														penal_roi: ccbLoanDetails[0].penal_roi,
+														disb_dt: ccbLoanDetails[0].disb_dt,
+														disb_amt: ccbLoanDetails[0].disb_amt,
+														pay_mode: ccbLoanDetails[0].pay_mode,
+														rep_start_dt: ccbLoanDetails[0].rep_start_dt,
+														rep_end_dt: ccbLoanDetails[0].rep_end_dt,
+														cuurent_loan_outstanding:
+															ccbLoanDetails[0].cuurent_loan_outstanding,
+														action: (
+															<button
+																onClick={() => {
+																	navigate(`/homepacs/loandetails-branch-shg/${ccbLoanDetails[0]?.loan_id}`, {
+																		state: ccbLoanDetails[0]?.trans_details,
+																	})
+																}}
+																className="font-medium text-teal-500 hover:underline"
+															>
+																<EyeFilled />
+															</button>
+														),
+													},
+												]
+												: []
+										}
+										pageSize={50}
+										columnTotal={[6, 10]}
+										headersMap={{
+											...disbursementDetailsHeader_SOCIE,
+											action: "Action",
+										}}
+									/>
+								</div>
+							</>
+						)}
 							{/* <DynamicTailwindTable
 								data={groupData[0]?.disb_details?.map((el) => {
 									//  console.log(el.loan_cycle, ' Loan Cycle');
@@ -1121,9 +1449,8 @@ Authorization: `${tokenValue?.token}`, // example header
 								dateTimeExceptionCols={[16]}
 								colRemove={[3, 5, 12]}
 							/> */}
-						</div>
 						{/* purpose,scheme name,interest rate,period,period mode,fund name,total applied amount,total disbursement amount,disbursement date,current outstanding */}
-						{loanAppData?.group_details[0]?.pacs_id!=111 && <><div className="text-[#DA4167] text-lg font-bold">Society Loan Details</div>
+						{(!(location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails')) && loanAppData?.group_details[0]?.pacs_id!=111) && <><div className="text-[#DA4167] text-lg font-bold">Society Loan Details</div>
 
 						<div>
 
@@ -1249,7 +1576,7 @@ Authorization: `${tokenValue?.token}`, // example header
 														<th scope="col" className="px-6 py-3 font-semibold">
 															Outstanding
 														</th>
-														<th scope="col" className="px-6 py-3 font-semibold">Action </th>
+														<th scope="col" className="px-6 py-3 font-semibold text-center">Action </th>
 													</tr>
 												</thead>
 												<tbody>
@@ -1262,39 +1589,157 @@ Authorization: `${tokenValue?.token}`, // example header
 															<td className="px-6 py-4">{item?.loan_id}</td>
 															<td className="px-6 py-4">{item?.member_code}</td>
 															<td className="px-6 py-4">{item?.ccb_loan_id}</td>
-															<td className="px-6 py-4">{item?.member_outstanding}/-</td>
-															<td className="px-6 py-4 text-right">
+															<td className="px-6 py-4 font-bold text-gray-700">₹ {item?.member_outstanding}</td>
+															
+															<td className="px-6 py-4 text-center flex items-center justify-center gap-3">
 																<button
+																	type="button"
 																	onClick={() => {
-																		// navigate(
-																		// 	`/homepacs/memberloandetails/${item?.loan_id}`
-																		// )
 																		navigate(`/homepacs/memberloandetails-branch-shg/${item?.loan_id}`, {
 																			state: item,
 																		})
 																	}}
-																	className="font-medium text-teal-500 dark:text-blue-500 hover:underline"
+																	className="font-medium text-teal-600 hover:text-teal-700 dark:text-blue-500 hover:underline flex items-center gap-1 transition-colors"
 																>
-																	<EyeFilled />
+																	<EyeFilled /> View Trans
 																</button>
+																{location.pathname.includes('loancloseflag-group') && (
+																	item.acc_status === 'C' ? (
+																		<span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-300 ml-4">Loan Closed</span>
+																	) : (
+																		<div className="flex items-center gap-2 ml-4">
+																			<input
+																				type="number"
+																				placeholder="Principal"
+																				className="w-32 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-slate-500 focus:border-slate-500 block p-2 transition-all shadow-inner"
+																				value={memberCloseInputs[item.loan_id]?.principal || ''}
+																				onChange={(e) => handleMemberInputChange(item.loan_id, 'principal', e.target.value)}
+																			/>
+																			<input
+																				type="number"
+																				placeholder="Interest"
+																				className="w-32 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-slate-500 focus:border-slate-500 block p-2 transition-all shadow-inner"
+																				value={memberCloseInputs[item.loan_id]?.interest || ''}
+																				onChange={(e) => handleMemberInputChange(item.loan_id, 'interest', e.target.value)}
+																			/>
+																			<button
+																				type="button"
+																				onClick={() => handleMemberLoanClose(item)}
+																				disabled={!memberCloseInputs[item.loan_id]?.principal && !memberCloseInputs[item.loan_id]?.interest}
+																				className="text-white bg-[#DA4167] hover:bg-[#c03558] focus:ring-2 focus:ring-red-300 font-semibold rounded-lg text-sm px-5 py-2 shadow-sm transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+																			>
+																				Close Loan
+																			</button>
+																		</div>
+																	)
+																)}
 															</td>
 														</tr>
 													))}
-													<tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-														<td className="px-6 py-4 font-semibold" colSpan={4}>
+													<tr className="bg-slate-50 border-b dark:bg-gray-800 dark:border-gray-700">
+														<td className="px-6 py-4 font-bold text-gray-800" colSpan={4}>
 															Total Outstanding
 														</td>
 														<td
-															className="px-6 py-4 text-left font-semibold"
-															colSpan={2}
+															className="px-6 py-4 text-left font-bold text-[#DA4167]"
+															colSpan={location.pathname.includes('loancloseflag-group') ? 4 : 2}
 														>
-															{totalOutstanding.toFixed(2)}/-
+															₹ {totalOutstanding.toFixed(2)}
 														</td>
 													</tr>
 												</tbody>
 											</table>
 										</div>
 									</Spin>
+								</div>
+							</div>
+						)}
+
+						{/* Final Loan Settlement Block */}
+						{location.pathname.includes('loancloseflag/groupdetails') && (
+							<div className="gap-3">
+								<div className="w-full my-5 border-t-4 border-gray-400 border-dashed"></div>
+								<div className="bg-emerald-50 dark:bg-gray-800 p-6 rounded-xl border border-emerald-200 dark:border-gray-700 shadow-sm mt-6">
+									<div className="flex justify-between items-center mb-6">
+										<h3 className="text-[#DA4167] text-xl font-bold">Final Loan Settlement</h3>
+									</div>
+
+									{/* Summary Cards */}
+									<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+										<div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border border-emerald-100 dark:border-gray-600">
+											<p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Loan ID</p>
+											<p className="text-lg font-bold text-gray-800 dark:text-white mt-1">{activeLoanDetails?.[0]?.loan_id || "N/A"}</p>
+										</div>
+										<div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border border-emerald-100 dark:border-gray-600">
+											<p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Account No.</p>
+											<p className="text-lg font-bold text-gray-800 dark:text-white mt-1">{activeLoanDetails?.[0]?.loan_acc_no || "N/A"}</p>
+										</div>
+										<div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border border-emerald-100 dark:border-gray-600">
+											<p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Current Principal</p>
+											<p className="text-lg font-bold text-gray-800 dark:text-white mt-1">₹ {activeLoanDetails?.[0]?.curr_prn || "0.00"}</p>
+										</div>
+										<div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border border-emerald-100 dark:border-gray-600">
+											<p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Current Interest</p>
+											<p className="text-lg font-bold text-gray-800 dark:text-white mt-1">₹ {activeLoanDetails?.[0]?.curr_intt || "0.00"}</p>
+										</div>
+									</div>
+
+									<hr className="border-emerald-200 dark:border-gray-600 mb-6" />
+
+									{/* Settlement Action Area */}
+									{activeLoanDetails?.[0]?.acc_status !== 'C' ? (
+										<div className="flex flex-col md:flex-row gap-6 items-end justify-between bg-white dark:bg-gray-700 p-5 rounded-xl border border-emerald-100 dark:border-gray-600 shadow-sm">
+											<div className="flex-1">
+												<label className="block text-sm font-bold text-gray-500 dark:text-gray-400 mb-2">Total Outstanding</label>
+												<div className="text-xl font-bold text-[#DA4167] p-3 pl-0">
+													₹ {activeLoanDetails?.[0]?.cuurent_loan_outstanding || "0.00"}
+												</div>
+											</div>
+
+											<div className="flex-1">
+												<label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Close Principal</label>
+												<input
+													type="number"
+													value={currentPrincipal}
+													onChange={(e) => setCurrentPrincipal(e.target.value)}
+													placeholder="Enter Principal"
+													className="w-full p-3 font-bold text-lg text-gray-900 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none transition-colors"
+												/>
+											</div>
+											<div className="flex-1">
+												<label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Close Interest</label>
+												<input
+													type="number"
+													value={currentInterest}
+													onChange={(e) => setCurrentInterest(e.target.value)}
+													placeholder="Enter Interest"
+													className="w-full p-3 font-bold text-lg text-gray-900 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:outline-none transition-colors"
+												/>
+											</div>
+
+											<div>
+												<button
+													type="button"
+													onClick={handleCloseLoan}
+													disabled={closingLoan || activeLoanDetails?.length === 0 || !currentPrincipal || !currentInterest}
+													className="px-8 py-3 text-base bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-lg transition duration-300 shadow-md flex items-center justify-center gap-2 w-full md:w-auto h-[52px]"
+												>
+													{closingLoan ? <LoadingOutlined /> : null}
+													Close Loan
+												</button>
+											</div>
+										</div>
+									) : (
+										<div className="flex flex-col items-center justify-center bg-emerald-50 dark:bg-gray-700 p-8 rounded-xl border border-emerald-200 dark:border-gray-600 shadow-sm text-center">
+											<div className="text-emerald-500 mb-2">
+												<svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+												</svg>
+											</div>
+											<h4 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">Loan Closed Successfully</h4>
+											<p className="text-gray-600 dark:text-gray-300 mt-2">There is no outstanding balance remaining on this loan account.</p>
+										</div>
+									)}
 								</div>
 							</div>
 						)}
@@ -1314,17 +1759,57 @@ Authorization: `${tokenValue?.token}`, // example header
 					/> */}
 				</form>
 			</Spin>
- <DialogBox
-				flag={7}
-				onPress={() => setVisible(!visible)}
-				visible={visible}
-				data={memDetails}
-				onPressYes={() => {
-					// editGroup()
-					setVisible(!visible)
-				}}
-				onPressNo={() => setVisible(!visible)}
-			/>
+			<Modal
+				title={<div className="text-[#DA4167] text-xl font-bold border-b pb-2">Group Member Details</div>}
+				open={visible}
+				onCancel={() => setVisible(false)}
+				footer={null}
+				width={"95vw"}
+				style={{ top: 20 }}
+			>
+				<div className="relative overflow-x-auto mt-4">
+					<table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+						<thead className="text-xs text-white uppercase bg-slate-800 dark:bg-gray-700 dark:text-gray-400">
+							<tr>
+								<th scope="col" className="px-6 py-3 font-semibold">Member Code</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Member Name</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Gender</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Caste</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Account No.</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Aadhar No.</th>
+								<th scope="col" className="px-6 py-3 font-semibold">IFSC</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Guardian</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Address</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Phone No.</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Group Designation</th>
+								<th scope="col" className="px-6 py-3 font-semibold">Religion</th>
+							</tr>
+						</thead>
+						<tbody>
+							{memDetails?.map((item, i) => (
+								<tr key={i} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600">
+									<th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+										{item?.member_code}
+									</th>
+									<td className="px-6 py-4">{item?.member_name}</td>
+									<td className="px-6 py-4">{item?.gender === 'M' ? 'Male' : 'Female'}</td>
+									<td className="px-6 py-4">{item?.caste}</td>
+									<td className="px-6 py-4">{item?.member_account_no}</td>
+									<td className="px-6 py-4">{item?.aadhar_no}</td>
+									<td className="px-6 py-4">{item?.ifsc}</td>
+									<td className="px-6 py-4">{item?.gurdian_name}</td>
+									<td className="px-6 py-4">{item?.address}</td>
+									<td className="px-6 py-4">{item?.phone_no}</td>
+									<td className="px-6 py-4">
+										{item?.gp_leader_flag === 'Y' ? 'Leader' : item?.asst_gp_leader_flag === 'Y' ? 'Asst. Leader' : 'Member'}
+									</td>
+									<td className="px-6 py-4">{item?.religion}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</Modal>
 			{/* <DialogBox
 				flag={4}
 				onPress={() => setVisible(!visible)}

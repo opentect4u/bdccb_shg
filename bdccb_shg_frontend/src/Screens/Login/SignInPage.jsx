@@ -58,6 +58,11 @@ const SignInPage = () => {
 	const [loginMessage, setLoginMessage] = useState("");
 	const [loginUserType, setLoginUserType] = useState("");
 	const [branch_Society, setBranch_Society] = useState("B")
+	const [tenantInfo, setTenantInfo] = useState({
+		name: "BANKURA DISTRICT CENTRAL",
+		subName: "COOPERATIVE BANK LTD.",
+		logoUrl: null
+	});
 
 	// Store controller persistently
 	const abortControllerRef = useRef(null);
@@ -93,6 +98,36 @@ const SignInPage = () => {
 	useEffect(() => {
 		setSessionId(generateRandomAlphanumeric(15))
 	}, [])
+
+	useEffect(() => {
+		const fetchTenantLogo = async () => {
+			try {
+				const res = await axios.get(`${url}/master/fetch_tenant_logo?tenant_id=1`);
+				if (res.data.success && res.data.data.length > 0) {
+					const data = res.data.data[0];
+					const logoName = data.logo_name || data['logo name'] || "BANKURA DISTRICT CENTRAL COOPERATIVE BANK LTD.";
+					
+					let mainName = logoName;
+					let sub = "";
+					
+					// Automatically split if it contains 'COOPERATIVE BANK LTD.'
+					if (logoName.toUpperCase().includes("COOPERATIVE BANK LTD.")) {
+						mainName = logoName.substring(0, logoName.toUpperCase().indexOf("COOPERATIVE BANK LTD.")).trim();
+						sub = "COOPERATIVE BANK LTD.";
+					}
+					
+					setTenantInfo({
+						name: mainName,
+						subName: sub,
+						logoUrl: data.logo_url
+					});
+				}
+			} catch (err) {
+				console.error("Failed to fetch tenant logo:", err);
+			}
+		};
+		fetchTenantLogo();
+	}, []);
 
 	// const encryptPassword = (password) => {
 	// return CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
@@ -385,16 +420,29 @@ const SignInPage = () => {
 				<div className="p-8 md:p-12 z-10">
 					<div className="flex justify-between items-center mb-8">
 						<div className="flex items-center space-x-3">
-							<div className="p-2 bg-emerald-100 rounded-lg">
-								<AccountBalance className="text-emerald-700" fontSize="large" />
-							</div>
-							<div className="flex flex-col">
+							{tenantInfo.logoUrl ? (
+								<div className="flex items-center justify-center bg-white rounded-lg p-1 shadow-sm border border-slate-100">
+									<img 
+										src={tenantInfo.logoUrl.startsWith('http') || tenantInfo.logoUrl.startsWith('/') ? tenantInfo.logoUrl : `/${tenantInfo.logoUrl}`} 
+										alt="Logo" 
+										className="h-12 md:h-14 w-auto object-contain"
+										onError={() => setTenantInfo(prev => ({...prev, logoUrl: null}))}
+									/>
+								</div>
+							) : (
+								<div className="p-2 bg-emerald-100 rounded-lg">
+									<AccountBalance className="text-emerald-700" fontSize="large" />
+								</div>
+							)}
+							<div className="flex flex-col justify-center">
 								<span className="font-bold text-slate-800 text-lg md:text-xl leading-none tracking-wide">
-									BANKURA DISTRICT CENTRAL
+									{tenantInfo.name}
 								</span>
-								<span className="font-semibold text-slate-500 text-xs md:text-sm tracking-widest mt-1">
-									COOPERATIVE BANK LTD.
-								</span>
+								{tenantInfo.subName && (
+									<span className="font-bold text-slate-400 text-xs md:text-sm tracking-widest mt-1">
+										{tenantInfo.subName}
+									</span>
+								)}
 							</div>
 						</div>
 						<nav className="hidden md:flex space-x-6">
@@ -430,11 +478,8 @@ const SignInPage = () => {
 						</nav>
 					</div>
 
-					<div className="mb-8">
-						<h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
-							Start from here
-						</h3>
-						<h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+					<div className="mb-8 text-center">
+						<h1 className="text-2xl font-bold text-green-800">
 							Sign into SHG Module
 						</h1>
 					</div>

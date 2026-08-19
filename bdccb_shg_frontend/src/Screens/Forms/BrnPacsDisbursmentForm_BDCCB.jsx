@@ -733,8 +733,6 @@ function BrnPacsDisbursmentForm_BDCCB({ flag }) {
 
 			} else {
 				Message('error', res?.data?.msg)
-				navigate(routePaths.LANDING)
-				localStorage.clear()
 			}
 
 		})

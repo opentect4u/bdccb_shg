@@ -509,6 +509,26 @@ loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
  var fetch_gp_data = await db_Select(select,table_name,whr,order);
 
  if(fetch_gp_data.suc === 1 && fetch_gp_data.msg.length > 0){
+   let group_code = fetch_gp_data.msg[0].group_code;
+   
+   var mem_select = "acc_status",
+       mem_table = "bdccb.td_loan_member",
+       mem_whr = `group_code = '${group_code}'`;
+   
+   var fetch_mem_data = await db_Select(mem_select, mem_table, mem_whr, null);
+   
+   if (fetch_mem_data.suc === 1 && fetch_mem_data.msg.length > 0) {
+       let hasC = fetch_mem_data.msg.some(m => m.acc_status === 'C');
+       
+       if (hasC) {
+           return res.send({
+               success: false,
+               msg: "Account closed",
+               data: []
+           });
+       }
+   }
+
    return res.send({
       success: true,
       msg: "Fetch group data",
@@ -516,7 +536,7 @@ loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
    })
  }else{
     return res.send({
-      success: true,
+      success: false,
       msg: "Failed to fetch group data",
       data: []
    })
@@ -616,6 +636,26 @@ loanRouter.post("/fetch_gp_based_ac_no_soc", async (req, res) => {
  var fetch_gp_data_soc = await db_Select(select,table_name,whr,order);
 
  if(fetch_gp_data_soc.suc === 1 && fetch_gp_data_soc.msg.length > 0){
+   let group_code = fetch_gp_data_soc.msg[0].group_code;
+   
+   var mem_select = "acc_status",
+       mem_table = "bdccb.td_loan_member",
+       mem_whr = `group_code = '${group_code}'`;
+   
+   var fetch_mem_data = await db_Select(mem_select, mem_table, mem_whr, null);
+   
+   if (fetch_mem_data.suc === 1 && fetch_mem_data.msg.length > 0) {
+       let hasC = fetch_mem_data.msg.some(m => m.acc_status === 'C');
+       
+       if (hasC) {
+           return res.send({
+               success: false,
+               msg: "Account closed",
+               data: []
+           });
+       }
+   }
+
    return res.send({
       success: true,
       msg: "Fetch group data",
@@ -623,7 +663,7 @@ loanRouter.post("/fetch_gp_based_ac_no_soc", async (req, res) => {
    })
  }else{
     return res.send({
-      success: true,
+      success: false,
       msg: "Failed to fetch group data",
       data: []
    })
@@ -1077,13 +1117,13 @@ for (const group_code in groupMap) {
   // ================== td_loan ==================
   var table = "bdccb.td_loan";
 
-  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type","acc_status"];
 
   var values = [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
     startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B'
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B', 'O'
   ];
 
   let result = await saveRecord(table, columns, values, [], [], 0);
@@ -1124,13 +1164,13 @@ for (const group_code in groupMap) {
   // ================== td_loan_ccb ==================
   var table = "bdccb.td_loan_ccb";
 
-  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+  var columns = ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type","acc_status"];
 
   var values = [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, total_disb_amt, pay_mode,
     startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B'
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group_code, 'B', 'O'
   ];
 
   let result_ccb = await saveRecord(table, columns, values, [], [], 0);
@@ -1232,7 +1272,7 @@ for (const group_code in groupMap) {
       "disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt",
       "prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt",
       "tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address",
-      "society_roi","society_penal_roi","fund_type"
+      "society_roi","society_penal_roi","fund_type","acc_status"
     ];
 
     const values1 = mem.mem_loan_id > 0 ? [
@@ -1247,7 +1287,7 @@ for (const group_code in groupMap) {
       pay_mode, startDate, endDate,
       0,0,0,0,tot_grp, sanction_no, sanction_dt,created_by, datetime, ip_address,
       loan_to == 'P' ? curr_roi : '0',
-      loan_to == 'P' ? penal_roi : '0', 'B'
+      loan_to == 'P' ? penal_roi : '0', 'B', 'O'
     ];
     
     const whereColumns1 = mem.mem_loan_id > 0 ? ["loan_id","ccb_loan_id","tenant_id","group_code","member_code"] : [];
@@ -1324,12 +1364,12 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
     // ================== td_loan ==================
     var table = "bdccb.td_loan";
 
-    var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+    var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type","acc_status"];
 
   var values = isEdit ? [period, curr_roi, penal_roi, disb_dt, group.disb_amt, startDate, endDate, tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address] : [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B', 'O'
   ];
 
   var whereColumns = isEdit ? ["loan_id","tenant_id","branch_id","branch_shg_id","group_code"] : [];
@@ -1379,12 +1419,12 @@ loanRouter.post("/save_society_disbursement", async (req, res) => {
   // ================== td_loan_ccb ==================
   var table = "bdccb.td_loan_ccb";
 
-  var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type"];
+  var columns = isEdit ? ["period","curr_roi","penal_roi","disb_dt","disb_amt","rep_start_dt","rep_end_dt","tot_grp","sanction_no","sanction_dt","modified_by","modified_dt","ip_address"] : ["loan_id","tenant_id","branch_id","loan_acc_no","loan_to","branch_shg_id","period","curr_roi","penal_roi","disb_dt","disb_amt","pay_mode","rep_start_dt","rep_end_dt","curr_prn","curr_intt","ovd_prn","ovd_intt","tot_grp","sanction_no","sanction_dt","created_by","created_dt","ip_address","group_code","fund_type","acc_status"];
 
   var values = isEdit ? [period, curr_roi, penal_roi, disb_dt, group.disb_amt, startDate, endDate, tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address] : [
     loan_code, tenant_id, branch_id, loan_acc_no || null, loan_to, branch_shg_id,
     period, curr_roi, penal_roi, disb_dt, group.disb_amt, pay_mode, startDate, endDate, 0, 0, 0, 0,
-    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B'
+    tot_grp, sanction_no, sanction_dt, created_by, datetime, ip_address, group.group_code, 'B', 'O'
   ];
 
   var whereColumns = isEdit ? ["loan_id","tenant_id","branch_id","branch_shg_id","group_code"] : [];
@@ -2889,7 +2929,7 @@ let loanMemberId = `${mem.member_id}${seq}`;
       "disb_dt","disb_amt","period_mode","rep_start_dt","rep_end_dt",
       "prn_amt","ovd_prn_amt","intt_amt","ovd_intt_amt",
       "tot_grp","sanction_no","sanction_dt","created_by","created_at","ip_address",
-      "society_acc_no","society_roi","society_penal_roi","fund_type"
+      "society_acc_no","society_roi","society_penal_roi","fund_type","acc_status"
     ];
 
     const values1 = [
@@ -2899,7 +2939,7 @@ let loanMemberId = `${mem.member_id}${seq}`;
       pay_mode, startDate, endDate,
       mem.disburse_amt,0,0,0,0, sanction_no, sanction_dt,created_by, datetime, ip_address,society_acc_no,
       loan_to == 'P' ? curr_roi : '0',
-      loan_to == 'P' ? penal_roi : '0', 'B'
+      loan_to == 'P' ? penal_roi : '0', 'B', 'O'
     ];
     
     const whereColumns1 = [];
