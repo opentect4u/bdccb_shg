@@ -248,14 +248,17 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
 
     const first_grp = fetch_grp_code.msg[0];
 
-    // Check if any member in this group has an account status of 'C' (Closed)
-    var check_closed = await db_Select("acc_status", "bdccb.td_loan_member", `group_code = '${first_grp.group_code}' AND acc_status = 'C' AND fund_type = 'B'`, null);
+    // Check if account status of all loans/members in this group is 'C' (Closed)
+    var check_closed = await db_Select("acc_status", "bdccb.td_loan_member", `group_code = '${first_grp.group_code}' AND tenant_id = '${tenant_id}' AND fund_type = 'B'`, null);
     if (check_closed.suc === 1 && check_closed.msg.length > 0) {
-      return res.send({
-        success: true,
-        msg: "Account closed",
-        data: []
-      });
+      const hasOpen = check_closed.msg.some(m => m.acc_status === 'O');
+      if (!hasOpen) {
+        return res.send({
+          success: true,
+          msg: "Account closed",
+          data: []
+        });
+      }
     }
 
     if (branch_type === 'B' && first_grp.loan_to === 'P') {
@@ -300,15 +303,15 @@ groupRecoveryRouter.post("/fetch_loan_details_web", async (req, res) => {
 
       var select_loan = `a.ccb_loan_id AS loan_id,a.tenant_id,a.branch_id,a.loan_acc_no AS ccb_loan_acc_no,a.branch_shg_id,c.branch_name AS pacs_name,a.period,${roi_column} AS curr_roi,${penal_roi_column} AS penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,SUM(a.disb_amt) AS disb_amt,a.period_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.sanction_no,TO_CHAR(a.sanction_dt, 'YYYY-MM-DD') AS sanction_dt,${society_acc_no} society_acc_no,b.trans_type`,
         table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.tenant_id = b.tenant_id AND a.branch_id = b.branch_id AND a.ccb_loan_id = b.ccb_loan_id AND a.loan_id = b.loan_id LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
-        whr_loan = `a.tenant_id = '${tenant_id}' AND ${branch_conditions} AND a.group_code = '${group_code}' AND b.approval_status = 'A' AND b.trans_type = 'D' AND a.fund_type = 'B' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,a.society_roi,a.society_penal_roi`,
+        whr_loan = `a.tenant_id = '${tenant_id}' AND ${branch_conditions} AND a.group_code = '${group_code}' AND b.approval_status = 'A' AND b.trans_type = 'D' AND a.fund_type = 'B' AND a.acc_status = 'O' GROUP BY a.ccb_loan_id,a.tenant_id,a.branch_id,a.loan_acc_no,a.branch_shg_id,c.branch_name,a.period,a.curr_roi,a.penal_roi,a.disb_dt,a.period_mode,a.rep_start_dt,a.rep_end_dt,a.sanction_no,a.sanction_dt,a.society_acc_no,b.trans_type,a.society_roi,a.society_penal_roi,a.acc_status`,
         order_loan = null;
       var fetch_loan_data = await db_Select(select_loan, table_name_loan, whr_loan, order_loan);
 
       if (fetch_loan_data.suc === 1 && fetch_loan_data.msg.length > 0) {
         for (let loan of fetch_loan_data.msg) {
-          let mem_select = "a.loan_id AS mem_loan_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,COALESCE(a.prn_amt,0) AS principal_amt,d.member_account_no AS sb_acc_no,e.approval_status,a.disb_amt",
+          let mem_select = "a.loan_id AS mem_loan_id,a.group_code,c.group_name,a.member_code AS member_id,d.member_name,COALESCE(a.prn_amt,0) AS principal_amt,d.member_account_no AS sb_acc_no,e.approval_status,a.disb_amt,a.acc_status",
             mem_table = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id AND a.tenant_id = b.tenant_id LEFT JOIN bdccb.md_group c ON a.group_code = c.group_code LEFT JOIN bdccb.md_member d ON a.group_code = d.group_code AND a.member_code = d.member_code LEFT JOIN bdccb.td_loan_member_trans_temp e ON a.ccb_loan_id = e.ccb_loan_id AND a.tenant_id = e.tenant_id AND a.loan_id = e.loan_id",
-            mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}' AND b.approval_status = 'A'  AND a.fund_type = 'B' GROUP BY a.loan_id,a.group_code,c.group_name,a.member_code,d.member_name,a.prn_amt,d.member_account_no,e.approval_status,a.disb_amt`;
+            mem_whr = `a.tenant_id = '${tenant_id}' AND a.ccb_loan_id = '${loan.loan_id}' AND a.group_code = '${group_code}' AND b.approval_status = 'A'  AND a.fund_type = 'B' AND a.acc_status = 'O' GROUP BY a.loan_id,a.group_code,c.group_name,a.member_code,d.member_name,a.prn_amt,d.member_account_no,e.approval_status,a.disb_amt,a.acc_status`;
           let shg_member_dtls = await db_Select(mem_select, mem_table, mem_whr, null);
 
           if (shg_member_dtls.suc === 1 && shg_member_dtls.msg.some(m => m.acc_status === 'C')) {
@@ -469,11 +472,11 @@ groupRecoveryRouter.post("/fetch_group_recovery_list", async (req, res) => {
 // FETCH GROUP RECOVERY MEMBER DETAILS FOR VIEW
 groupRecoveryRouter.post("/fetch_group_mem_recov_dtls", async (req, res) => {
   try {
-    const { tenant_id, branch_id, group_code, trans_dt, approval_status } = req.body;
+    const { tenant_id, branch_id, group_code, trans_dt, approval_status, loan_id } = req.body;
 
     var select_loan = "MAX(a.ccb_loan_id) AS loan_id, a.group_code, b.group_name, MAX(a.period) AS period, MAX(a.curr_roi) AS curr_roi, MAX(a.penal_roi) AS penal_roi, TO_CHAR(MAX(a.disb_dt), 'YYYY-MM-DD') AS disb_dt, SUM(COALESCE(a.disb_amt,0)) AS disb_amt";
     var table_name_loan = "bdccb.td_loan_member a LEFT JOIN bdccb.md_group b ON a.group_code = b.group_code";
-    var whr_loan = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND a.fund_type = 'B' GROUP BY a.group_code, b.group_name`;
+    var whr_loan = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND a.fund_type = 'B' ${loan_id ? `AND a.ccb_loan_id = '${loan_id}'` : ''} GROUP BY a.group_code, b.group_name`;
 
     var fetch_loan_dtls = await db_Select(select_loan, table_name_loan, whr_loan, null);
 
@@ -482,7 +485,7 @@ groupRecoveryRouter.post("/fetch_group_mem_recov_dtls", async (req, res) => {
 
       var select_mem = `a.loan_id AS mem_loan_id, a.member_code, b.member_name, COALESCE(a.prn_amt,0) AS principal_amt, b.member_account_no AS sb_acc_no, COALESCE(c.cr_amt, 0) AS cr_amt, COALESCE(c.sb_amt, 0) AS sb_amt`;
       var table_name_mem = `bdccb.td_loan_member a LEFT JOIN bdccb.md_member b ON a.group_code = b.group_code AND a.member_code = b.member_code LEFT JOIN ${mem_table} c ON a.ccb_loan_id = c.ccb_loan_id AND a.loan_id = c.loan_id AND c.trans_type = 'R' AND DATE(c.trans_date) = '${trans_dt}' AND c.approval_status = '${approval_status}'`;
-      var whr_mem = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}'  AND a.fund_type = 'B'`;
+      var whr_mem = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND a.fund_type = 'B' ${loan_id ? `AND a.ccb_loan_id = '${loan_id}'` : ''}`;
 
       var fetch_mem_dtls = await db_Select(select_mem, table_name_mem, whr_mem, null);
 

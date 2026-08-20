@@ -22,6 +22,22 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
     const { society_acc_no, branch_id, tenant_id, loan_to } = req.body;
     //  console.log(req.body);
 
+    var mem_select = "acc_status",
+      mem_table = "bdccb.td_loan_member",
+      mem_whr = loan_to == 'S' 
+        ? `tenant_id = '${tenant_id}' AND branch_id = '${branch_id}' AND (loan_acc_no = '${society_acc_no}' OR society_acc_no = '${society_acc_no}')`
+        : `tenant_id = '${tenant_id}' AND branch_shg_id = '${branch_id}' AND (society_acc_no = '${society_acc_no}' OR loan_acc_no = '${society_acc_no}')`,
+      mem_order = null;
+    var mem_data = await db_Select(mem_select, mem_table, mem_whr, mem_order);
+
+    if (mem_data.suc == 1 && mem_data.msg.length > 0 && mem_data.msg.some(m => m.acc_status === 'C')) {
+      return res.send({
+        success: true,
+        msg: "Account closed",
+        data: []
+      });
+    }
+
     var select1 = " COUNT(*) AS cnt",
       table1 = "bdccb.td_loan_member a LEFT JOIN bdccb.td_loan_member_trans b ON a.loan_id = b.loan_id AND a.ccb_loan_id = b.ccb_loan_id",
       whr1 = `a.society_acc_no = '${society_acc_no}' AND a.tenant_id = '${tenant_id}' ${loan_to == 'S' ? `AND a.branch_id = '${branch_id}'` : `AND a.branch_shg_id = '${branch_id}'`} AND b.approval_status = 'U'`,
@@ -528,7 +544,7 @@ society_recovRouter.post("/fetch_society_dtls", async (req, res) => {
 
 society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
   try {
-    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status } = req.body;
+    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status, loan_id } = req.body;
 
     var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) ELSE 0 END AS principal_amount, CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(i.dr_amt,0) ELSE COALESCE(r.cr_amt,0) END AS interest_amount",
       table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}'  LEFT JOIN (
@@ -547,7 +563,7 @@ society_recovRouter.post("/fetch_soc_mem_dtls", async (req, res) => {
 
     JOIN bdccb.md_group d 
     ON a.group_code = d.group_code`,
-      whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
+      whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.loan_id = '${loan_id}'` : ''}`,
       order = null;
     var fetch_society_loan_dtls1 = await db_Select(select, table_name, whr, order);
     // console.log(fetch_society_loan_dtls1,'ki');
@@ -600,7 +616,7 @@ END AS interest_recovery,
 ) i
  ON a.loan_id = i.loan_id 
 AND a.ccb_loan_id = i.ccb_loan_id`;
-      whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`;
+      whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.ccb_loan_id = '${loan_id}'` : ''}`;
       order_member = null;
       var fetch_member_dtls_trans1 = await db_Select(select_member, table_member, whr_member, order_member);
 
@@ -668,7 +684,7 @@ society_recovRouter.post("/fetch_society_recov_dtls", async (req, res) => {
 // FETCH SOCIETY RECOVERY MEMBER DETAILS
 society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
   try {
-    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status } = req.body;
+    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status, loan_id } = req.body;
 
     var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,c.society_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) ELSE 0 END AS principal_amount, CASE WHEN COALESCE(r.cr_amt,0) >= COALESCE(i.dr_amt,0) THEN COALESCE(i.dr_amt,0) ELSE COALESCE(r.cr_amt,0) END AS interest_amount",
       table_name = `bdccb.td_loan a LEFT JOIN bdccb.td_loan_transactions r ON a.loan_id = r.loan_id AND r.trans_type = 'R' AND r.trans_dt = '${trans_dt}' AND r.trans_id = '${transaction_id}' AND r.approval_status = '${approval_status}'  LEFT JOIN (
@@ -687,7 +703,7 @@ society_recovRouter.post("/fetch_soc_mem_recov_dtls", async (req, res) => {
 
     JOIN bdccb.md_group d 
     ON a.group_code = d.group_code`,
-      whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`,
+      whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.loan_id = '${loan_id}'` : ''}`,
       order = null;
     var fetch_society_loan_dtls = await db_Select(select, table_name, whr, order);
     console.log(fetch_society_loan_dtls, 'ju');
@@ -740,7 +756,7 @@ END AS interest_recovery,
 ) i
  ON a.loan_id = i.loan_id 
 AND a.ccb_loan_id = i.ccb_loan_id`;
-      whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}'`;
+      whr_member = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.ccb_loan_id = '${loan_id}'` : ''}`;
       order_member = null;
       var fetch_member_dtls_trans = await db_Select(select_member, table_member, whr_member, order_member);
 
@@ -1506,6 +1522,20 @@ society_recovRouter.post("/fetch_grp_name_ccb", async (req, res) => {
     const { tenant_id, branch_id, ccb_loan_acc_no } = req.body;
     // console.log(req.body);
 
+    var mem_select = "acc_status",
+      mem_table = "bdccb.td_loan_ccb",
+      mem_whr = `tenant_id = '${tenant_id}' AND branch_id = '${branch_id}' AND loan_acc_no = '${ccb_loan_acc_no}' AND branch_shg_id NOT IN ('111')`,
+      mem_order = null;
+    var mem_data = await db_Select(mem_select, mem_table, mem_whr, mem_order);
+
+    if (mem_data.suc == 1 && mem_data.msg.length > 0 && mem_data.msg.some(m => m.acc_status === 'C')) {
+      return res.send({
+        success: true,
+        msg: "Account closed",
+        data: []
+      });
+    }
+
     var select = "a.group_code,b.group_name,a.loan_id",
       table_name = "bdccb.td_loan_ccb a JOIN bdccb.md_group b ON a.group_code = b.group_code",
       whr = `a.tenant_id = '${tenant_id}' AND a.branch_id = '${branch_id}' AND a.loan_acc_no = '${ccb_loan_acc_no}' AND a.branch_shg_id NOT IN ('111')`,
@@ -1730,7 +1760,7 @@ society_recovRouter.post("/fetch_soc_recov_dtls_ccb_level", async (req, res) => 
 // FETCH UNAPPROVE CCB LEVEL RECOVERY DATA DETAILS
 society_recovRouter.post("/ccb_fetch_soc_recov_dtls", async (req, res) => {
   try {
-    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status } = req.body;
+    const { tenant_id, branch_id, group_code, trans_dt, transaction_id, approval_status, loan_id } = req.body;
 
     var select = "a.loan_id,a.group_code,d.group_name,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,(a.curr_prn + a.curr_intt) AS loan_outstanding,r.trans_id AS recovery_trans_id,i.trans_id AS interest_trans_id,COALESCE(r.curr_prn_recov,0) - COALESCE(i.dr_amt,0) AS principal_amount,COALESCE(i.dr_amt,0) AS interest_amount",
 
@@ -1743,7 +1773,7 @@ society_recovRouter.post("/ccb_fetch_soc_recov_dtls", async (req, res) => {
       ORDER BY loan_id, trans_id DESC   -- latest I row
     ) i ON a.loan_id = i.loan_id
      JOIN bdccb.md_group d ON a.group_code = d.group_code`,
-      whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}'`,
+      whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.loan_id = '${loan_id}'` : ''}`,
       order = null;
     var fetch_ccb_loan_dtls = await db_Select(select, table_name, whr, order);
 

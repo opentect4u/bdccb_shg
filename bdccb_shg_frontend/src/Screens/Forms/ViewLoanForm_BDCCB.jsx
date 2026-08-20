@@ -414,8 +414,9 @@ function ViewLoanForm_BDCCB({ groupDataArr }) {
 		const ip = await getClientIP()
 
 		const creds = {
-		tenant_id: userDetails[0]?.tenant_id,
-		group_code: loanAppData?.group_code,
+			tenant_id: userDetails[0]?.tenant_id,
+			group_code: loanAppData?.group_code,
+			loan_id: loanAppData?.loan_id || loanAppData?.ccb_loan_id,
 		}
 
 // 		  "tenant_id" : "",

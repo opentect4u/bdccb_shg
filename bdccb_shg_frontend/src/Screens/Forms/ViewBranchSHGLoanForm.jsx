@@ -129,19 +129,19 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 					created_by: userDetails[0]?.emp_id || userDetails?.emp_id,
 				};
 				const tokenValue = await getLocalStoreTokenDts(navigate);
-				
+
 				try {
 					const res = await axios.post(`${url_bdccb}/loanclose/close_loan_group`, creds, {
 						headers: { Authorization: `${tokenValue.token}` }
 					});
 					if (res.data.success || res.data.suc === 1) {
 						Message('success', 'Member loan has been closed successfully.');
-						
+
 						// Instantly update the UI to show 'Loan Closed' without reloading
-						setMemberData(prev => 
-							prev.map(member => 
-								member.loan_id === item.loan_id 
-									? { ...member, acc_status: 'C', member_outstanding: 0 } 
+						setMemberData(prev =>
+							prev.map(member =>
+								member.loan_id === item.loan_id
+									? { ...member, acc_status: 'C', member_outstanding: 0 }
 									: member
 							)
 						);
@@ -411,12 +411,11 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 			.then((res) => {
 
 				// console.log(res?.data?.data, 'dataaaaaaaaaaaaaaaaaaa', creds);
-				if (res?.data?.success) {
-					// setGroups(res?.data?.data)
-					// setCopyLoanApplications(res?.data?.data)
+				if (res?.data?.success && res?.data?.data?.length > 0) {
 					setGroupData(res?.data?.data)
-					fetchLoanMemberDetails(res?.data?.data[0]?.loan_id)
-
+					if (res?.data?.data[0]?.loan_id) {
+						fetchLoanMemberDetails(res?.data?.data[0]?.loan_id)
+					}
 				} else {
 					// navigate(routePaths.LANDING)
 					// localStorage.clear()
@@ -430,6 +429,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 	}
 
 	const fetchLoanMemberDetails = async (loan_id) => {
+		if (!loan_id) return;
 		setLoading(true)
 		const creds = {
 			// group_code: params?.id,
@@ -514,8 +514,10 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 
 		setLoading(false)
 	}
-    const ccbloandetails = async()=>{
-	setLoading(true)
+	const ccbloandetails = async () => {
+		setLoading(true)
+
+		const isViewLoanBranchShg = window.location.pathname.includes('/homepacs/viewloan-branch-shg') || (location.pathname && location.pathname.includes('viewloan-branch-shg'));
 
 		const creds = {
 			tenant_id: userDetails?.[0]?.tenant_id || userDetails?.tenant_id,
@@ -524,7 +526,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 			pacs_id: loanAppData?.group_details?.[0]?.pacs_id,
 			loan_acc_no: loanAppData?.loan_acc_no,
 			//////
-			branch_type: window.location.pathname.includes('/homepacs') ? 'BP' : (userDetails?.[0]?.branch_type || userDetails?.branch_type),
+			branch_type: isViewLoanBranchShg ? 'B' : (window.location.pathname.includes('/homepacs') ? 'P' : (location.pathname.includes('loancloseflag-group') ? 'BP' : (userDetails?.[0]?.branch_type || userDetails?.branch_type))),
 			society_acc_no: loanAppData?.group_details?.[0]?.society_acc_no
 		}
 
@@ -540,13 +542,11 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 			.then((res) => {
 
 				console.log(res?.data?.data, 'dataaaaaaaaaaaaaaaaaaa', creds);
-				if (res?.data?.success) {
+				if (res?.data?.success && res?.data?.data?.length > 0) {
 					setCcbLoanDetails(res?.data?.data)
-					fetchLoanMemberDetails(res?.data?.data[0]?.loan_id)
-
-					// setGroupData(res?.data?.data)
-					// setMemberData(res?.data?.data)
-
+					if (res?.data?.data[0]?.loan_id) {
+						fetchLoanMemberDetails(res?.data?.data[0]?.loan_id)
+					}
 				} else {
 					// navigate(routePaths.LANDING)
 					// localStorage.clear()
@@ -567,7 +567,7 @@ function ViewBranchSHGLoanForm({ groupDataArr }) {
 
 	}, [])
 
-   
+
 
 	const onSubmit = async (values) => {
 		console.log("onsubmit called")
@@ -1211,9 +1211,9 @@ Authorization: `${tokenValue?.token}`, // example header
 										</span>
 										<span className="text-sm text-gray-500 dark:text-gray-400">Click to view complete loan and transaction history</span>
 									</div>
-									<button 
-										type="button" 
-										onClick={() => setCcbLoanModalOpen(true)} 
+									<button
+										type="button"
+										onClick={() => setCcbLoanModalOpen(true)}
 										className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-300 shadow-md"
 									>
 										View Details
@@ -1233,55 +1233,55 @@ Authorization: `${tokenValue?.token}`, // example header
 									<div>
 
 
-								<DynamicTailwindTable
-									data={
-										ccbLoanDetails?.length
-											? [
-												{
-													loan_id: ccbLoanDetails[0].loan_id,
-													loan_acc_no: ccbLoanDetails[0].loan_acc_no,
-													period: ccbLoanDetails[0].period,
-													curr_roi: ccbLoanDetails[0].curr_roi,
-													penal_roi: ccbLoanDetails[0].penal_roi,
-													disb_dt: ccbLoanDetails[0].disb_dt,
-													disb_amt: ccbLoanDetails[0].disb_amt,
-													pay_mode: ccbLoanDetails[0].pay_mode,
-													rep_start_dt: ccbLoanDetails[0].rep_start_dt,
-													rep_end_dt: ccbLoanDetails[0].rep_end_dt,
-													cuurent_loan_outstanding:
-														ccbLoanDetails[0].cuurent_loan_outstanding,
-												},
-											]
-											: []
-									}
-									pageSize={50}
-									columnTotal={[6, 10]}
-									headersMap={disbursementDetailsHeader_SOCIE}
-								/>
-								<div className="text-[#DA4167] text-lg font-bold mt-8 mb-4">Transaction Details</div>
-								<DynamicTailwindTable
-									data={
-										ccbLoanDetails?.[0]?.trans_details?.map(item => ({
-											trans_id: item.trans_id,
-											trans_dt: item.trans_dt ? moment(item.trans_dt).format("DD-MM-YYYY") : "--",
-											trans_type: item.trans_type == 'D' ? 'Disbursement' : item.trans_type == 'I' ? 'Interest' : item.trans_type == 'R' ? 'Recovery' : item.trans_type,
-											dr_amt: item.dr_amt || 0,
-											cr_amt: item.cr_amt || 0,
-											outstanding: item.outstanding || 0,
-											approval_status: item.approval_status == "U" ? "Unapproved" : item.approval_status == "A" ? "Approved" : "Rejected"
-										})) || []
-									}
-									pageSize={50}
-									headersMap={{
-										trans_id: "Trans. ID",
-										trans_dt: "Trans. Date",
-										trans_type: "Trans. Type",
-										dr_amt: "Debit Amt.",
-										cr_amt: "Credit Amt.",
-										outstanding: "Outstanding",
-										approval_status: "Status"
-									}}
-								/>
+										<DynamicTailwindTable
+											data={
+												ccbLoanDetails?.length
+													? [
+														{
+															loan_id: ccbLoanDetails[0].loan_id,
+															loan_acc_no: ccbLoanDetails[0].loan_acc_no,
+															period: ccbLoanDetails[0].period,
+															curr_roi: ccbLoanDetails[0].curr_roi,
+															penal_roi: ccbLoanDetails[0].penal_roi,
+															disb_dt: ccbLoanDetails[0].disb_dt,
+															disb_amt: ccbLoanDetails[0].disb_amt,
+															pay_mode: ccbLoanDetails[0].pay_mode,
+															rep_start_dt: ccbLoanDetails[0].rep_start_dt,
+															rep_end_dt: ccbLoanDetails[0].rep_end_dt,
+															cuurent_loan_outstanding:
+																ccbLoanDetails[0].cuurent_loan_outstanding,
+														},
+													]
+													: []
+											}
+											pageSize={50}
+											columnTotal={[6, 10]}
+											headersMap={disbursementDetailsHeader_SOCIE}
+										/>
+										<div className="text-[#DA4167] text-lg font-bold mt-8 mb-4">Transaction Details</div>
+										<DynamicTailwindTable
+											data={
+												ccbLoanDetails?.[0]?.trans_details?.map(item => ({
+													trans_id: item.trans_id,
+													trans_dt: item.trans_dt ? moment(item.trans_dt).format("DD-MM-YYYY") : "--",
+													trans_type: item.trans_type == 'D' ? 'Disbursement' : item.trans_type == 'I' ? 'Interest' : item.trans_type == 'R' ? 'Recovery' : item.trans_type,
+													dr_amt: item.dr_amt || 0,
+													cr_amt: item.cr_amt || 0,
+													outstanding: item.outstanding || 0,
+													approval_status: item.approval_status == "U" ? "Unapproved" : item.approval_status == "A" ? "Approved" : "Rejected"
+												})) || []
+											}
+											pageSize={50}
+											headersMap={{
+												trans_id: "Trans. ID",
+												trans_dt: "Trans. Date",
+												trans_type: "Trans. Type",
+												dr_amt: "Debit Amt.",
+												cr_amt: "Credit Amt.",
+												outstanding: "Outstanding",
+												approval_status: "Status"
+											}}
+										/>
 									</div>
 								</Modal>
 
@@ -1296,9 +1296,9 @@ Authorization: `${tokenValue?.token}`, // example header
 												</span>
 												<span className="text-sm text-gray-500 dark:text-gray-400">Click to view complete loan and transaction history</span>
 											</div>
-											<button 
-												type="button" 
-												onClick={() => setSocietyLoanModalOpen(true)} 
+											<button
+												type="button"
+												onClick={() => setSocietyLoanModalOpen(true)}
 												className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-300 shadow-md"
 											>
 												View Details
@@ -1418,7 +1418,7 @@ Authorization: `${tokenValue?.token}`, // example header
 								</div>
 							</>
 						)}
-							{/* <DynamicTailwindTable
+						{/* <DynamicTailwindTable
 								data={groupData[0]?.disb_details?.map((el) => {
 									//  console.log(el.loan_cycle, ' Loan Cycle');
 									 const loanCycle = 'Loan Cycle - '+ el.loan_cycle; 
@@ -1450,61 +1450,61 @@ Authorization: `${tokenValue?.token}`, // example header
 								colRemove={[3, 5, 12]}
 							/> */}
 						{/* purpose,scheme name,interest rate,period,period mode,fund name,total applied amount,total disbursement amount,disbursement date,current outstanding */}
-						{(!(location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails')) && loanAppData?.group_details[0]?.pacs_id!=111) && <><div className="text-[#DA4167] text-lg font-bold">Society Loan Details</div>
+						{(!(location.pathname.includes('loancloseflag') && location.pathname.includes('groupdetails')) && loanAppData?.group_details[0]?.pacs_id != 111) && <><div className="text-[#DA4167] text-lg font-bold">Society Loan Details</div>
 
-						<div>
+							<div>
 
 
-							<DynamicTailwindTable
-								data={
-									groupData?.length
-										? [
-											{
-												loan_id: groupData[0].loan_id,
-												loan_acc_no: groupData[0].loan_acc_no,
-												period: groupData[0].period,
-												curr_roi: groupData[0].curr_roi,
-												penal_roi: groupData[0].penal_roi,
-												disb_dt: groupData[0].disb_dt,
-												disb_amt: groupData[0].disb_amt,
-												pay_mode: groupData[0].pay_mode,
-												rep_start_dt: groupData[0].rep_start_dt,
-												rep_end_dt: groupData[0].rep_end_dt,
-												cuurent_loan_outstanding:
-													groupData[0].cuurent_loan_outstanding,
-												action: (
-													<button
-														onClick={() => {
-															// navigate(
-															// `/homepacs/loandetails/${groupData[0]?.loan_id}`
-															// );
-															navigate(`/homepacs/loandetails-branch-shg/${groupData[0]?.loan_id}`, {
-																state: groupData[0]?.trans_details,
-															})
-														}}
-														className="font-medium text-teal-500 hover:underline"
-													>
-														<EyeFilled />
-													</button>
-												),
-											},
-										]
-										: []
-								}
-								// pageSize={50}
-								// headersMap={disbursementDetailsHeader}
-								pageSize={50}
-								columnTotal={[6, 10]}
-								// headersMap={disbursementDetailsHeader}
-								headersMap={{
-									...disbursementDetailsHeader_SOCIE,
-									action: "Action", // ✅ only addition
-								}}
-							// dateTimeExceptionCols={[16]}
-							// colRemove={[3, 5, 12]}
-							/>
+								<DynamicTailwindTable
+									data={
+										groupData?.length
+											? [
+												{
+													loan_id: groupData[0].loan_id,
+													loan_acc_no: groupData[0].loan_acc_no,
+													period: groupData[0].period,
+													curr_roi: groupData[0].curr_roi,
+													penal_roi: groupData[0].penal_roi,
+													disb_dt: groupData[0].disb_dt,
+													disb_amt: groupData[0].disb_amt,
+													pay_mode: groupData[0].pay_mode,
+													rep_start_dt: groupData[0].rep_start_dt,
+													rep_end_dt: groupData[0].rep_end_dt,
+													cuurent_loan_outstanding:
+														groupData[0].cuurent_loan_outstanding,
+													action: (
+														<button
+															onClick={() => {
+																// navigate(
+																// `/homepacs/loandetails/${groupData[0]?.loan_id}`
+																// );
+																navigate(`/homepacs/loandetails-branch-shg/${groupData[0]?.loan_id}`, {
+																	state: groupData[0]?.trans_details,
+																})
+															}}
+															className="font-medium text-teal-500 hover:underline"
+														>
+															<EyeFilled />
+														</button>
+													),
+												},
+											]
+											: []
+									}
+									// pageSize={50}
+									// headersMap={disbursementDetailsHeader}
+									pageSize={50}
+									columnTotal={[6, 10]}
+									// headersMap={disbursementDetailsHeader}
+									headersMap={{
+										...disbursementDetailsHeader_SOCIE,
+										action: "Action", // ✅ only addition
+									}}
+								// dateTimeExceptionCols={[16]}
+								// colRemove={[3, 5, 12]}
+								/>
 
-							{/* <DynamicTailwindTable
+								{/* <DynamicTailwindTable
 								data={groupData[0]?.disb_details?.map((el) => {
 									//  console.log(el.loan_cycle, ' Loan Cycle');
 									 const loanCycle = 'Loan Cycle - '+ el.loan_cycle; 
@@ -1535,8 +1535,8 @@ Authorization: `${tokenValue?.token}`, // example header
 								dateTimeExceptionCols={[16]}
 								colRemove={[3, 5, 12]}
 							/> */}
-						</div>
-</>}
+							</div>
+						</>}
 
 
 						{params?.id > 0 && (
@@ -1590,7 +1590,7 @@ Authorization: `${tokenValue?.token}`, // example header
 															<td className="px-6 py-4">{item?.member_code}</td>
 															<td className="px-6 py-4">{item?.ccb_loan_id}</td>
 															<td className="px-6 py-4 font-bold text-gray-700">₹ {item?.member_outstanding}</td>
-															
+
 															<td className="px-6 py-4 text-center flex items-center justify-center gap-3">
 																<button
 																	type="button"

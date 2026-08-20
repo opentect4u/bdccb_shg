@@ -184,6 +184,7 @@ function BranchSHGLoanRecoveryDetails() {
 			tenant_id: userDetails[0]?.tenant_id,
 			branch_id: data_Receive?.branch_id,
 			group_code: data_Receive?.group_code,
+			loan_id: data_Receive?.loan_id,
 			trans_dt: data_Receive?.trans_dt,
 			transaction_id: data_Receive?.transaction_id,
 			approval_status: data_Receive?.approval_status

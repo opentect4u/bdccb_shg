@@ -187,9 +187,10 @@ function LoanDetails() {
 						intAmt: ""  // replace mem_amount with cr_amt
 					}))
 
-					// console.log(res?.data, 'resresresresresresres', res?.data?.data.length);
-					Message("success", res?.data?.msg)
-					if (res?.data?.data.length < 1) {
+					if (res?.data?.data && res?.data?.data.length > 0) {
+						Message("success", res?.data?.msg)
+					} else {
+						Message("error", res?.data?.msg || "No data found")
 						setSocietySrchMsg(res?.data?.msg)
 					}
 

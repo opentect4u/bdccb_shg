@@ -499,56 +499,56 @@ try{
 
 // FETCH GROUP NAME BASED ON GROUP S/B AC NO
 loanRouter.post("/fetch_gp_based_ac_no", async (req, res) => {
-  try{
- const {branch_code,sb_ac_no} = req.body;
- 
- var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no,b.balance AS grp_balance",
- table_name = "bdccb.md_group a LEFT JOIN bdccb.td_deposit b ON a.group_code = b.shg_id AND a.sb_ac_no = b.acc_no",
- whr = `a.branch_code = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
- order = null;
- var fetch_gp_data = await db_Select(select,table_name,whr,order);
+  try {
+    const { branch_code, sb_ac_no } = req.body;
 
- if(fetch_gp_data.suc === 1 && fetch_gp_data.msg.length > 0){
-   let group_code = fetch_gp_data.msg[0].group_code;
-   
-   var mem_select = "acc_status",
-       mem_table = "bdccb.td_loan_member",
-       mem_whr = `group_code = '${group_code}'`;
-   
-   var fetch_mem_data = await db_Select(mem_select, mem_table, mem_whr, null);
-   
-   if (fetch_mem_data.suc === 1 && fetch_mem_data.msg.length > 0) {
-       let hasC = fetch_mem_data.msg.some(m => m.acc_status === 'C');
-       
-       if (hasC) {
-           return res.send({
-               success: false,
-               msg: "Account closed",
-               data: []
-           });
-       }
-   }
+    var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no,b.balance AS grp_balance",
+      table_name = "bdccb.md_group a LEFT JOIN bdccb.td_deposit b ON a.group_code = b.shg_id AND a.sb_ac_no = b.acc_no",
+      whr = `a.branch_code = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
+      order = null;
+    var fetch_gp_data = await db_Select(select, table_name, whr, order);
 
-   return res.send({
-      success: true,
-      msg: "Fetch group data",
-      data: fetch_gp_data.msg
-   })
- }else{
+    if (fetch_gp_data.suc === 1 && fetch_gp_data.msg.length > 0) {
+      let group_code = fetch_gp_data.msg[0].group_code;
+
+      var loan_select = "acc_status",
+        loan_table = "bdccb.td_loan_ccb",
+        loan_whr = `group_code = '${group_code}'`;
+
+      var fetch_loan_data = await db_Select(loan_select, loan_table, loan_whr, null);
+
+      if (fetch_loan_data.suc === 1 && fetch_loan_data.msg.length > 0) {
+        let hasOpen = fetch_loan_data.msg.some(m => m.acc_status === 'O');
+
+        if (hasOpen) {
+          return res.send({
+            success: false,
+            msg: "Active loan already exists for this group. Please close the previous loan first.",
+            data: []
+          });
+        }
+      }
+
+      return res.send({
+        success: true,
+        msg: "Fetch group data",
+        data: fetch_gp_data.msg
+      })
+    } else {
+      return res.send({
+        success: false,
+        msg: "Failed to fetch group data",
+        data: []
+      })
+    }
+  } catch (error) {
+    console.error("Error in while fetch group details:", error);
     return res.send({
       success: false,
-      msg: "Failed to fetch group data",
-      data: []
-   })
- }
- }catch (error) {
- console.error("Error in while fetch group details:", error);
- return res.send({
-   success: false,
-   msg: "Internal server error",
-   errorCode: "SERVER_ERROR",
- });
-}
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
 });
 
 // CHECK IF RECOVERY EXISTS FOR A GROUP
@@ -558,7 +558,7 @@ loanRouter.post("/check_group_recovery", async (req, res) => {
     
     // Check td_loan_transactions
     const rec_select = "COUNT(b.trans_id) AS recovery_count";
-    const rec_table = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id";
+    const rec_table = "bdccb.td_loan_ccb a INNER JOIN bdccb.td_loan_ccb_trans b ON a.loan_id = b.loan_id";
     const rec_whr = `a.group_code = '${group_code}' AND b.trans_type = 'R' AND (COALESCE(a.curr_prn, 0) + COALESCE(a.ovd_prn, 0)) > 0`;
     const rec_check = await db_Select(rec_select, rec_table, rec_whr, null);
     
@@ -569,9 +569,10 @@ loanRouter.post("/check_group_recovery", async (req, res) => {
     const mem_rec_check = await db_Select(mem_rec_select, mem_rec_table, mem_rec_whr, null);
     
     let recovery_exists = false;
-    if ((rec_check.suc === 1 && rec_check.msg[0].recovery_count > 0) || 
-        (mem_rec_check.suc === 1 && mem_rec_check.msg[0].recovery_count > 0)) {
-        recovery_exists = true;
+    if (rec_check.suc === 1 && rec_check.msg[0].recovery_count > 0) {
+      recovery_exists = true;
+    } else if (mem_rec_check.suc === 1 && mem_rec_check.msg[0].recovery_count > 0) {
+      recovery_exists = true;
     }
 
     return res.send({
@@ -590,31 +591,30 @@ loanRouter.post("/check_group_recovery", async (req, res) => {
 
 // FETCH MEMBER DETAILS BASED ON SHG
 loanRouter.post("/fetch_member_name", async (req, res) => {
-try{
- const {group_code, branch_code, tenant_id} = req.body;
-//  console.log(req.body,'member name');
+  try {
+    const { group_code, branch_code, tenant_id } = req.body;
+    // console.log(req.body,'member name');
 
-//  var select = "member_code member_id,member_name,member_account_no sb_acc_no",
- var select = "member_code member_id,member_name",
- table_name = "bdccb.md_member",
- whr = `group_code = '${group_code}' AND tenant_id = '${tenant_id}' AND delete_flag = 'N' AND approval_status = 'A'`,
- order = null;
- var fetch_shg_member = await db_Select(select,table_name,whr,order);
- 
- if (fetch_shg_member.suc === 1 && fetch_shg_member.msg.length > 0) {
+    var select = "a.member_code member_id, a.member_name, CASE WHEN EXISTS (SELECT 1 FROM bdccb.td_loan_member m WHERE m.group_code = a.group_code AND m.member_code = a.member_code AND m.tenant_id = a.tenant_id AND m.acc_status = 'O') THEN 'O' ELSE 'C' END AS acc_status",
+      table_name = "bdccb.md_member a",
+      whr = `a.group_code = '${group_code}' AND a.tenant_id = '${tenant_id}' AND a.delete_flag = 'N' AND a.approval_status = 'A'`,
+      order = null;
+    var fetch_shg_member = await db_Select(select, table_name, whr, order);
+    
+    if (fetch_shg_member.suc === 1 && fetch_shg_member.msg.length > 0) {
       return res.send({
         success: true,
         msg: "Member list",
         data: fetch_shg_member.msg,
       });
- } else {
+    } else {
       return res.send({
         success: true,
         msg: "Member data not found",
         data: [],
       });
     }
-}catch (error) {
+} catch (error) {
  console.error("Error in while fetch member details:", error);
  return res.send({
    success: false,
@@ -626,56 +626,56 @@ try{
 
 // FETCH GROUP NAME BASED ON GROUP S/B AC NO IN SOCIETY
 loanRouter.post("/fetch_gp_based_ac_no_soc", async (req, res) => {
-  try{
- const {branch_code,sb_ac_no} = req.body;
- 
- var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no",
- table_name = "bdccb.md_group a",
- whr = `a.pacs_id = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
- order = null;
- var fetch_gp_data_soc = await db_Select(select,table_name,whr,order);
+  try {
+    const { branch_code, sb_ac_no } = req.body;
 
- if(fetch_gp_data_soc.suc === 1 && fetch_gp_data_soc.msg.length > 0){
-   let group_code = fetch_gp_data_soc.msg[0].group_code;
-   
-   var mem_select = "acc_status",
-       mem_table = "bdccb.td_loan_member",
-       mem_whr = `group_code = '${group_code}'`;
-   
-   var fetch_mem_data = await db_Select(mem_select, mem_table, mem_whr, null);
-   
-   if (fetch_mem_data.suc === 1 && fetch_mem_data.msg.length > 0) {
-       let hasC = fetch_mem_data.msg.some(m => m.acc_status === 'C');
-       
-       if (hasC) {
-           return res.send({
-               success: false,
-               msg: "Account closed",
-               data: []
-           });
-       }
-   }
+    var select = "a.group_code,a.branch_code,a.group_name,a.sb_ac_no",
+      table_name = "bdccb.md_group a",
+      whr = `a.pacs_id = '${branch_code}' AND a.sb_ac_no = '${sb_ac_no}'`,
+      order = null;
+    var fetch_gp_data_soc = await db_Select(select, table_name, whr, order);
 
-   return res.send({
-      success: true,
-      msg: "Fetch group data",
-      data: fetch_gp_data_soc.msg
-   })
- }else{
+    if (fetch_gp_data_soc.suc === 1 && fetch_gp_data_soc.msg.length > 0) {
+      let group_code = fetch_gp_data_soc.msg[0].group_code;
+
+      var loan_select = "acc_status",
+        loan_table = "bdccb.td_loan",
+        loan_whr = `group_code = '${group_code}'`;
+
+      var fetch_loan_data = await db_Select(loan_select, loan_table, loan_whr, null);
+
+      if (fetch_loan_data.suc === 1 && fetch_loan_data.msg.length > 0) {
+        let hasOpen = fetch_loan_data.msg.some(m => m.acc_status === 'O');
+
+        if (hasOpen) {
+          return res.send({
+            success: false,
+            msg: "Active loan already exists for this group. Please close the previous loan first.",
+            data: []
+          });
+        }
+      }
+
+      return res.send({
+        success: true,
+        msg: "Fetch group data",
+        data: fetch_gp_data_soc.msg
+      });
+    } else {
+      return res.send({
+        success: false,
+        msg: "Failed to fetch group data",
+        data: []
+      });
+    }
+  } catch (error) {
+    console.error("Error in while fetch group details in society:", error);
     return res.send({
       success: false,
-      msg: "Failed to fetch group data",
-      data: []
-   })
- }
- }catch (error) {
- console.error("Error in while fetch group details in society:", error);
- return res.send({
-   success: false,
-   msg: "Internal server error",
-   errorCode: "SERVER_ERROR",
- });
-}
+      msg: "Internal server error",
+      errorCode: "SERVER_ERROR",
+    });
+  }
 });
 
 // SAVE DISBURSEMENT (BRANCH -> PACS)
@@ -2017,6 +2017,7 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 
     let select = `
       DISTINCT
+      a.loan_id,
       a.group_code,
       a.tenant_id,
       b.group_name,
@@ -2262,21 +2263,21 @@ loanRouter.post("/fetch_disburse_dtls", async (req, res) => {
 });
 
 loanRouter.post("/check_grp_status", async (req, res) => {
-  try{
-  const {tenant_id,group_code} = req.body;
+  try {
+    const { tenant_id, group_code, loan_id } = req.body;
 
-  var select = "b.approval_status",
-  table_name = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
-  whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' AND b.trans_type = 'D' AND b.approval_status = 'A'`,
-  order = null;
-  var check_grp_status = await db_Select(select,table_name,whr,order);
-  return res.send({
-    success: true,
-    approved: check_grp_status.suc === 1 && check_grp_status.msg.length > 0 ? true : false
+    var select = "b.approval_status",
+      table_name = "bdccb.td_loan a INNER JOIN bdccb.td_loan_transactions b ON a.loan_id = b.loan_id",
+      whr = `a.tenant_id = '${tenant_id}' AND a.group_code = '${group_code}' ${loan_id ? `AND a.loan_id = '${loan_id}'` : ''} AND b.trans_type = 'D' AND b.approval_status = 'A'`,
+      order = null;
+    var check_grp_status = await db_Select(select, table_name, whr, order);
+    return res.send({
+      success: true,
+      approved: check_grp_status.suc === 1 && check_grp_status.msg.length > 0 ? true : false
     });
-  }catch (error) {
+  } catch (error) {
     console.error(
-    "Error in while fetch unapprove disbursement details:",error);
+      "Error in while fetch unapprove disbursement details:", error);
     return res.send({
       success: false,
       msg: "Internal server error",

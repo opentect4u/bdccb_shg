@@ -4,29 +4,26 @@ const { db_Select, saveRecord } = require("../../model/pgcommon");
 
 loanCloseRouter.post("/search_loan_close_grp", async (req, res) => {
     try {
-        const { tenant_id, branch_code, group_name_view, branch_type } = req.body;
+        const { tenant_id, branch_code, group_name_view, branch_type, user_type } = req.body;
 
         let branchCondition = '1=1';
         let branchConditions = '1=1';
 
-        if (branch_type === 'B') {
+        if (branch_type === 'B' && user_type === 'P') {
+            branchCondition = `a.branch_id = '${branch_code}' AND a.branch_shg_id NOT IN (111)`;
+            branchConditions = `a.branch_code = '${branch_code}' AND a.pacs_id NOT IN (111)`;
+        } else if (branch_type === 'P' || user_type === 'P') {
+            branchCondition = `a.branch_shg_id = '${branch_code}'`;
+            branchConditions = `a.pacs_id = '${branch_code}'`;
+        } else if (branch_type === 'B') {
             branchCondition = `a.branch_id = '${branch_code}'`;
+            branchConditions = `a.branch_code = '${branch_code}'`;
         } else if (branch_type === 'H') {
             branchCondition = `1=1`; // Head office sees all
-        } else if (branch_type === 'P') {
-            branchCondition = `a.branch_shg_id = '${branch_code}' AND a.loan_to = 'P'`;
+            branchConditions = `1=1`;
         } else if (branch_type === 'BP') {
-            branchCondition = `a.branch_id = '${branch_code}' AND a.loan_to = 'P'`;
-        }
-
-        if (branch_type === 'B') {
-            branchConditions = `a.branch_code = '${branch_code}'`;
-        } else if (branch_type === 'H') {
-            branchConditions = `1=1`; // Head office sees all
-        } else if (branch_type === 'P') {
-            branchConditions = `a.pacs_id = '${branch_code}'`;
-        } else if (branch_type === 'BP') {
-            branchConditions = `a.branch_code = '${branch_code}'`;
+            branchCondition = `a.branch_id = '${branch_code}' AND a.branch_shg_id NOT IN (111)`;
+            branchConditions = `a.branch_code = '${branch_code}' AND a.pacs_id NOT IN (111)`;
         }
 
         var select = "a.group_code,b.group_name,a.loan_acc_no, COALESCE(c.acc_status, 'O') as acc_status",
@@ -260,15 +257,15 @@ loanCloseRouter.post("/close_loan_group", async (req, res) => {
         let cr_amt_val = parseFloat(curr_prn) + parseFloat(curr_intt);
         let table_ins = "bdccb.td_loan_member_trans";
         let columns_ins = [
-            "trans_date", "trans_id", "loan_id", "ccb_loan_id", "tenant_id", "branch_id", 
-            "loan_to", "branch_shg_id", "loan_acc_no", "trans_type", 
-            "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov", 
+            "trans_date", "trans_id", "loan_id", "ccb_loan_id", "tenant_id", "branch_id",
+            "loan_to", "branch_shg_id", "loan_acc_no", "trans_type",
+            "dr_amt", "cr_amt", "curr_prn_recov", "curr_intt_recov", "ovd_prn_recov", "ovd_intt_recov",
             "curr_prn", "curr_intt", "ovd_prn", "ovd_intt", "approval_status", "created_by", "created_dt", "ip_address"
         ];
         let values_ins = [
-            trans_dt, tran_id, loan_id, ccb_loan_id, tenant_id, member_branch_id, 
-            loanData.loan_to || "M", loanData.branch_shg_id || member_branch_id, loanData.loan_acc_no || loan_id, "R", 
-            0, cr_amt_val, curr_prn, curr_intt, 0, 0, 
+            trans_dt, tran_id, loan_id, ccb_loan_id, tenant_id, member_branch_id,
+            loanData.loan_to || "M", loanData.branch_shg_id || member_branch_id, loanData.loan_acc_no || loan_id, "R",
+            0, cr_amt_val, curr_prn, curr_intt, 0, 0,
             0, 0, ovd_prn, ovd_intt, "A", created_by, datetime, ip_address
         ];
         const insertRes = await saveRecord(table_ins, columns_ins, values_ins, [], [], 0);

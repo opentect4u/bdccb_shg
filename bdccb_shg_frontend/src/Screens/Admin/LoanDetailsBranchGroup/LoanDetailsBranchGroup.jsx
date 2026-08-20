@@ -204,9 +204,10 @@ function LoanDetailsBranchGroup() {
 						sb_amt: ""
 					}))
 
-					console.log(res?.data, 'resresresresresresres');
-					Message("success", res?.data?.msg)
-					if (res?.data?.data.length < 1) {
+					if (res?.data?.data && res?.data?.data.length > 0) {
+						Message("success", res?.data?.msg)
+					} else {
+						Message("error", res?.data?.msg || "No data found")
 						setSocietySrchMsg(res?.data?.msg)
 					}
 
@@ -303,6 +304,7 @@ function LoanDetailsBranchGroup() {
 						Message("success", "Multiple groups found. Please select one from the dropdown.");
 						setSocietySrchMsg('');
 					} else {
+						Message("error", res?.data?.msg || "No groups found");
 						setSocietySrchMsg(res?.data?.msg || "No groups found");
 						setLoanDetails([]);
 						setGroupList([]);

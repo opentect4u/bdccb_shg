@@ -23,7 +23,8 @@ function LoanCloseFlag() {
 			branch_code: userDetails?.[0]?.brn_code || userDetails?.brn_code,
 			tenant_id: userDetails?.[0]?.tenant_id || userDetails?.tenant_id,
 			group_name_view: searchKeywords,
-			branch_type: window.location.pathname.includes('/homepacs') ? 'BP' : (userDetails?.[0]?.branch_type || userDetails?.branch_type)
+			branch_type: userDetails?.[0]?.branch_type || userDetails?.branch_type || (window.location.pathname.includes('/homepacs') ? 'P' : 'B'),
+			...(window.location.pathname.includes('/homepacs') && { user_type: 'P' })
 		};
 
 		const tokenValue = await getLocalStoreTokenDts(navigate);
@@ -60,7 +61,9 @@ function LoanCloseFlag() {
 				{/* Clean Search Section */}
 				<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 transition-shadow hover:shadow-md">
 					<div className="w-full md:w-1/3">
-						<h1 className="text-2xl font-bold text-gray-800 tracking-tight mb-1">Loan Close Flag</h1>
+						<h1 className="text-2xl font-bold text-gray-800 tracking-tight mb-1">
+							{window.location.pathname.includes('/homepacs') ? "Society Loan Close" : "Branch Loan Close"}
+						</h1>
 						<p className="text-gray-500 text-sm">
 							{window.location.pathname.includes('/homepacs')
 								? "Search by Group Name, Group Code, or Society A/C Number"

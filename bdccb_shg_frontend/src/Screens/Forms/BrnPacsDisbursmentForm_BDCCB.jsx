@@ -838,6 +838,7 @@ function BrnPacsDisbursmentForm_BDCCB({ flag }) {
 					const members = res?.data?.data?.map((item) => ({
 						code: item?.member_id,
 						name: item?.member_name,
+						acc_status: item?.acc_status,
 					})) || [];
 
 					setGroupMemberOptions((prev) => ({
@@ -1285,6 +1286,11 @@ function BrnPacsDisbursmentForm_BDCCB({ flag }) {
 																			value={row.member_id || undefined}
 																			style={{ width: "100%", height: "38px" }}
 																			onChange={(value) => {
+																				const selectedMember = (groupMemberOptions?.[gIndex] || memberOptions || []).find((m) => String(m.code) === String(value));
+																				if (selectedMember?.acc_status === 'O') {
+																					Message("warning", "Member already has an active loan");
+																					return;
+																				}
 																				formik.setFieldValue(`groups[${gIndex}].rows[${mIndex}].member_id`, value);
 																			}}
 																		>
@@ -1292,8 +1298,8 @@ function BrnPacsDisbursmentForm_BDCCB({ flag }) {
 																				Choose Member
 																			</Select.Option>
 																			{filteredMembers?.map((data) => (
-																				<Select.Option key={data.code} value={data.code}>
-																					{data.name}
+																				<Select.Option key={data.code} value={data.code} disabled={data.acc_status === 'O'}>
+																					{data.name} {data.acc_status === 'O' ? "(Active Loan)" : ""}
 																				</Select.Option>
 																			))}
 																		</Select>
