@@ -1400,7 +1400,8 @@ society_recovRouter.post("/fetch_soc_loan_dtls", async (req, res) => {
     FROM bdccb.td_loan_member b
     WHERE b.group_code = a.group_code
     AND b.society_acc_no = '${society_acc_no}'
-  )`,
+  )
+    AND a.acc_status = 'O'`,
       order = null;
     var fetch_loan_dtls = await db_Select(select, table_name, whr, order);
 
