@@ -172,7 +172,7 @@ const transformLoanCollect= (data) => {
   const mapping = [
     { key: "deposited_ccb", label: "Deposited at CCB", color: "bg-gray-300" },
     { key: "deposited_soc", label: "Deposited at Society", color: "bg-gray-300" },
-    { key: "deposited_shg", label: "Deposited at SHG", color: "bg-gray-300" },
+    { key: "deposited_shg", label: "Collected at SHG", color: "bg-gray-300" },
     { key: "collected_nt_deposit", label: "Collected But Not Deposited", color: "bg-gray-300" },
   ];
 

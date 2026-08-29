@@ -1460,6 +1460,7 @@ Authorization: `${tokenValue?.token}`, // example header
 										groupData?.length
 											? [
 												{
+													branch_shg_name: groupData[0].branch_shg_name,
 													loan_id: groupData[0].loan_id,
 													loan_acc_no: groupData[0].loan_acc_no,
 													period: groupData[0].period,
@@ -1494,9 +1495,10 @@ Authorization: `${tokenValue?.token}`, // example header
 									// pageSize={50}
 									// headersMap={disbursementDetailsHeader}
 									pageSize={50}
-									columnTotal={[6, 10]}
+									columnTotal={[7, 11]}
 									// headersMap={disbursementDetailsHeader}
 									headersMap={{
+										branch_shg_name: "Society Name",
 										...disbursementDetailsHeader_SOCIE,
 										action: "Action", // ✅ only addition
 									}}
@@ -1544,7 +1546,11 @@ Authorization: `${tokenValue?.token}`, // example header
 								<div className="w-full my-5 border-t-4 border-gray-400 border-dashed"></div>
 								<div>
 									<div className="text-[#DA4167] text-lg mb-2 font-bold">
-										Group Member Loan Details
+										Group Member Loan Details {(params?.id || loanAppData?.group_code) && (formik.values.g_group_name || loanAppData?.group_name)
+											? `(${params?.id || loanAppData?.group_code} - ${formik.values.g_group_name || loanAppData?.group_name})`
+											: (params?.id || loanAppData?.group_code || formik.values.g_group_name || loanAppData?.group_name)
+											? `(${params?.id || loanAppData?.group_code || formik.values.g_group_name || loanAppData?.group_name})`
+											: ""}
 									</div>
 
 									{/* {JSON.stringify(memberData, 2)} */}

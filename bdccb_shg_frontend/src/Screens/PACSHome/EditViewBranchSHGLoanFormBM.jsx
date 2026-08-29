@@ -45,8 +45,8 @@ function EditViewBranchSHGLoanFormBM() {
 				data={params.id && data ? data : ""}
 			/> */}
 				 
-				<div className=" p-5 w-4/5 min-h-screen rounded-3xl">
-					<div className="w-auto mx-14 my-4">
+				<div className=" p-5 w-full min-h-screen rounded-3xl">
+					<div className="w-auto mx-4 my-4">
 						<FormHeader text={`View Group Loan Details`} mode={2} />
 					</div>
 					{/* {JSON.stringify(loanAppData)} 
@@ -58,7 +58,7 @@ function EditViewBranchSHGLoanFormBM() {
 						className="text-blue-800 dark:text-gray-400"
 						spinning={loading}
 					>
-						<div className="card border-2 p-5 mx-16 bg-white shadow-lg rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
+						<div className="card border-2 p-5 mx-4 bg-white shadow-lg rounded-3xl surface-border border-round surface-ground flex-auto font-medium">
 							<ViewBranchSHGLoanForm
 							// groupDataArr={loanAppData}
 							/>

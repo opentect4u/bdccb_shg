@@ -145,7 +145,7 @@ function BranchGroupLoanRecoveryDetails() {
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Member Loan ID</label></div>
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Member Name</label></div>
 									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Outstanding Amount</label></div>
-									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Loan Amount</label></div>
+									<div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> Collect Amount</label></div>
 									{/* <div><label className="block mb-0 text-sm capitalize font-bold text-slate-800"> SB Amount</label></div> */}
 								</div>
 
@@ -154,7 +154,7 @@ function BranchGroupLoanRecoveryDetails() {
 										<div><TDInputTemplateBr placeholder="Member Loan ID" type="text" name={`members.${index}.loan_id`} formControlName={member.loan_id} disabled={true} mode={1} /></div>
 										<div><TDInputTemplateBr placeholder="Member Name" type="text" name={`members.${index}.member_name`} formControlName={member.member_name} disabled={true} mode={1} /></div>
 										<div><TDInputTemplateBr placeholder="Outstanding Amount" type="number" name={`members.${index}.mem_outstanding`} formControlName={member.mem_outstanding} disabled={true} mode={1} /></div>
-										<div><TDInputTemplateBr placeholder="Loan Amount" type="number" name={`members.${index}.loan_amt`} formControlName={formik.values.members[index].loan_amt} disabled={true} mode={1} /></div>
+										<div><TDInputTemplateBr placeholder="Collect Amount" type="number" name={`members.${index}.loan_amt`} formControlName={formik.values.members[index].loan_amt} disabled={true} mode={1} /></div>
 										{/* <div><TDInputTemplateBr placeholder="SB Amount" type="number" name={`members.${index}.sb_amt`} formControlName={formik.values.members[index].sb_amt} disabled={true} mode={1} /></div> */}
 									</div>
 								))}

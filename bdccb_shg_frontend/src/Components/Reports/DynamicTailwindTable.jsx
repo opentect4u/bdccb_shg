@@ -163,9 +163,9 @@ const DynamicTailwindTable = ({
 						className={`text-xs uppercase text-slate-50 sticky top-0 ${headerBgColor}`}
 					>
 						<tr>
-							{indexing && <th className="px-6 py-3 font-semibold">Sl. No.</th>}
+							{indexing && <th className="px-6 py-3 font-semibold whitespace-nowrap">Sl. No.</th>}
 							{showCheckbox && (
-								<th className="px-6 py-3">
+								<th className="px-6 py-3 whitespace-nowrap">
 									<input
 										disabled={disableAllCheckbox}
 										className="rounded-sm checked:bg-pink-600"
@@ -177,7 +177,7 @@ const DynamicTailwindTable = ({
 							)}
 							{filteredHeadersWithIndex.map((item, i) => (
 								console.log(item),
-								<th key={i} className="px-6 py-3 font-semibold">
+								<th key={i} className="px-6 py-3 font-semibold whitespace-nowrap">
 									{headersMap
 										? headersMap[item.header] || item.header
 										: item.header}
@@ -199,9 +199,9 @@ const DynamicTailwindTable = ({
 									key={rowIndex}
 									className={"even:bg-slate-100 even:text-slate-900"}
 								>
-									{indexing && <td className="px-6 py-3">{globalIndex + 1}</td>}
+									{indexing && <td className="px-6 py-3 whitespace-nowrap">{globalIndex + 1}</td>}
 									{showCheckbox && (
-										<td className="px-6 py-3">
+										<td className="px-6 py-3 whitespace-nowrap">
 											<input
 												disabled={disableAllCheckbox}
 												className="rounded-sm checked:bg-pink-600"
@@ -214,7 +214,7 @@ const DynamicTailwindTable = ({
 									{filteredHeadersWithIndex.map((item, colIdx) => (
 										<td
 											key={colIdx}
-											className={`px-6 py-3 ${
+											className={`px-6 py-3 whitespace-nowrap ${
 												bordered ? "border-r-slate-200 border text-justify" : ""
 											}`}
 										>
@@ -231,10 +231,10 @@ const DynamicTailwindTable = ({
 
 					{isFooterAvailable && <tfoot className="sticky bottom-0">
 						<tr className="text-slate-50 bg-slate-700">
-							{indexing && <td className="px-6 py-3" />}
-							{showCheckbox && <td className="px-6 py-3" />}
+							{indexing && <td className="px-6 py-3 whitespace-nowrap" />}
+							{showCheckbox && <td className="px-6 py-3 whitespace-nowrap" />}
 							{filteredHeadersWithIndex.map((item, i) => (
-								<td key={i} className="px-6 py-3">
+								<td key={i} className="px-6 py-3 whitespace-nowrap">
 									{i === 0
 										? "Total"
 										: columnTotal.includes(item.index) &&

@@ -1652,8 +1652,8 @@ ccb_recovRouter.post("/fetch_society_loan_dtls", async (req, res) => {
       branch_condition = `a.branch_id IN (select branch_id from public.md_branch where branch_status = 'O' AND branch_type IN ('P', 'B'))`
     }
 
-    var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.curr_prn,a.curr_intt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding,a.acc_status",
-      table_name = "bdccb.td_loan a",
+    var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,c.branch_name AS branch_shg_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,a.curr_prn,a.curr_intt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding,a.acc_status",
+      table_name = "bdccb.td_loan a LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
       whr = `a.tenant_id = '${tenant_id}' AND ${branch_condition} AND a.group_code = '${group_code}' AND a.branch_shg_id NOT IN ('111') AND EXISTS ( SELECT 1 
     FROM bdccb.td_loan_member b
     WHERE b.group_code = a.group_code

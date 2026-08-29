@@ -902,7 +902,7 @@ function LoanDetailsBranchGroup() {
 
 									<div>
 										<label for="members.0.loan_id" class="block mb-0 text-sm capitalize font-bold text-slate-800
-							dark:text-gray-100"> Loan Amount</label>
+							dark:text-gray-100"> Collect Amount</label>
 									</div>
 
 									{/* <div>
@@ -950,7 +950,7 @@ function LoanDetailsBranchGroup() {
 
 										<div>
 											<TDInputTemplateBr
-												placeholder="Loan Amount"
+												placeholder="Collect Amount"
 												type="number"
 												name={`members.${index}.loan_amt`}
 												formControlName={formik.values.members[index].loan_amt}

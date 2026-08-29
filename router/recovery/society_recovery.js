@@ -24,7 +24,7 @@ society_recovRouter.post("/fetch_loan_dtls_based_socacc_no", async (req, res) =>
 
     var mem_select = "acc_status",
       mem_table = "bdccb.td_loan_member",
-      mem_whr = loan_to == 'S' 
+      mem_whr = loan_to == 'S'
         ? `tenant_id = '${tenant_id}' AND branch_id = '${branch_id}' AND (loan_acc_no = '${society_acc_no}' OR society_acc_no = '${society_acc_no}')`
         : `tenant_id = '${tenant_id}' AND branch_shg_id = '${branch_id}' AND (society_acc_no = '${society_acc_no}' OR loan_acc_no = '${society_acc_no}')`,
       mem_order = null;
@@ -251,7 +251,7 @@ society_recovRouter.post("/calculate_prn_intt_recov", async (req, res) => {
 // SUBMIT RECOVERY IN SOCIETY LEVEL
 society_recovRouter.post("/submit_society_recovery", async (req, res) => {
   try {
-    const { ccb_loan_id, tenant_id, branch_id, loan_acc_no, loan_to, loan_outstanding, prn_amt, intt_amt, trans_date,society_recov, created_by, ip_address } = req.body;
+    const { ccb_loan_id, tenant_id, branch_id, loan_acc_no, loan_to, loan_outstanding, prn_amt, intt_amt, trans_date, society_recov, created_by, ip_address } = req.body;
     // console.log(req.body,'soc');
 
 
@@ -1394,8 +1394,8 @@ society_recovRouter.post("/fetch_soc_loan_dtls", async (req, res) => {
   try {
     const { tenant_id, branch_code, group_code, society_acc_no } = req.body;
 
-    var select = "a.loan_id,a.loan_acc_no,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
-      table_name = "bdccb.td_loan a",
+    var select = "a.loan_id,a.loan_acc_no,a.branch_shg_id,c.branch_name AS branch_shg_name,a.period,a.curr_roi,a.penal_roi,TO_CHAR(a.disb_dt, 'YYYY-MM-DD') AS disb_dt,a.disb_amt,a.pay_mode,TO_CHAR(a.rep_start_dt, 'YYYY-MM-DD') AS rep_start_dt,TO_CHAR(a.rep_end_dt, 'YYYY-MM-DD') AS rep_end_dt,(a.curr_prn + a.curr_intt) AS cuurent_loan_outstanding",
+      table_name = "bdccb.td_loan a LEFT JOIN public.md_branch c ON a.branch_shg_id = c.branch_id",
       whr = `a.tenant_id = '${tenant_id}' AND a.branch_shg_id = '${branch_code}' AND a.group_code = '${group_code}' AND EXISTS ( SELECT 1 
     FROM bdccb.td_loan_member b
     WHERE b.group_code = a.group_code
