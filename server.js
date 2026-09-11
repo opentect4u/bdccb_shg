@@ -60,6 +60,8 @@ app.use('/v1/savings', require('./router/sbAccount/indexSbRouter'));
 app.use('/v1/sbledger', require('./router/sbledger/indexsbledgerRouter'));
 app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRouter'));
 app.use('/v1/loanclose', require('./router/loanclose/indexLoanCloseRouter'));
+app.use('/v1/interestcharge', require('./router/interestcharge/indexInterestChargeRouter'));
+app.use('/v1/societyinterestcharge', require('./router/societyinterestcharge/indexSocietyInterestChargeRouter'));
 
 
 // app.post("/v1/login", async (req, res) => {

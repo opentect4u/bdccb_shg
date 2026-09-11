@@ -73,7 +73,7 @@ function ViewBranchSHGLoanTableBr({
 								Search
 							</label>
 							{showSearch && (
-								<div className="relative w-full -right-12 2xl:-right-12">
+								<div className="relative w-full max-w-md ml-auto">
 									<div className="absolute inset-y-0 left-0 flex items-center md:ml-4 pl-3 pointer-events-none">
 										<svg
 											aria-hidden="true"
@@ -93,7 +93,7 @@ function ViewBranchSHGLoanTableBr({
 										type="text"
 										id="simple-search"
 										initial={{ opacity: 0, width: 0 }}
-										animate={{ opacity: 1, width: "95%" }}
+										animate={{ opacity: 1, width: "100%" }}
 										transition={{ delay: 1.1, type: "just" }}
 										className={`bg-white border rounded-lg ${
 											flag !== "BM" ? "border-slate-700" : "border-slate-700"
@@ -165,7 +165,7 @@ function ViewBranchSHGLoanTableBr({
 										{item.loan_acc_no || "-----"}
 									</td>
 									<td className="px-6 py-3 text-slate-700">
-										{item.group_details[0]?.pacs_id == 111 ? item.group_details[0]?.branch_name : item.group_details[0]?.pacs_name}
+										{item.group_details?.[0]?.pacs_id == 111 ? item.group_details?.[0]?.branch_name : item.group_details?.[0]?.pacs_name}
 									</td>
 									<td className="px-6 py-3 font-bold text-slate-800">{item.group_code || "-----"}</td>
 									<td className="px-6 py-3 text-slate-700">{item.group_name}</td>

@@ -12,6 +12,10 @@ import SearchMemberBM from "./Screens/BMHome/SearchMemberBM"
 import DisbToSociety from "./Screens/Reports/DisbToSociety/DisbToSociety.jsx"
 import DisbOfSociety from "./Screens/Reports/DisbOfSociety/DisbOfSociety.jsx"
 import SHGDisb from "./Screens/Reports/SHGDisb/SHGDisb.jsx"
+import InterestCharge from "./Screens/BMHome/Loans/InterestCharge"
+import InterestChargeSearch from "./Screens/BMHome/Loans/InterestChargeSearch"
+import SocietyInterestCharge from "./Screens/BMHome/Loans/SocietyInterestCharge"
+import SocietyInterestChargeSearch from "./Screens/BMHome/Loans/SocietyInterestChargeSearch"
 
 // const LoanTransactionsMain = lazy(() => import("./Screens/Reports/LoanTransactions/LoanTransactionsMain.jsx__BDCCB"));
 // const PreviousLoanTransaction = lazy(()=> import('./Screens/Reports/PreviousLoanTransactions/PreviousLoanTransactions.jsx__BDCCB'));
@@ -488,6 +492,22 @@ const router = createBrowserRouter([
 								path: "disburseloan/:id",
 								element: <EditDisburseFormBM_BDCCB />,
 							},
+							{
+								path: "interestcharge",
+								element: <InterestCharge />,
+							},
+							{
+								path: "interestcharge/search",
+								element: <InterestChargeSearch />,
+							},
+							{
+								path: "societyinterestcharge",
+								element: <SocietyInterestCharge />,
+							},
+							{
+								path: "societyinterestcharge/search",
+								element: <SocietyInterestChargeSearch />,
+							},
 
 							{
 								path: "deposit",
@@ -688,6 +708,22 @@ const router = createBrowserRouter([
 							{
 								path: "approvedisbursed/:id",
 								element: <AcceptDisburseFormPACS_BDCCB />,
+							},
+							{
+								path: "interestcharge",
+								element: <InterestCharge />,
+							},
+							{
+								path: "interestcharge/search",
+								element: <InterestChargeSearch />,
+							},
+							{
+								path: "societyinterestcharge",
+								element: <SocietyInterestCharge />,
+							},
+							{
+								path: "societyinterestcharge/search",
+								element: <SocietyInterestChargeSearch />,
 							},
 							{
 								path: "viewloan",

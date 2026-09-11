@@ -320,6 +320,16 @@ function Sidebar({ mode = 0 }) {
 										label: <Link to={"/homebm/loancalculator"}>Loan EMI Calculator</Link>,
 										// hidden: data?.designation == "Y" ? false : true,
 									},
+									{
+										key: "sub4-7",
+										icon: <ThunderboltOutlined />,
+										label: <Link to={"/homebm/interestcharge/search"}>Interest Charge</Link>,
+									},
+									{
+										key: "sub4-8",
+										icon: <ThunderboltOutlined />,
+										label: <Link to={"/homebm/societyinterestcharge/search"}>Society Interest Charge</Link>,
+									},
 								],
 							},
 							{
@@ -664,6 +674,16 @@ function Sidebar({ mode = 0 }) {
 												// hidden: data?.approve_transaction == "Y" ? false : true,
 											},
 										],
+									},
+									{
+										key: "sub4-7",
+										icon: <ThunderboltOutlined />,
+										label: <Link to={"/homebm/interestcharge/search"}>Interest Charge</Link>,
+									},
+									{
+										key: "sub4-8",
+										icon: <ThunderboltOutlined />,
+										label: <Link to={"/homebm/societyinterestcharge/search"}>Society Interest Charge</Link>,
 									},
 								],
 							},
