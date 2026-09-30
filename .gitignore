@@ -9,3 +9,6 @@ config
 iisnode
 /bdccb_shg_frontend/node_modules
 /bdccb_shg_frontend/build
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
