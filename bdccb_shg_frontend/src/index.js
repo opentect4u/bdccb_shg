@@ -29,7 +29,7 @@ const OutstaningReportMain = lazy(() => import("./Screens/Reports/OutstandingRep
 const OutstandingReportIndirectMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstandingReportIndirectMain"));
 const OutstandingReportSocietyMain = lazy(() => import("./Screens/Reports/OutstandingReports/OutstandingReportSocietyMain"));
 const MemberMasterReport = lazy(() => import("./Screens/Reports/MemberMasterReport/MemberMasterReport"));
-const ShgSavingsBalanceReport = lazy(() => import("./Screens/Reports/ShgSavingsBalanceReport/ShgSavingsBalanceReport"));
+const ShgSavingsBalanceReport = lazy(() => import("./Screens/BMHome/ShgSavingsBalanceReport"));
 // const OverdueReport = lazy(() => import("./Screens/Reports/OverdueReport/OverdueReport.jsx__BDCCB"));
 // const GroupReport = lazy(() => import("./Screens/Reports/GroupReport/GroupReport.jsx__BDCCB"));
 // const PortfolioReport =  lazy(() => import("./Screens/Reports/PortfolioReport/PortfolioReport.jsx__BDCCB"));
@@ -129,6 +129,8 @@ const LoanCloseFlag = lazy(() => import("./Screens/BMHome/LoanCloseFlag.jsx"));
 const LoanCloseFlagGroupDetails = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroupDetails.jsx"));
 const LoanCloseFlagGroup = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroup.jsx"));
 const LoanCloseFlagGroupLevelDetails = lazy(() => import("./Screens/BMHome/LoanCloseFlagGroupLevelDetails.jsx"));
+const ApprovePermission = lazy(() => import("./Screens/BMHome/ApprovePermission"));
+const LoanTransactionReport = lazy(() => import("./Screens/BMHome/LoanTransactionReport"));
 
 //////////////// BDCCB BM End ////////////////
 
@@ -586,6 +588,14 @@ const router = createBrowserRouter([
 								element: <LoanTransactionsMain />,
 							},
 							{
+								path: "loan_transaction_report",
+								element: <LoanTransactionReport />,
+							},
+							{
+								path: "loantransactionreport",
+								element: <LoanTransactionReport />,
+							},
+							{
 								path: "loanstatements",
 								element: <LoanStatementMain />,
 							},
@@ -682,6 +692,10 @@ const router = createBrowserRouter([
 							{
 								path: "sb-ledger-member/:id",
 								element: <SB_AC_LedgerMemberBM_BDCCB />,
+							},
+							{
+								path: "approvepermission",
+								element: <ApprovePermission />,
 							}
 						],
 					},
