@@ -39,4 +39,7 @@ export const routePaths = {
 
 	ADMIN_HOME: "/homeadmin/",
 	MANAGE_USER: "/homebm/manageuser/",
+	APPROVE_PERMISSION: "/homebm/approvepermission/",
+	SHG_SAVINGS_BALANCE_REPORT: "/homebm/shg_savings_balance_report/",
+	LOAN_TRANSACTION_REPORT: "/homebm/loan_transaction_report/",
 }

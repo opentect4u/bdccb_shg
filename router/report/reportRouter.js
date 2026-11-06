@@ -7,129 +7,129 @@ const reportRouter = express.Router();
 
 // fetch group details along with member
 reportRouter.get("/get_disburs_dtls", async (req, res) => {
-    try{
-      const {frm_dt,to_dt,branch_id} = req.query;
-      if (!frm_dt || !to_dt || !branch_id) {
-        return res.send({
-          success: false,
-          msg: "frm_dt, to_dt and branch_id are required"
-        });
-      }
-      var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.group_name,c.member_name,c.member_account_no",
-      table_name = "bdccb.td_loan_member a JOIN bdccb.md_group b ON a.group_code = b.group_code JOIN bdccb.md_member c ON a.group_code = c.group_code";
-        whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${branch_id}'`,
-        order = null;
+	try {
+		const { frm_dt, to_dt, branch_id } = req.query;
+		if (!frm_dt || !to_dt || !branch_id) {
+			return res.send({
+				success: false,
+				msg: "frm_dt, to_dt and branch_id are required"
+			});
+		}
+		var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.group_name,c.member_name,c.member_account_no",
+			table_name = "bdccb.td_loan_member a JOIN bdccb.md_group b ON a.group_code = b.group_code JOIN bdccb.md_member c ON a.group_code = c.group_code";
+		whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${branch_id}'`,
+			order = null;
 
-      var loan_result = await db_Select(select,table_name,whr,order);
-    
-      if (loan_result.suc === 1 && loan_result.msg.length > 0) {
-          return res.send({
-            success: true,
-            msg: "Disbursment List",
-            data: loan_result.msg
-        });
-        } else {
-          return res.send({
-            success: true,
-            msg: "Failed to fetch Disbursment List",
-            data: []
-          });
-        }
-    }catch(error){
-      console.log("Error fetching Disbursment List:", error);
-      return res.send({
-        success: false,
-        msg: "Internal server error",
-        errorCode: "SERVER_ERROR"
-      });
-    }
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1 && loan_result.msg.length > 0) {
+			return res.send({
+				success: true,
+				msg: "Disbursment List",
+				data: loan_result.msg
+			});
+		} else {
+			return res.send({
+				success: true,
+				msg: "Failed to fetch Disbursment List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Disbursment List:", error);
+		return res.send({
+			success: false,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR"
+		});
+	}
 });
 
-   reportRouter.get("/get_disburs_society_dtls", async (req, res) => {
-    try{
-      const {frm_dt,to_dt,pacs_id} = req.query;
-      if (!frm_dt || !to_dt || !pacs_id) {
-        return res.send({
-          success: false,
-          msg: "frm_dt, to_dt and pacs_id are required"
-        });
-      }
-      var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.branch_name as society_name",
-      table_name = "bdccb.td_loan_member a JOIN public.md_branch b ON b.branch_id = a.branch_shg_id";
-        whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${pacs_id}' AND loan_to='P' `,
-        order = null;
+reportRouter.get("/get_disburs_society_dtls", async (req, res) => {
+	try {
+		const { frm_dt, to_dt, pacs_id } = req.query;
+		if (!frm_dt || !to_dt || !pacs_id) {
+			return res.send({
+				success: false,
+				msg: "frm_dt, to_dt and pacs_id are required"
+			});
+		}
+		var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.branch_name as society_name",
+			table_name = "bdccb.td_loan_member a JOIN public.md_branch b ON b.branch_id = a.branch_shg_id";
+		whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_shg_id = '${pacs_id}' AND loan_to='P' `,
+			order = null;
 
-      var loan_result = await db_Select(select,table_name,whr,order);
-    
-      if (loan_result.suc === 1 && loan_result.msg.length > 0) {
-          return res.send({
-            success: true,
-            msg: "Society Loan List",
-            data: loan_result.msg
-        });
-        } else {
-          return res.send({
-            success: true,
-            msg: "Failed to fetch Society Loan List",
-            data: []
-          });
-        }
-    }catch(error){
-      console.log("Error fetching Society Loan List:", error);
-      return res.send({
-        success: false,
-        msg: "Internal server error",
-        errorCode: "SERVER_ERROR"
-      });
-    }
-  });
+		var loan_result = await db_Select(select, table_name, whr, order);
 
-   reportRouter.get("/get_disburs_dtls_direct", async (req, res) => {
-    try{
-      const {frm_dt,to_dt,branch_id} = req.query;
-      if (!frm_dt || !to_dt || !branch_id) {
-        return res.send({
-          success: false,
-          msg: "frm_dt, to_dt and branch_id are required"
-        });
-      }
-      var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.group_name,c.member_name,c.member_account_no",
-      table_name = "bdccb.td_loan_member a JOIN bdccb.md_group b ON a.group_code = b.group_code JOIN bdccb.md_member c ON a.group_code = c.group_code";
-        whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_id = '${branch_id}' AND a.loan_to='S' `,
-        order = null;
-
-      var loan_result = await db_Select(select,table_name,whr,order);
-    
-      if (loan_result.suc === 1 && loan_result.msg.length > 0) {
-          return res.send({
-            success: true,
-            msg: "Disbursment List",
-            data: loan_result.msg
-        });
-        } else {
-          return res.send({
-            success: true,
-            msg: "Failed to fetch Disbursment List",
-            data: []
-          });
-        }
-    }catch(error){
-      console.log("Error fetching Disbursment List:", error);
-      return res.send({
-        success: false,
-        msg: "Internal server error",
-        errorCode: "SERVER_ERROR"
-      });
-    }
+		if (loan_result.suc === 1 && loan_result.msg.length > 0) {
+			return res.send({
+				success: true,
+				msg: "Society Loan List",
+				data: loan_result.msg
+			});
+		} else {
+			return res.send({
+				success: true,
+				msg: "Failed to fetch Society Loan List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Society Loan List:", error);
+		return res.send({
+			success: false,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR"
+		});
+	}
 });
-   
- 
+
+reportRouter.get("/get_disburs_dtls_direct", async (req, res) => {
+	try {
+		const { frm_dt, to_dt, branch_id } = req.query;
+		if (!frm_dt || !to_dt || !branch_id) {
+			return res.send({
+				success: false,
+				msg: "frm_dt, to_dt and branch_id are required"
+			});
+		}
+		var select = "a.loan_id,a.period,a.curr_roi,a.disb_dt,a.disb_amt,b.group_name,c.member_name,c.member_account_no",
+			table_name = "bdccb.td_loan_member a JOIN bdccb.md_group b ON a.group_code = b.group_code JOIN bdccb.md_member c ON a.group_code = c.group_code";
+		whr = `a.disb_dt BETWEEN '${frm_dt}' AND '${to_dt}' AND a.branch_id = '${branch_id}' AND a.loan_to='S' `,
+			order = null;
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1 && loan_result.msg.length > 0) {
+			return res.send({
+				success: true,
+				msg: "Disbursment List",
+				data: loan_result.msg
+			});
+		} else {
+			return res.send({
+				success: true,
+				msg: "Failed to fetch Disbursment List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Disbursment List:", error);
+		return res.send({
+			success: false,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR"
+		});
+	}
+});
+
+
 // Fetch Branch or Society List from public.md_branch by branch_type (B for Branch, P for Society)
 reportRouter.post("/fetch_branch_society_list", async (req, res) => {
 	try {
 		const { branch_type, tenant_id, branch_code } = req.body;
 		const bType = branch_type || 'B';
-		
+
 		let select = "branch_id as code, branch_name as name, branch_type, tenant_id";
 		let table_name = "public.md_branch";
 		let whr = `branch_status = 'O' AND branch_type = '${bType}'`;
@@ -531,7 +531,7 @@ reportRouter.post("/fetch_group_loan_master_dtls", async (req, res) => {
 			COALESCE(a.curr_prn, 0) as current_loan_outstanding,
 			a.group_code
 		`;
-		
+
 		let whr = `a.group_code = '${group_code}'`;
 		if (from_date && to_date) {
 			whr += ` AND a.disb_dt BETWEEN '${from_date}' AND '${to_date}'`;
@@ -572,8 +572,8 @@ reportRouter.post("/fetch_loan_transaction_details", async (req, res) => {
 		}
 
 		const isCCB = (loan_to === "B" || loan_to === "C");
-		let table_name = isCCB 
-			? "bdccb.td_loan_ccb_trans b LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id" 
+		let table_name = isCCB
+			? "bdccb.td_loan_ccb_trans b LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id"
 			: "bdccb.td_loan_transactions b LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id";
 
 		let select = `
@@ -602,7 +602,7 @@ reportRouter.post("/fetch_loan_transaction_details", async (req, res) => {
 
 		// Fallback check to alternate transaction table if primary transaction table has 0 records
 		if (!result || result.suc !== 1 || !result.msg || result.msg.length === 0) {
-			let fallbackTable = isCCB 
+			let fallbackTable = isCCB
 				? "bdccb.td_loan_transactions b LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id"
 				: "bdccb.td_loan_ccb_trans b LEFT JOIN bdccb.md_user e ON b.approved_by = e.user_id";
 			let fallbackResult = await db_Select(select, fallbackTable, whr, order);
@@ -1023,4 +1023,221 @@ reportRouter.post("/fetch_society_loan_outstanding_report", async (req, res) => 
 	}
 });
 
-module.exports = { reportRouter }
+
+// Fetch disbursement data from ccb to society from td_loan_ccb and td_loan_ccb_trans
+reportRouter.post("/get_ccb_to_society_disburs_dtls", async (req, res) => {
+	try {
+		const { from_dt, to_dt, branch_id, mode, disburse_to, tenant_id, trans_type } = { ...req.query, ...req.body };
+		const frm_date = from_dt;
+		const end_date = to_dt;
+
+		if (!frm_date || !end_date) {
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: "frm_dt and to_dt are required",
+				data: []
+			});
+		}
+
+		let loan_to = disburse_to;
+		if (String(loan_to).toUpperCase() === 'SOCIETY') loan_to = 'P';
+		if (String(loan_to).toUpperCase() === 'SHG') loan_to = 'S';
+
+		let target_trans_type = trans_type;
+
+		var select = "b.trans_dt as trans_date, b.trans_id, COALESCE(b.branch_shg_id, a.branch_shg_id) as branch_shg_id, COALESCE(c.branch_name, 'N/A') as branch_shg_name, COALESCE(a.group_code::text, 'N/A') as group_code, COALESCE(d.group_name,'N/A') as group_name, b.loan_id, COALESCE(b.loan_ac_no) as loan_ac_no, COALESCE(b.dr_amt, 0) as dr_amt, COALESCE(a.curr_prn, 0) as current_balance, COALESCE(a.period, 0) as period, COALESCE(a.curr_roi, 0) as curr_roi, COALESCE(a.penal_roi, 0) as penal_roi, a.disb_dt, COALESCE(a.disb_amt, 0) as disb_amt, a.rep_start_dt, a.rep_end_dt, a.rep_start_dt as start_date, a.rep_end_dt as end_date",
+			table_name = "bdccb.td_loan_ccb_trans b JOIN bdccb.td_loan_ccb a ON b.loan_id::text = a.loan_id::text LEFT JOIN public.md_branch c ON COALESCE(b.branch_shg_id, a.branch_shg_id)::text = c.branch_id::text LEFT JOIN bdccb.md_group d ON a.group_code::text = d.group_code::text",
+			whr = `b.trans_type::text = '${target_trans_type}' AND (b.loan_to::text = '${loan_to}' OR a.loan_to::text = '${loan_to}') AND b.approval_status::text = 'A' AND b.trans_dt::date BETWEEN '${frm_date}'::date AND '${end_date}'::date`,
+			order = "b.trans_dt ASC, b.trans_id ASC";
+
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND (b.tenant_id = '${tenant_id}' OR a.tenant_id = '${tenant_id}')`;
+		}
+
+		if (branch_id && branch_id !== "0" && branch_id !== "ALL" && branch_id !== "112") {
+			const cleanBrn = String(branch_id).split(',')[0].trim();
+			if (cleanBrn) {
+				whr += ` AND (a.branch_id = '${cleanBrn}')`;
+			}
+		}
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1) {
+			return res.send({
+				success: true,
+				suc: 1,
+				msg: loan_result.msg.length > 0 ? "Disbursment List" : "No disbursement records found for the selected criteria",
+				data: loan_result.msg
+			});
+		} else {
+			console.error("DB error in get_ccb_to_society_disburs_dtls:", loan_result.msg);
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: loan_result.msg || "Failed to fetch Disbursment List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Disbursment List:", error);
+		return res.send({
+			success: false,
+			suc: 0,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR",
+			data: []
+		});
+	}
+});
+
+// Fetch disbursement data from society/shg to member from td_loan_member and td_loan_member_trans
+reportRouter.post("/get_loan_member_disburs_dtls", async (req, res) => {
+	try {
+		const { from_dt, to_dt, branch_id, mode, disburse_to, tenant_id, trans_type } = { ...req.body };
+		const frm_date = from_dt;
+		const end_date = to_dt;
+
+		if (!frm_date || !end_date) {
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: "from_dt and to_dt are required",
+				data: []
+			});
+		}
+
+		let loan_to = disburse_to;
+		if (String(loan_to).toUpperCase() === 'SOCIETY') loan_to = 'P';
+		if (String(loan_to).toUpperCase() === 'SHG') loan_to = 'S';
+
+		let target_trans_type = trans_type || 'D';
+
+		var select = "b.trans_date, b.trans_id, b.loan_id, COALESCE(NULLIF(b.ccb_loan_id::text, ''), NULLIF(a.ccb_loan_id::text, ''), 'N/A') as ccb_loan_id, COALESCE(b.loan_acc_no::text, a.loan_acc_no::text, 'N/A') as loan_acc_no, COALESCE(b.branch_shg_id, a.branch_shg_id) as branch_shg_id, COALESCE(c.branch_name, 'N/A') as branch_shg_name, COALESCE(a.group_code::text, 'N/A') as group_code, COALESCE(d.group_name, 'N/A') as group_name, COALESCE(a.member_code::text, 'N/A') as member_code, COALESCE(e.member_name, 'N/A') as member_name, COALESCE(a.period, 0) as period, COALESCE(a.curr_roi, 0) as curr_roi, COALESCE(a.penal_roi, 0) as penal_roi, a.disb_dt, COALESCE(a.disb_amt, b.dr_amt, 0) as disb_amt, COALESCE(a.period_mode::text, 'N/A') as period_mode, a.rep_start_dt as start_date, a.rep_end_dt as end_date, COALESCE(b.curr_prn, a.outstanding, a.prn_amt, 0) as current_balance, COALESCE(b.dr_amt, a.disb_amt, 0) as dr_amt, b.approval_status",
+			table_name = "bdccb.td_loan_member_trans b JOIN bdccb.td_loan_member a ON b.loan_id::text = a.loan_id::text LEFT JOIN public.md_branch c ON COALESCE(b.branch_shg_id, a.branch_shg_id)::text = c.branch_id::text LEFT JOIN bdccb.md_group d ON a.group_code::text = d.group_code::text LEFT JOIN bdccb.md_member e ON a.member_code::text = e.member_code::text AND (a.group_code IS NULL OR a.group_code::text = e.group_code::text)",
+			whr = `b.trans_type::text = '${target_trans_type}' AND (b.loan_to::text = '${loan_to}' OR a.loan_to::text = '${loan_to}') AND b.approval_status::text = 'A' AND b.trans_date::date BETWEEN '${frm_date}'::date AND '${end_date}'::date`,
+			order = "b.trans_date ASC, b.trans_id ASC";
+
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND (b.tenant_id = '${tenant_id}' OR a.tenant_id = '${tenant_id}')`;
+		}
+
+		if (branch_id && branch_id !== "0" && branch_id !== "ALL" && branch_id !== "112") {
+			const cleanBrn = String(branch_id).split(',')[0].trim();
+			if (cleanBrn) {
+				whr += ` AND (a.branch_id::text = '${cleanBrn}' OR b.branch_id::text = '${cleanBrn}')`;
+			}
+		}
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1) {
+			return res.send({
+				success: true,
+				suc: 1,
+				msg: loan_result.msg.length > 0 ? "Disbursment List" : "No disbursement records found for the selected criteria",
+				data: loan_result.msg
+			});
+		} else {
+			console.error("DB error in get_loan_member_disburs_dtls:", loan_result.msg);
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: loan_result.msg || "Failed to fetch Disbursment List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Member Disbursment List:", error);
+		return res.send({
+			success: false,
+			suc: 0,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR",
+			data: []
+		});
+	}
+});
+
+// Fetch recovery data from bdccb.td_loan_member_trans_temp
+reportRouter.post("/get_loan_member_recovery_dtls", async (req, res) => {
+	try {
+		const { from_dt, to_dt, branch_id, mode, recovery_to, tenant_id, trans_type, approval_status } = { ...req.body };
+		const frm_date = from_dt;
+		const end_date = to_dt;
+
+		if (!frm_date || !end_date) {
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: "from_dt and to_dt are required",
+				data: []
+			});
+		}
+
+		let loan_to = recovery_to || disburse_to || req.body.loan_to;
+		let loan_to_filter = `(b.loan_to::text IN ('P', 'S') OR a.loan_to::text IN ('P', 'S'))`;
+
+		if (Array.isArray(loan_to) && loan_to.length > 0) {
+			const cleanVals = loan_to.map(v => `'${String(v).trim().replace(/'/g, "")}'`).join(',');
+			loan_to_filter = `(b.loan_to::text IN (${cleanVals}) OR a.loan_to::text IN (${cleanVals}))`;
+		} else if (loan_to && (String(loan_to).toUpperCase() === 'SOCIETY' || String(loan_to).toUpperCase() === 'P')) {
+			loan_to_filter = `(b.loan_to::text = 'P' OR a.loan_to::text = 'P')`;
+		} else if (loan_to && (String(loan_to).toUpperCase() === 'SHG' || String(loan_to).toUpperCase() === 'S')) {
+			loan_to_filter = `(b.loan_to::text = 'S' OR a.loan_to::text = 'S')`;
+		} else {
+			// Mode shg_members and recovery to group means loan_to P and S
+			loan_to_filter = `(b.loan_to::text IN ('P', 'S') OR a.loan_to::text IN ('P', 'S'))`;
+		}
+
+		let target_trans_type = trans_type;
+		let target_tenant = tenant_id;
+
+		var select = "b.trans_date, b.trans_id, b.loan_id, COALESCE(NULLIF(b.ccb_loan_id::text, ''), NULLIF(a.ccb_loan_id::text, ''), 'N/A') as ccb_loan_id, COALESCE(b.branch_shg_id, a.branch_shg_id) as branch_shg_id, COALESCE(c.branch_name, 'N/A') as branch_shg_name, COALESCE(b.loan_acc_no::text, a.loan_acc_no::text, 'N/A') as loan_acc_no, COALESCE(b.cr_amt, 0) as cr_amt, b.trans_type, b.loan_to, COALESCE(b.dr_amt, 0) as dr_amt, COALESCE(b.curr_prn_recov, 0) as curr_prn_recov, COALESCE(b.curr_intt_recov, 0) as curr_intt_recov, COALESCE(b.ovd_prn_recov, 0) as ovd_prn_recov, COALESCE(b.ovd_intt_recov, 0) as ovd_intt_recov, COALESCE(b.curr_prn, 0) as curr_prn, COALESCE(b.curr_intt, 0) as curr_intt, COALESCE(b.ovd_prn, 0) as ovd_prn, COALESCE(b.ovd_intt, 0) as ovd_intt, b.approval_status, COALESCE(a.group_code::text, 'N/A') as group_code, COALESCE(d.group_name, 'N/A') as group_name, COALESCE(a.member_code::text, 'N/A') as member_code, COALESCE(e.member_name, 'N/A') as member_name",
+			table_name = "bdccb.td_loan_member_trans_temp b LEFT JOIN bdccb.td_loan_member a ON b.loan_id::text = a.loan_id::text LEFT JOIN public.md_branch c ON COALESCE(b.branch_shg_id, a.branch_shg_id, b.branch_id)::text = c.branch_id::text LEFT JOIN bdccb.md_group d ON a.group_code::text = d.group_code::text LEFT JOIN bdccb.md_member e ON a.member_code::text = e.member_code::text AND (a.group_code IS NULL OR a.group_code::text = e.group_code::text)",
+			whr = `b.trans_type::text = '${target_trans_type}' AND ${loan_to_filter} AND b.trans_date::date BETWEEN '${frm_date}'::date AND '${end_date}'::date AND (b.tenant_id::text = '${target_tenant}' OR a.tenant_id::text = '${target_tenant}')`,
+			order = "b.trans_date ASC, b.trans_id ASC";
+
+		if (approval_status && approval_status !== "ALL") {
+			whr += ` AND b.approval_status::text = '${approval_status}'`;
+		}
+
+		if (branch_id && branch_id !== "0" && branch_id !== "ALL" && branch_id !== "112") {
+			const cleanBrn = String(branch_id).split(',')[0].trim();
+			if (cleanBrn) {
+				whr += ` AND (a.branch_id::text = '${cleanBrn}' OR b.branch_id::text = '${cleanBrn}')`;
+			}
+		}
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1) {
+			return res.send({
+				success: true,
+				suc: 1,
+				msg: loan_result.msg.length > 0 ? "Recovery List" : "No recovery records found for the selected criteria",
+				data: loan_result.msg
+			});
+		} else {
+			console.error("DB error in get_loan_member_recovery_dtls:", loan_result.msg);
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: loan_result.msg || "Failed to fetch Recovery List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Member Recovery List:", error);
+		return res.send({
+			success: false,
+			suc: 0,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR",
+			data: []
+		});
+	}
+});
+
+module.exports = { reportRouter };

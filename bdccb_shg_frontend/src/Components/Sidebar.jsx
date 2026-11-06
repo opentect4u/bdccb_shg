@@ -32,6 +32,7 @@ import {
 	TableOutlined,
 	LoadingOutlined,
 	WalletOutlined,
+	ArrowRightOutlined,
 } from "@ant-design/icons"
 
 import { useSocket } from "../Context/SocketContext"
@@ -466,7 +467,7 @@ function Sidebar({ mode = 0 }) {
 											{
 												key: "sub6-5",
 												icon: <BarChartOutlined />,
-												label: <Link to={"/homebm/loantxns"}>Loan Transactions</Link>,
+												label: <Link to={"/homebm/loan_transaction_report"}>Loan Transaction Report</Link>,
 											},
 											{
 												key: "sub6-15",
@@ -1333,7 +1334,7 @@ function Sidebar({ mode = 0 }) {
 			>
 				<div className="flex items-center justify-between">
 					<div className="italic ml-10">
-						⇨{" "}
+						<ArrowRightOutlined className="mr-1.5 text-xs inline-block" />
 
 						{`${(userDetails?.user_type || userDetails?.[0]?.user_type) == 'H' ? 'Head Office' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'B' ? 'Branch' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'P' ? 'PACS' : (userDetails?.user_type || userDetails?.[0]?.user_type) == 'S' ? 'SHG' : 'Head Office'} - ${userDetails?.emp_name || userDetails?.[0]?.emp_name || userDetails?.user_name || 'User'} `}
 						({userDetails?.branch_name || userDetails?.[0]?.branch_name || userDetails?.brn_name || userDetails?.brn_code || 'Head Office'})

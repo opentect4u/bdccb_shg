@@ -150,6 +150,9 @@ function MemberEditExtendedForm({ groupDataArr }) {
 	const [groupsList, setGroupsList] = useState(() => [])
 	const [groupsDetails, setGroupsDetails] = useState(() => [])
 	const [groupDetailsModal, setGroupDetailsModal] = useState(false);
+	// Outstanding loan check per member
+	const [memberOutstandingMap, setMemberOutstandingMap] = useState({}); // { member_code: exist_loan }
+	const [outstandingChecked, setOutstandingChecked] = useState(false);
 
 
 	const initialValues = {
@@ -296,6 +299,28 @@ function MemberEditExtendedForm({ groupDataArr }) {
 	}
 
 
+	const fetchMemberOutstanding = async (groupCode, memberCodes) => {
+		try {
+			const tokenValue = await getLocalStoreTokenDts(navigate);
+			const res = await axios.post(
+				`${url_bdccb}/group/fetch_grp_mem_outstanding`,
+				{ group_code: String(groupCode), member_code: memberCodes.map(String) },
+				{ headers: { Authorization: `${tokenValue?.token}`, "Content-Type": "application/json" } }
+			);
+			if (res?.data?.success && Array.isArray(res?.data?.data)) {
+				const map = {};
+				res.data.data.forEach(item => {
+					map[String(item.member_code)] = item.exist_loan;
+				});
+				setMemberOutstandingMap(map);
+			}
+			setOutstandingChecked(true);
+		} catch (err) {
+			console.error("Error fetching member outstanding:", err);
+			setOutstandingChecked(true);
+		}
+	};
+
 	const fetchGroupDetails = async () => {
 		const creds = {
 			group_name: params?.id,
@@ -382,6 +407,12 @@ function MemberEditExtendedForm({ groupDataArr }) {
 
 
 					setGroupData(res?.data?.data?.memberDetails);
+
+					// Fetch outstanding loan status per member
+					const memberCodes = (res?.data?.data?.memberDetails || []).map(m => m.member_code).filter(Boolean);
+					if (params?.id && memberCodes.length > 0) {
+						fetchMemberOutstanding(params.id, memberCodes);
+					}
 
 				} else {
 					navigate(routePaths.LANDING)
@@ -1521,7 +1552,10 @@ function MemberEditExtendedForm({ groupDataArr }) {
 						</div> */}
 
 						{formik.values?.members?.map((member, index) => {
-							const isRowFilled =
+							const memberCode = String(member.member_code || "");
+						const isMemberLocked = outstandingChecked && memberCode && memberOutstandingMap[memberCode] === true;
+
+						const isRowFilled =
 								member.member_name &&
 								// member.address &&
 								member.aadhar_no &&
@@ -1543,10 +1577,19 @@ function MemberEditExtendedForm({ groupDataArr }) {
 								<>
 									<div
 										key={index}
-										className="grid grid-cols-6 gap-3 mb-3 p-3 border rounded-md bg-slate-50" style={{ position: 'relative' }}
+										className={"grid grid-cols-6 gap-3 mb-3 p-3 border rounded-md " + (isMemberLocked ? "bg-red-50 border-red-300" : "bg-slate-50")} style={{ position: 'relative', pointerEvents: isMemberLocked ? 'none' : 'auto', userSelect: isMemberLocked ? 'none' : 'auto' }}
 									>
+										{isMemberLocked && (
+											<div style={{ gridColumn: '1 / -1', marginBottom: 4 }}>
+												<AlertComp
+													title="CANNOT EDIT MEMBER"
+													msg="This member has an outstanding loan balance and cannot be edited."
+												/>
+											</div>
+										)}
 
 
+										{/* locked state handled by alert banner + row styling */}
 										{/* Designation */}
 										<div className="col-span-6 flex flex-col gap-1" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'start' }}>
 											{/* Group Leader */}
@@ -1888,7 +1931,7 @@ function MemberEditExtendedForm({ groupDataArr }) {
 												</Button>
 											</div>
 										)}
-
+
 									</div>
 								</>
 							);

@@ -76,7 +76,22 @@ const economicActivites = [
 	}
 ]
 
-function GroupExtendedForm({ groupDataArr }) {
+function GroupExtendedForm({ groupDataArr, canEdit: propCanEdit, existLoan: propExistLoan }) {
+
+	const [isCanEdit, setIsCanEdit] = useState(propCanEdit !== undefined ? propCanEdit : true)
+	const [hasLoan, setHasLoan] = useState(propExistLoan !== undefined ? propExistLoan : false)
+
+	useEffect(() => {
+		if (propCanEdit !== undefined) {
+			setIsCanEdit(propCanEdit)
+		}
+	}, [propCanEdit])
+
+	useEffect(() => {
+		if (propExistLoan !== undefined) {
+			setHasLoan(propExistLoan)
+		}
+	}, [propExistLoan])
 
 	const containerStyle = {
 		width: '100%',
@@ -166,7 +181,7 @@ function GroupExtendedForm({ groupDataArr }) {
 
 	const onChange_Economic = (e) => {
 		// console.log("radio1 checked", e)
-		setEconomicActivitesData(e)		
+		setEconomicActivitesData(e)
 	}
 
 
@@ -266,8 +281,45 @@ function GroupExtendedForm({ groupDataArr }) {
 
 
 
+	useEffect(() => {
+		if (propCanEdit === undefined && params?.id && params?.id !== "0") {
+			const checkOutstanding = async () => {
+				try {
+					const tokenValue = await getLocalStoreTokenDts(navigate)
+					const headers = { "Content-Type": "application/json" }
+					if (tokenValue?.token) {
+						headers.Authorization = `${tokenValue?.token}`
+					}
+					const res = await axios.post(
+						`${url_bdccb}/group/fetch_grp_outstanding`,
+						{
+							group_code: String(params?.id),
+						},
+						{ headers }
+					)
+					if (res?.data?.success) {
+						if (res?.data?.exist_loan) {
+							setIsCanEdit(false)
+							setHasLoan(true)
+						} else {
+							setIsCanEdit(true)
+							setHasLoan(false)
+						}
+					}
+				} catch (e) {
+					console.error("fetch_grp_outstanding error in GroupExtendedForm:", e)
+				}
+			}
+			checkOutstanding()
+		}
+	}, [params?.id, propCanEdit])
+
 	// wherever you open popup (e.g. on submit)
 	const handleOpenConfirm = (values) => {
+		if (!isCanEdit) {
+			Message("warning", "This group has an outstanding loan balance and cannot be edited.")
+			return
+		}
 
 
 		setPendingValues(values);   // store formik values
@@ -275,6 +327,10 @@ function GroupExtendedForm({ groupDataArr }) {
 	};
 
 	const onSubmit = async (values) => {
+		if (!isCanEdit) {
+			Message("warning", "This group has an outstanding loan balance and cannot be edited.")
+			return
+		}
 		// setVisible(true)
 		// if (params?.id > 0) {
 		// 	editGroup(values)
@@ -315,18 +371,18 @@ function GroupExtendedForm({ groupDataArr }) {
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
 		await axios.get(`${url_bdccb}/group/fetch_grp_dtls_code`, {
-		params: {group_code: params?.id},
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
-		}
+			params: { group_code: params?.id },
+			headers: {
+				Authorization: `${tokenValue?.token}`, // example header
+				"Content-Type": "application/json", // optional
+			}
 		})
 			.then((res) => {
 
 				console.log(res?.data?.data, 'tes_________________');
-				
+
 				if (res?.data?.success) {
-					
+
 
 
 					setValues({
@@ -353,7 +409,7 @@ function GroupExtendedForm({ groupDataArr }) {
 						members: res?.data?.data[0]?.memb_dt
 
 					})
-					setEconomicActivitesData(res?.data?.data[0]?.economic_activity)	
+					setEconomicActivitesData(res?.data?.data[0]?.economic_activity)
 
 					setSocityEditTimeBranch([
 
@@ -395,11 +451,11 @@ function GroupExtendedForm({ groupDataArr }) {
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
 		await axios.get(`${url_bdccb}/group/fetch_grp_dtls_code`, {
-		params: {group_code: params?.id},
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
-		}
+			params: { group_code: params?.id },
+			headers: {
+				Authorization: `${tokenValue?.token}`, // example header
+				"Content-Type": "application/json", // optional
+			}
 		})
 			.then((res) => {
 
@@ -433,7 +489,7 @@ function GroupExtendedForm({ groupDataArr }) {
 
 					})
 
-					setEconomicActivitesData(res?.data?.data[0]?.economic_activity)	
+					setEconomicActivitesData(res?.data?.data[0]?.economic_activity)
 
 					setBranchList([
 						{
@@ -488,6 +544,10 @@ function GroupExtendedForm({ groupDataArr }) {
 
 
 	const editGroup = async (formData) => {
+		if (!isCanEdit) {
+			Message("warning", "This group has an outstanding loan balance and cannot be edited.")
+			return
+		}
 		setLoading(true)
 
 		const ip = await getClientIP()
@@ -1248,29 +1308,29 @@ function GroupExtendedForm({ groupDataArr }) {
 
 		await axios.get(`${url_bdccb}/master/pin_list`, {
 			params: {
-		dist_id: dist_id, block_id: block_id
-		},
-		headers: {
-		Authorization: `${tokenValue?.token}`, // example header
-		"Content-Type": "application/json", // optional
-		},
+				dist_id: dist_id, block_id: block_id
+			},
+			headers: {
+				Authorization: `${tokenValue?.token}`, // example header
+				"Content-Type": "application/json", // optional
+			},
 		})
 			.then((res) => {
 
 
-			if(res?.data?.success){
-			console.log(res?.data?.data, 'ffffffffffffffffffffff');
-			
-			// setPinCodeList()
-			setPinCodeList(res?.data?.data?.map((item, i) => ({
-			code: item?.pin,
-			name: item?.pin,
-			})))
-			} else {
-			Message('error', res?.data?.msg)
-			navigate(routePaths.LANDING)
-			localStorage.clear()
-			}
+				if (res?.data?.success) {
+					console.log(res?.data?.data, 'ffffffffffffffffffffff');
+
+					// setPinCodeList()
+					setPinCodeList(res?.data?.data?.map((item, i) => ({
+						code: item?.pin,
+						name: item?.pin,
+					})))
+				} else {
+					Message('error', res?.data?.msg)
+					navigate(routePaths.LANDING)
+					localStorage.clear()
+				}
 
 			})
 			.catch((err) => {
@@ -1287,6 +1347,15 @@ function GroupExtendedForm({ groupDataArr }) {
 			
 			msg={<p className="text-2xl font-normal"><span className="text-lg ">Loan Overdue Amount is </span>{formatINR(overDueAmt)}</p>} />
 		} */}
+			{hasLoan && (
+				<div className="mb-4">
+					<AlertComp
+						title="CANNOT EDIT GROUP"
+						msg="This group has an outstanding loan balance and cannot be edited."
+						msgType="warning"
+					/>
+				</div>
+			)}
 			<Spin
 				indicator={<LoadingOutlined spin />}
 				size="large"
@@ -1296,13 +1365,14 @@ function GroupExtendedForm({ groupDataArr }) {
 				{/* {(userDetails.id == 4 || userDetails.id == 3 || userDetails.id == 2 || userDetails.id == 13) && 
 				<Button htmlType="button" type="primary" icon={<MapIcon />} onClick={() => showModal()} className="my-3">View Distance</Button>} */}
 
-	 {/* {JSON.stringify(loanAppData, null, 2)} */}
+				{/* {JSON.stringify(loanAppData, null, 2)} */}
 
 				<form onSubmit={formik.handleSubmit}>
-					<div className="flex justify-start gap-5">
-						<div className={"grid gap-4 sm:grid-cols-4 sm:gap-6 w-full mb-3"}>
+					<fieldset disabled={!isCanEdit} className="border-0 p-0 m-0 w-full">
+						<div className="flex justify-start gap-5">
+							<div className={"grid gap-4 sm:grid-cols-4 sm:gap-6 w-full mb-3"}>
 
-						{/* <div className="sm:col-span-3 radioBtn_addgrp">
+								{/* <div className="sm:col-span-3 radioBtn_addgrp">
 						
 						{userDetails[0]?.user_type == 'B' ? 
 							(
@@ -1330,377 +1400,395 @@ function GroupExtendedForm({ groupDataArr }) {
 						
 						
 					</div> */}
-							{/* {directIndirectStatus == 'D' &&( */}
+								{/* {directIndirectStatus == 'D' &&( */}
 
-							<div className="sm:col-span-4 economicActivitesClass">
-							<label for="branch_id" class="block mb-2 text-sm capitalize font-bold text-slate-800
+								<div className="sm:col-span-4 economicActivitesClass">
+									<label for="branch_id" class="block mb-2 text-sm capitalize font-bold text-slate-800
 							dark:text-gray-100"> Economic Activites *</label>
-							<Radiobtn
-							data={economicActivites}
-							val={economicActivitesData}
-							onChangeVal={(value) => {
-							onChange_Economic(value)
-							}}
-							/>
-												</div>
-
-							<div className="sm:col-span-2">
-								<TDInputTemplateBr
-									placeholder="Select Branch"
-									type="text"
-									label="Select Branch *"
-									name="branch_id"
-									// disabled={userDetails[0]?.user_type == 'P' ? true : false}
-									disabled={userDetails[0]?.user_type === 'P' && params?.id > 0}
-									formControlName={formik.values.branch_id}
-									handleChange={(value) => {
-										formik.setFieldValue("branch_id", value.target.value)
-										// fetchPacks_Group(value.target.value)
-									}}
-									handleBlur={formik.handleBlur}
-									data={branchList}
-									mode={2}
-								/>
-
-								{formik.errors.branch_id && formik.touched.branch_id ? (
-									<VError title={formik.errors.branch_id} />
-								) : null}
-
-
-							</div>
-							{/* )} */}
-
-							{userDetails[0]?.user_type == "B" ? (
-								<>
-								{loanAppData?.pacs_id !== 111 ? (
-									<div className="sm:col-span-2">
-									{/* {JSON.stringify(PACKSList, null, 2)} */}
-									<TDInputTemplateBr
-										placeholder="Select Society"
-										type="text"
-										label="Select Society *"
-										name="packs_id"
-										// disabled={userDetails[0]?.user_type == 'P' ? true : false}
-										disabled={userDetails[0]?.user_type === 'P' && params?.id > 0}
-										formControlName={formik.values.packs_id}
-										handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
-										handleBlur={formik.handleBlur}
-										data={PACKSList}
-										mode={2}
+									<Radiobtn
+										data={economicActivites}
+										val={economicActivitesData}
+										disabled={!isCanEdit}
+										onChangeVal={(value) => {
+											if (!isCanEdit) return
+											onChange_Economic(value)
+										}}
 									/>
-
-									{formik.errors.packs_id && formik.touched.packs_id ? (
-										<VError title={formik.errors.packs_id} />
-									) : null}
-
 								</div>
-								) : (
-								<div className="sm:col-span-2"></div>
-								)}
-								
-								</>
-							) : userDetails[0]?.user_type == "P" ? (
+
 								<div className="sm:col-span-2">
-									{/* {JSON.stringify(PACKSList, null, 2)} */}
 									<TDInputTemplateBr
-										placeholder="Select Society"
+										placeholder="Select Branch"
 										type="text"
-										label="Select Society *"
-										name="packs_id"
+										label="Select Branch *"
+										name="branch_id"
 										// disabled={userDetails[0]?.user_type == 'P' ? true : false}
-										disabled={userDetails[0]?.user_type === 'P' && params?.id > 0}
-										formControlName={formik.values.packs_id}
-										handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
+										disabled={!isCanEdit || (userDetails[0]?.user_type === 'P' && params?.id > 0)}
+										formControlName={formik.values.branch_id}
+										handleChange={(value) => {
+											formik.setFieldValue("branch_id", value.target.value)
+											// fetchPacks_Group(value.target.value)
+										}}
 										handleBlur={formik.handleBlur}
-										data={PACKSList}
+										data={branchList}
 										mode={2}
 									/>
 
-									{formik.errors.packs_id && formik.touched.packs_id ? (
-										<VError title={formik.errors.packs_id} />
+									{formik.errors.branch_id && formik.touched.branch_id ? (
+										<VError title={formik.errors.branch_id} />
 									) : null}
 
+
 								</div>
-							) : (
-								<div className="sm:col-span-2"></div>
-							)}
+								{/* )} */}
 
-
-							<div className="sm:col-span-2">
-								<TDInputTemplateBr
-									placeholder="Group Name"
-									type="text"
-									label="Group Name"
-									name="g_group_name"
-									handleChange={formik.handleChange}
-									handleBlur={formik.handleBlur}
-									formControlName={formik.values.g_group_name}
-									mode={1}
-								/>
-								{formik.errors.g_group_name && formik.touched.g_group_name ? (
-									<VError title={formik.errors.g_group_name} />
-								) : null}
-							</div>
-
-							<div className="sm:col-span-2">
-								<TDInputTemplateBr
-									placeholder="Group Savings A/C Number"
-									type="text"
-									label="Group Savings A/C Number"
-									name="saving_acc_no"
-									handleChange={formik.handleChange}
-									handleBlur={formik.handleBlur}
-									formControlName={formik.values.saving_acc_no}
-									mode={1}
-								/>
-								{formik.errors.saving_acc_no && formik.touched.saving_acc_no ? (
-									<VError title={formik.errors.saving_acc_no} />
-								) : null}
-							</div>
-
-						</div>
-					</div>
-					<div className="flex justify-start gap-5 mb-3">
-						<div className={"grid gap-4 sm:grid-cols-1 sm:gap-6 w-full"}>
-							<div className="sm:col-span-2">
-								<TDInputTemplateBr
-									placeholder="Type Address..."
-									type="text"
-									label={`Address`}
-									name="g_address"
-									formControlName={formik.values.g_address}
-									handleChange={formik.handleChange}
-									handleBlur={formik.handleBlur}
-									mode={3}
-								/>
-								{formik.errors.g_address && formik.touched.g_address ? (
-									<VError title={formik.errors.g_address} />
-								) : null}
-							</div>
-						</div>
-					</div>
-
-					<div className="flex justify-start gap-5">
-						<div className={"grid gap-4 sm:grid-cols-3 sm:gap-6 w-full"}>
-
-
-
-							<div>
-								{/* {JSON.stringify(sahayikaList, null, 2)} */}
-								<TDInputTemplateBr
-									placeholder="Sahayika Name"
-									type="text"
-									label="Sahayika Name"
-									name="sahayika_id"
-									formControlName={formik.values.sahayika_id}
-									handleChange={(e) => formik.setFieldValue("sahayika_id", e.target.value)}
-									handleBlur={formik.handleBlur}
-									mode={2}
-									data={sahayikaList}
-								// setSahayikaList
-								/>
-
-
-								{formik.errors.sahayika_id && formik.touched.sahayika_id ? (
-									<VError title={formik.errors.sahayika_id} />
-								) : null}
-							</div>
-
-							<div>
-								<TDInputTemplateBr
-									placeholder="Mobile No. Of Group Leader"
-									type="number"
-									label="Mobile No. Of Group Leader"
-									name="g_phone1"
-									// handleChange={formik.handleChange}
-									handleChange={handleMobileChange}
-									handleBlur={formik.handleBlur}
-									formControlName={formik.values.g_phone1}
-									mode={1}
-								/>
-								{mobileExists?.user_status == 1 ? (
-									<div style={{ fontSize: 12, color: 'red' }}>{mobileExists?.msg}</div>
-								) : (
+								{userDetails[0]?.user_type == "B" ? (
 									<>
-										{/* <div style={{fontSize:12, color:'green'}}>{mobileExists?.msg}</div> */}
+										{loanAppData?.pacs_id !== 111 ? (
+											<div className="sm:col-span-2">
+												{/* {JSON.stringify(PACKSList, null, 2)} */}
+												<TDInputTemplateBr
+													placeholder="Select Society"
+													type="text"
+													label="Select Society *"
+													name="packs_id"
+													// disabled={userDetails[0]?.user_type == 'P' ? true : false}
+													disabled={!isCanEdit || (userDetails[0]?.user_type === 'P' && params?.id > 0)}
+													formControlName={formik.values.packs_id}
+													handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
+													handleBlur={formik.handleBlur}
+													data={PACKSList}
+													mode={2}
+												/>
+
+												{formik.errors.packs_id && formik.touched.packs_id ? (
+													<VError title={formik.errors.packs_id} />
+												) : null}
+
+											</div>
+										) : (
+											<div className="sm:col-span-2"></div>
+										)}
+
 									</>
+								) : userDetails[0]?.user_type == "P" ? (
+									<div className="sm:col-span-2">
+										{/* {JSON.stringify(PACKSList, null, 2)} */}
+										<TDInputTemplateBr
+											placeholder="Select Society"
+											type="text"
+											label="Select Society *"
+											name="packs_id"
+											// disabled={userDetails[0]?.user_type == 'P' ? true : false}
+											disabled={!isCanEdit || (userDetails[0]?.user_type === 'P' && params?.id > 0)}
+											formControlName={formik.values.packs_id}
+											handleChange={(e) => formik.setFieldValue("packs_id", e.target.value)}
+											handleBlur={formik.handleBlur}
+											data={PACKSList}
+											mode={2}
+										/>
+
+										{formik.errors.packs_id && formik.touched.packs_id ? (
+											<VError title={formik.errors.packs_id} />
+										) : null}
+
+									</div>
+								) : (
+									<div className="sm:col-span-2"></div>
 								)}
-								{formik.errors.g_phone1 && formik.touched.g_phone1 ? (
-									<VError title={formik.errors.g_phone1} />
-								) : null}
+
+
+								<div className="sm:col-span-2">
+									<TDInputTemplateBr
+										placeholder="Group Name"
+										type="text"
+										label="Group Name"
+										name="g_group_name"
+										disabled={!isCanEdit}
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.g_group_name}
+										mode={1}
+									/>
+									{formik.errors.g_group_name && formik.touched.g_group_name ? (
+										<VError title={formik.errors.g_group_name} />
+									) : null}
+								</div>
+
+								<div className="sm:col-span-2">
+									<TDInputTemplateBr
+										placeholder="Group Savings A/C Number"
+										type="text"
+										label="Group Savings A/C Number"
+										name="saving_acc_no"
+										disabled={!isCanEdit}
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.saving_acc_no}
+										mode={1}
+									/>
+									{formik.errors.saving_acc_no && formik.touched.saving_acc_no ? (
+										<VError title={formik.errors.saving_acc_no} />
+									) : null}
+								</div>
+
 							</div>
-
-							<div>
-								<TDInputTemplateBr
-									placeholder="Select District..."
-									type="text"
-									label="District"
-									name="dist_id"
-									// formControlName={masterData.dist_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.dist_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={districts}
-									mode={2}
-								/>
-								{formik.errors.dist_id && formik.touched.dist_id ? (
-									<VError title={formik.errors.dist_id} />
-								) : null}
+						</div>
+						<div className="flex justify-start gap-5 mb-3">
+							<div className={"grid gap-4 sm:grid-cols-1 sm:gap-6 w-full"}>
+								<div className="sm:col-span-2">
+									<TDInputTemplateBr
+										placeholder="Type Address..."
+										type="text"
+										label={`Address`}
+										name="g_address"
+										disabled={!isCanEdit}
+										formControlName={formik.values.g_address}
+										handleChange={formik.handleChange}
+										handleBlur={formik.handleBlur}
+										mode={3}
+									/>
+									{formik.errors.g_address && formik.touched.g_address ? (
+										<VError title={formik.errors.g_address} />
+									) : null}
+								</div>
 							</div>
+						</div>
 
-							<div>
-								{/* {JSON.stringify(masterData, null, 2)}  */}
-								<TDInputTemplateBr
-									placeholder="Select Block..."
-									type="text"
-									label="Block"
-									name="block_id"
-									// formControlName={masterData.block_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.block_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={blocks}
-									mode={2}
-								/>
-								{formik.errors.block_id && formik.touched.block_id ? (
-									<VError title={formik.errors.block_id} />
-								) : null}
-							</div>
+						<div className="flex justify-start gap-5">
+							<div className={"grid gap-4 sm:grid-cols-3 sm:gap-6 w-full"}>
 
 
-							<div>
-								{/* <TDInputTemplateBr
+
+								<div>
+									{/* {JSON.stringify(sahayikaList, null, 2)} */}
+									<TDInputTemplateBr
+										placeholder="Sahayika Name"
+										type="text"
+										label="Sahayika Name"
+										name="sahayika_id"
+										disabled={!isCanEdit}
+										formControlName={formik.values.sahayika_id}
+										handleChange={(e) => formik.setFieldValue("sahayika_id", e.target.value)}
+										handleBlur={formik.handleBlur}
+										mode={2}
+										data={sahayikaList}
+									// setSahayikaList
+									/>
+
+
+									{formik.errors.sahayika_id && formik.touched.sahayika_id ? (
+										<VError title={formik.errors.sahayika_id} />
+									) : null}
+								</div>
+
+								<div>
+									<TDInputTemplateBr
+										placeholder="Mobile No. Of Group Leader"
+										type="number"
+										label="Mobile No. Of Group Leader"
+										name="g_phone1"
+										disabled={!isCanEdit}
+										// handleChange={formik.handleChange}
+										handleChange={handleMobileChange}
+										handleBlur={formik.handleBlur}
+										formControlName={formik.values.g_phone1}
+										mode={1}
+									/>
+									{mobileExists?.user_status == 1 ? (
+										<div style={{ fontSize: 12, color: 'red' }}>{mobileExists?.msg}</div>
+									) : (
+										<>
+											{/* <div style={{fontSize:12, color:'green'}}>{mobileExists?.msg}</div> */}
+										</>
+									)}
+									{formik.errors.g_phone1 && formik.touched.g_phone1 ? (
+										<VError title={formik.errors.g_phone1} />
+									) : null}
+								</div>
+
+								<div>
+									<TDInputTemplateBr
+										placeholder="Select District..."
+										type="text"
+										label="District"
+										name="dist_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.dist_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.dist_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={districts}
+										mode={2}
+									/>
+									{formik.errors.dist_id && formik.touched.dist_id ? (
+										<VError title={formik.errors.dist_id} />
+									) : null}
+								</div>
+
+								<div>
+									{/* {JSON.stringify(masterData, null, 2)}  */}
+									<TDInputTemplateBr
+										placeholder="Select Block..."
+										type="text"
+										label="Block"
+										name="block_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.block_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.block_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={blocks}
+										mode={2}
+									/>
+									{formik.errors.block_id && formik.touched.block_id ? (
+										<VError title={formik.errors.block_id} />
+									) : null}
+								</div>
+
+
+								<div>
+									{/* <TDInputTemplateBr
 									placeholder="PIN No."
 									type="number"
 									label="PIN No."
 									name="g_pin"
+								disabled={!isCanEdit}
 									handleChange={formik.handleChange}
 									handleBlur={formik.handleBlur}
 									formControlName={formik.values.g_pin}
 									mode={1}
 								/> */}
 
-								<TDInputTemplateBr
-								placeholder="Select PIN No..."
-								type="text"
-								label="PIN No."
-								name="g_pin"
-								// formControlName={masterData.gp_id}
-								// handleChange={handleChangeMaster}
-								formControlName={formik.values.g_pin}
-								// handleChange={formik.handleChange}
-								handleChange={handleFormikMasterChange} 
-								handleBlur={formik.handleBlur}
-								data={pinCodeList}
-								mode={2}
-								/>
+									<TDInputTemplateBr
+										placeholder="Select PIN No..."
+										type="text"
+										label="PIN No."
+										name="g_pin"
+										disabled={!isCanEdit}
+										// formControlName={masterData.gp_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.g_pin}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={pinCodeList}
+										mode={2}
+									/>
 
-								{formik.errors.g_pin && formik.touched.g_pin ? (
-									<VError title={formik.errors.g_pin} />
-								) : null}
-							</div>
+									{formik.errors.g_pin && formik.touched.g_pin ? (
+										<VError title={formik.errors.g_pin} />
+									) : null}
+								</div>
 
 
-							<div>
-								<TDInputTemplateBr
-									placeholder="Select Police Station..."
-									type="text"
-									label="Police Station"
-									name="ps_id"
-									// formControlName={masterData.ps_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.ps_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={policeStation}
-									mode={2}
-								/>
-								{formik.errors.ps_id && formik.touched.ps_id ? (
-									<VError title={formik.errors.ps_id} />
-								) : null}
-							</div>
+								<div>
+									<TDInputTemplateBr
+										placeholder="Select Police Station..."
+										type="text"
+										label="Police Station"
+										name="ps_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.ps_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.ps_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={policeStation}
+										mode={2}
+									/>
+									{formik.errors.ps_id && formik.touched.ps_id ? (
+										<VError title={formik.errors.ps_id} />
+									) : null}
+								</div>
 
-							<div>
-								<TDInputTemplateBr
-									placeholder="Select Post Office..."
-									type="text"
-									label="Post Office"
-									name="po_id"
-									// formControlName={masterData.po_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.po_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={postOffice}
-									mode={2}
-								/>
-								{formik.errors.po_id && formik.touched.po_id ? (
-									<VError title={formik.errors.po_id} />
-								) : null}
-							</div>
+								<div>
+									<TDInputTemplateBr
+										placeholder="Select Post Office..."
+										type="text"
+										label="Post Office"
+										name="po_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.po_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.po_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={postOffice}
+										mode={2}
+									/>
+									{formik.errors.po_id && formik.touched.po_id ? (
+										<VError title={formik.errors.po_id} />
+									) : null}
+								</div>
 
-							
 
-							<div>
 
-								<TDInputTemplateBr
-									placeholder="Select GP Name..."
-									type="text"
-									label="GP Name"
-									name="gp_id"
-									// formControlName={masterData.gp_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.gp_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={gpName}
-									mode={2}
-								/>
-								{formik.errors.gp_id && formik.touched.gp_id ? (
-									<VError title={formik.errors.gp_id} />
-								) : null}
-							</div>
+								<div>
 
-							<div>
+									<TDInputTemplateBr
+										placeholder="Select GP Name..."
+										type="text"
+										label="GP Name"
+										name="gp_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.gp_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.gp_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={gpName}
+										mode={2}
+									/>
+									{formik.errors.gp_id && formik.touched.gp_id ? (
+										<VError title={formik.errors.gp_id} />
+									) : null}
+								</div>
 
-								<TDInputTemplateBr
-									placeholder="Select Village Name..."
-									type="text"
-									label="Village Name"
-									name="village_id"
-									// formControlName={masterData.village_id}
-									// handleChange={handleChangeMaster}
-									formControlName={formik.values.village_id}
-									// handleChange={formik.handleChange}
-									handleChange={handleFormikMasterChange}
-									handleBlur={formik.handleBlur}
-									data={villName}
-									mode={2}
-								/>
-								{formik.errors.village_id && formik.touched.village_id ? (
-									<VError title={formik.errors.village_id} />
-								) : null}
+								<div>
+
+									<TDInputTemplateBr
+										placeholder="Select Village Name..."
+										type="text"
+										label="Village Name"
+										name="village_id"
+										disabled={!isCanEdit}
+										// formControlName={masterData.village_id}
+										// handleChange={handleChangeMaster}
+										formControlName={formik.values.village_id}
+										// handleChange={formik.handleChange}
+										handleChange={handleFormikMasterChange}
+										handleBlur={formik.handleBlur}
+										data={villName}
+										mode={2}
+									/>
+									{formik.errors.village_id && formik.touched.village_id ? (
+										<VError title={formik.errors.village_id} />
+									) : null}
+								</div>
 							</div>
 						</div>
-					</div>
+
+					</fieldset>
 
 					{/* {JSON.stringify(formik.values.members, null, 2)} */}
-					{userDetails[0]?.user_type == 'B' ? (
-					<>
-					{loanAppData?.pacs_id == '111' && 
-					<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
-					} 
-					</>
-					) : (
-						<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
-					) }
+					{isCanEdit && (
+						userDetails[0]?.user_type == 'B' ? (
+							<>
+								{(params?.id == 0 || loanAppData?.pacs_id == '111' || formik.values.packs_id == '111') &&
+									<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
+								}
+							</>
+						) : (
+							<BtnComp mode="A" onReset={formik.resetForm} param={params?.id} />
+						))}
 
 				</form>
 			</Spin>

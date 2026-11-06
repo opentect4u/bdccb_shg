@@ -1154,5 +1154,114 @@ groupRouter.post("/delete_member", async (req, res) => {
   }
 });
 
+// FETCH GROUP HAS ANY LOAN OUTSTANDING OR NOT AND BASED ON THIS EDIT OR NOT
+groupRouter.post("/fetch_grp_outstanding", async (req, res) => {
+  try {
+    const { group_code } = req.body;
+
+    var fetch_td_loan_ccb = await db_Select("COALESCE(curr_prn, 0) + COALESCE(curr_intt, 0) + COALESCE(ovd_prn, 0) + COALESCE(ovd_intt, 0) AS outstanding", "bdccb.td_loan_ccb", `group_code = '${group_code}'`);
+
+    var fetch_td_loan = await db_Select("COALESCE(curr_prn, 0) + COALESCE(curr_intt, 0) + COALESCE(ovd_prn, 0) + COALESCE(ovd_intt, 0) AS outstanding", "bdccb.td_loan", `group_code = '${group_code}'`);
+
+    //  console.log("CCB Response:", fetch_td_loan_ccb);
+    // console.log("Loan Response:", fetch_td_loan);
+
+    const ccbData = fetch_td_loan_ccb.suc == 1 ? fetch_td_loan_ccb.msg || [] : [];
+
+    const loanData = fetch_td_loan.suc == 1 ? fetch_td_loan.msg || [] : [];
+
+    const exist_loan = [...ccbData, ...loanData].some(row =>
+      Number(row.outstanding) > 0
+    );
+
+    return res.send({
+      success: true,
+      exist_loan
+    });
+  } catch (error) {
+    console.error("Error in fetching outstanding of group:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error while fetching outstanding of group",
+      errorCode: "SERVER_ERROR"
+    });
+  }
+});
+
+// FETCH GROUP MEMBER HAS ANY LOAN OUTSTANDING OR NOT AND BASED ON THIS EDIT OR NOT
+groupRouter.post("/fetch_grp_mem_outstanding", async (req, res) => {
+  try {
+    const { group_code, member_code } = req.body;
+
+    let whereConditions = [];
+    if (group_code) {
+      whereConditions.push("group_code = '" + group_code + "'");
+    }
+    if (member_code) {
+      if (Array.isArray(member_code)) {
+        whereConditions.push("member_code IN (" + member_code.map(m => "'" + m + "'").join(",") + ")");
+      } else {
+        whereConditions.push("member_code = '" + member_code + "'");
+      }
+    }
+
+    const whereClause = whereConditions.join(" AND ");
+
+    const fetch_td_loan_member = await db_Select(
+      "member_code, (COALESCE(prn_amt, 0) + COALESCE(intt_amt, 0) + COALESCE(ovd_prn_amt, 0) + COALESCE(ovd_intt_amt, 0)) AS outstanding",
+      "bdccb.td_loan_member",
+      whereClause
+    );
+
+    const memLoanRows = fetch_td_loan_member.suc == 1 ? fetch_td_loan_member.msg || [] : [];
+
+    // Aggregate outstanding per member_code
+    const memberMap = {};
+    memLoanRows.forEach(row => {
+      const mCode = String(row.member_code);
+      const outAmt = Number(row.outstanding) || 0;
+      memberMap[mCode] = (memberMap[mCode] || 0) + outAmt;
+    });
+
+    // Ensure requested member_codes appear even if no loan record exists
+    if (member_code) {
+      if (Array.isArray(member_code)) {
+        member_code.forEach(m => {
+          const mCode = String(m);
+          if (memberMap[mCode] === undefined) memberMap[mCode] = 0;
+        });
+      } else {
+        const mCode = String(member_code);
+        if (memberMap[mCode] === undefined) memberMap[mCode] = 0;
+      }
+    }
+
+    const data = Object.keys(memberMap).map(mCode => ({
+      member_code: mCode,
+      outstanding: Number(memberMap[mCode]) || 0,
+      exist_loan: (Number(memberMap[mCode]) || 0) > 0
+    }));
+
+    const exist_loan = data.some(item => item.exist_loan);
+
+    return res.send({
+      success: true,
+      exist_loan,
+      ...(member_code && !Array.isArray(member_code) ? {
+        member_code: String(member_code),
+        outstanding: memberMap[String(member_code)] || 0
+      } : {}),
+      data
+    });
+  } catch (error) {
+    console.error("Error in fetching outstanding of group member:", error);
+    return res.send({
+      success: false,
+      msg: "Internal server error while fetching outstanding of group member",
+      errorCode: "SERVER_ERROR"
+    });
+  }
+});
+
 
 module.exports = { groupRouter }
