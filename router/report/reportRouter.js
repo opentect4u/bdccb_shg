@@ -1240,4 +1240,170 @@ reportRouter.post("/get_loan_member_recovery_dtls", async (req, res) => {
 	}
 });
 
+// Fetch SHG Recovery data from bdccb.td_loan_transactions and bdccb.td_loan (Recovery to Branch or Society)
+reportRouter.post("/get_shg_recovery_dtls", async (req, res) => {
+	try {
+		const { from_dt, to_dt, branch_id, mode, recovery_to, tenant_id, trans_type, approval_status } = { ...req.body };
+		const frm_date = from_dt;
+		const end_date = to_dt;
+
+		if (!frm_date || !end_date) {
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: "from_dt and to_dt are required",
+				data: []
+			});
+		}
+
+		// When mode is SHG:
+		// If recovery to Branch -> loan_to = 'S'
+		// If recovery to Society -> loan_to = 'P'
+		let target_loan_to = 'S';
+		const recovTarget = recovery_to;
+		let loan_to_clause = `(b.loan_to::text = 'S' OR a.loan_to::text = 'S')`;
+
+		if (Array.isArray(recovTarget) && recovTarget.length > 0) {
+			const cleanVals = recovTarget.map(v => `'${String(v).trim().replace(/'/g, "")}'`).join(',');
+			loan_to_clause = `(b.loan_to::text IN (${cleanVals}) OR a.loan_to::text IN (${cleanVals}))`;
+		} else if (recovTarget) {
+			const rUpper = String(recovTarget).toUpperCase();
+			if (rUpper === 'SOCIETY' || rUpper === 'P') {
+				target_loan_to = 'P';
+				loan_to_clause = `(b.loan_to::text = 'P' OR a.loan_to::text = 'P')`;
+			} else if (rUpper === 'BRANCH' || rUpper === 'S' || rUpper === 'SHG' || rUpper === 'B') {
+				target_loan_to = 'S';
+				loan_to_clause = `(b.loan_to::text = 'S' OR a.loan_to::text = 'S')`;
+			} else {
+				loan_to_clause = `(b.loan_to::text = '${recovTarget}' OR a.loan_to::text = '${recovTarget}')`;
+			}
+		}
+
+		let target_trans_type = trans_type;
+
+		var select = "b.trans_dt as trans_date, TO_CHAR(b.trans_dt, 'YYYY-MM-DD') as trans_dt, b.trans_id, b.trans_id as transaction_id, a.branch_id, COALESCE(br.branch_name, 'N/A') as branch_name, COALESCE(b.branch_shg_id, a.branch_shg_id) as branch_shg_id, CASE WHEN b.loan_to::text = 'S' OR a.loan_to::text = 'S' THEN '' ELSE COALESCE(c.branch_name, 'N/A') END as branch_shg_name, CASE WHEN b.loan_to::text = 'S' OR a.loan_to::text = 'S' THEN '' WHEN c.branch_name IS NOT NULL AND c.branch_name <> '' THEN c.branch_name || ' (' || COALESCE(b.branch_shg_id, a.branch_shg_id)::text || ')' ELSE COALESCE(b.branch_shg_id, a.branch_shg_id)::text END as branch_shg_name_with_id, a.loan_id as ccb_loan_id, b.trans_type, COALESCE(b.loan_to, a.loan_to) as loan_to, b.approval_status, COALESCE(a.group_code::text, 'N/A') as group_code, COALESCE(d.group_name, 'N/A') as group_name, COALESCE(b.loan_ac_no::text, a.loan_acc_no::text, 'N/A') as loan_acc_no, COALESCE(b.cr_amt, 0) as cr_amt, COALESCE(b.cr_amt, 0) as credit_amount, COALESCE(b.dr_amt, 0) as dr_amt, COALESCE(b.dr_amt, 0) as debit_amt, COALESCE(b.curr_prn_recov, 0) as curr_prn_recov, COALESCE(b.curr_intt_recov, 0) as curr_intt_recov, COALESCE(b.ovd_prn_recov, 0) as ovd_prn_recov, COALESCE(b.ovd_intt_recov, 0) as ovd_intt_recov, COALESCE(a.period, 0) as period, COALESCE(a.curr_roi, 0) as curr_roi, COALESCE(a.penal_roi, 0) as penal_roi, a.disb_dt, COALESCE(a.disb_amt, 0) as disb_amt, a.rep_start_dt, a.rep_end_dt, a.rep_start_dt as start_date, a.rep_end_dt as end_date, COALESCE(b.curr_prn, a.curr_prn, 0) as current_balance, COALESCE(b.curr_prn, a.curr_prn, 0) as outstanding_amt, COALESCE(b.curr_prn, a.curr_prn, 0) as curr_prn, COALESCE(b.curr_intt, a.curr_intt, 0) as curr_intt",
+			table_name = "bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id::text = a.loan_id::text LEFT JOIN public.md_branch c ON COALESCE(b.branch_shg_id, a.branch_shg_id)::text = c.branch_id::text LEFT JOIN public.md_branch br ON a.branch_id::text = br.branch_id::text LEFT JOIN bdccb.md_group d ON a.group_code::text = d.group_code::text",
+			whr = `b.trans_type::text = '${target_trans_type}' AND ${loan_to_clause} AND b.trans_dt::date BETWEEN '${frm_date}'::date AND '${end_date}'::date`,
+			order = "b.trans_dt ASC, b.trans_id ASC";
+
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND (b.tenant_id::text = '${tenant_id}' OR a.tenant_id::text = '${tenant_id}')`;
+		}
+
+		if (approval_status && approval_status !== "ALL") {
+			whr += ` AND b.approval_status::text = '${approval_status}'`;
+		} else if (!approval_status) {
+			whr += ` AND b.approval_status::text = 'A'`;
+		}
+
+		// Branch ID fetched from td_loan table
+		if (branch_id && branch_id !== "0" && branch_id !== "ALL" && branch_id !== "112") {
+			const cleanBrn = String(branch_id).split(',')[0].trim();
+			if (cleanBrn) {
+				whr += ` AND a.branch_id::text = '${cleanBrn}'`;
+			}
+		}
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1) {
+			return res.send({
+				success: true,
+				suc: 1,
+				msg: loan_result.msg.length > 0 ? "Recovery List" : "No recovery records found for the selected criteria",
+				data: loan_result.msg
+			});
+		} else {
+			console.error("DB error in get_shg_recovery_dtls:", loan_result.msg);
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: loan_result.msg || "Failed to fetch Recovery List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching SHG Recovery List:", error);
+		return res.send({
+			success: false,
+			suc: 0,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR",
+			data: []
+		});
+	}
+});
+
+// Fetch Society Recovery data from bdccb.td_loan_ccb_trans and bdccb.td_loan_ccb (Mode: Society, Recovery to: Branch, loan_to = 'P')
+reportRouter.post("/get_society_recovery_dtls", async (req, res) => {
+	try {
+		const { from_dt, to_dt, branch_id, mode, recovery_to, tenant_id, trans_type, trans_typ, approval_status } = { ...req.body };
+		const frm_date = from_dt;
+		const end_date = to_dt;
+
+		if (!frm_date || !end_date) {
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: "from_dt and to_dt are required",
+				data: []
+			});
+		}
+
+		// Mode Society and Recovery to Branch: loan_to = 'P'
+		let target_trans_type = trans_type || trans_typ || 'R';
+
+		var select = "TO_CHAR(b.trans_dt, 'YYYY-MM-DD') as trans_dt, b.trans_id, a.branch_id, COALESCE(br.branch_name, 'N/A') as branch_name, COALESCE(b.branch_shg_id, a.branch_shg_id) as branch_shg_id, COALESCE(c.branch_name, 'N/A') as branch_shg_name, a.loan_id as ccb_loan_id, b.trans_type, COALESCE(b.loan_to, a.loan_to) as loan_to, b.approval_status, COALESCE(a.group_code::text, 'N/A') as group_code, COALESCE(d.group_name, 'N/A') as group_name, COALESCE(b.loan_ac_no::text, a.loan_acc_no::text, 'N/A') as loan_acc_no, COALESCE(b.cr_amt, 0) as cr_amt, COALESCE(b.curr_prn_recov, 0) as curr_prn_recov, COALESCE(b.curr_intt_recov, 0) as curr_intt_recov, COALESCE(b.ovd_prn_recov, 0) as ovd_prn_recov, COALESCE(b.ovd_intt_recov, 0) as ovd_intt_recov,COALESCE(b.curr_prn, a.curr_prn, 0) as current_balance, COALESCE(b.curr_prn, a.curr_prn, 0) as outstanding_amt, COALESCE(b.curr_prn, a.curr_prn, 0) as curr_prn, COALESCE(b.curr_intt, a.curr_intt, 0) as curr_intt",
+			table_name = "bdccb.td_loan_ccb_trans b JOIN bdccb.td_loan_ccb a ON b.loan_id::text = a.loan_id::text LEFT JOIN public.md_branch c ON COALESCE(b.branch_shg_id, a.branch_shg_id)::text = c.branch_id::text LEFT JOIN public.md_branch br ON a.branch_id::text = br.branch_id::text LEFT JOIN bdccb.md_group d ON a.group_code::text = d.group_code::text",
+			whr = `b.trans_type::text = '${target_trans_type}' AND (b.loan_to::text = 'P' OR a.loan_to::text = 'P') AND b.trans_dt::date BETWEEN '${frm_date}'::date AND '${end_date}'::date`,
+			order = "b.trans_dt ASC, b.trans_id ASC";
+
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND (b.tenant_id::text = '${tenant_id}' OR a.tenant_id::text = '${tenant_id}')`;
+		}
+
+		if (approval_status && approval_status !== "ALL") {
+			whr += ` AND b.approval_status::text = '${approval_status}'`;
+		} else if (!approval_status) {
+			whr += ` AND b.approval_status::text = 'A'`;
+		}
+
+		// Branch ID fetched from td_loan_ccb table
+		if (branch_id && branch_id !== "0" && branch_id !== "ALL" && branch_id !== "112") {
+			const cleanBrn = String(branch_id).split(',')[0].trim();
+			if (cleanBrn) {
+				whr += ` AND a.branch_id::text = '${cleanBrn}'`;
+			}
+		}
+
+		var loan_result = await db_Select(select, table_name, whr, order);
+
+		if (loan_result.suc === 1) {
+			return res.send({
+				success: true,
+				suc: 1,
+				msg: loan_result.msg.length > 0 ? "Society Recovery List" : "No society recovery records found for the selected criteria",
+				data: loan_result.msg
+			});
+		} else {
+			console.error("DB error in get_society_recovery_dtls:", loan_result.msg);
+			return res.send({
+				success: false,
+				suc: 0,
+				msg: loan_result.msg || "Failed to fetch Society Recovery List",
+				data: []
+			});
+		}
+	} catch (error) {
+		console.log("Error fetching Society Recovery List:", error);
+		return res.send({
+			success: false,
+			suc: 0,
+			msg: "Internal server error",
+			errorCode: "SERVER_ERROR",
+			data: []
+		});
+	}
+});
+
 module.exports = { reportRouter };
