@@ -334,6 +334,17 @@ function LoanTransactionReport() {
 		return txnType === "D" && (searchMode === "SOCIETY" || searchMode === "SHG") && disburseTo === "MEMBER"
 	}, [txnType, searchMode, disburseTo])
 
+	const showRecoverySocietyCol = useMemo(() => {
+		if (txnType !== "R") return false
+		if (searchMode === "SHG") {
+			return disburseTo === "SOCIETY"
+		}
+		if (searchMode === "SOCIETY") {
+			return true
+		}
+		return false
+	}, [txnType, searchMode, disburseTo])
+
 	const disbursementModeLabel = useMemo(() => {
 		if (txnType !== "D") return ""
 		if (searchMode === "CCB") {
@@ -744,16 +755,20 @@ function LoanTransactionReport() {
 				}
 			} else {
 				// RECOVERY (txnType === "R")
-				if (searchMode === "SHG" && disburseTo === "BRANCH") {
-					// SHG -> Branch (Direct CCB)
+				if (searchMode === "SHG") {
+					// SHG -> Branch (S) or Society (P)
+					const recoveryToTarget = (disburseTo === "BRANCH" || disburseTo === "S") ? "S" : "P";
 					try {
 						const recovRes = await axios.post(
-							`${url_bdccb}/recov/fetch_ccb_recov_dtls`,
+							`${url_bdccb}/report/get_shg_recovery_dtls`,
 							{
 								branch_id: selectedBrnCode,
-								tenant_id: userDetails?.tenant_id || 1,
+								tenant_id: String(userDetails?.tenant_id || 1),
 								from_dt: fromDate,
 								to_dt: toDate,
+								trans_type: "R",
+								mode: "SHG",
+								recovery_to: recoveryToTarget,
 								approval_status: "A",
 							},
 							{
@@ -763,87 +778,55 @@ function LoanTransactionReport() {
 								},
 							}
 						)
-						if (recovRes?.data?.success && Array.isArray(recovRes?.data?.data)) {
-							const formattedRecov = recovRes.data.data.map((item, idx) => ({
-								id: `R_CCB_${item.trans_id || item.transaction_id || item.loan_id}_${idx}`,
+						const responseData = Array.isArray(recovRes?.data?.data)
+							? recovRes.data.data
+							: (Array.isArray(recovRes?.data?.msg) ? recovRes.data.msg : [])
+						if ((recovRes?.data?.success || recovRes?.data?.suc === 1) && responseData.length > 0) {
+							const formattedRecov = responseData.map((item, idx) => ({
+								id: `R_SHG_${item.trans_id || item.transaction_id || item.loan_id}_${idx}`,
 								loan_id: item.loan_id,
+								ccb_loan_id: item.ccb_loan_id || item.loan_id || "N/A",
 								trans_no: item.trans_id || item.transaction_id || item.payment_id || item.loan_id,
-								trans_date: item.trans_dt || item.payment_dt || item.trans_date || item.created_at,
-								trans_type: "R",
+								trans_date: item.trans_dt || item.trans_date || item.payment_dt || item.created_at,
+								trans_type: item.trans_type || "R",
 								trans_type_text: "Recovery",
+								branch_shg_id: item.branch_shg_id,
+								branch_shg_name: item.branch_shg_name || selectedBrnName,
+								branch_shg_name_with_id: item.branch_shg_name_with_id || (item.branch_shg_name ? `${item.branch_shg_name} (${item.branch_shg_id})` : selectedBrnName),
 								group_code: item.group_code || item.shg_id || "N/A",
-								group_name: item.group_name || "N/A",
-								member_name: item.member_name || "N/A",
-								account_no: item.loan_acc_no || item.acc_no || item.loan_id || "N/A",
-								period: item.period || 0,
-								curr_roi: item.curr_roi || 0,
-								debit_amt: 0,
-								credit_amt: Number(item.credit_amount || item.paid_amt || item.cr_amt || item.tot_recovery_amt || 0),
-								outstanding_amt: Number(item.balance || item.curr_prn || item.disb_amt || 0),
-								branch_code: selectedBrnCode,
-								branch_name: selectedBrnName,
-								pacs_name: "Direct CCB",
-							}))
-							resultsList = [...resultsList, ...formattedRecov]
-						}
-					} catch (e) {
-						console.warn("CCB recov fetch warning:", e)
-					}
-				} else if (searchMode === "SHG" && disburseTo === "SOCIETY") {
-					// SHG -> Society Recovery
-					try {
-						const socRecovRes = await axios.post(
-							`${url_bdccb}/recov/fetch_society_recov_dtls`,
-							{
-								tenant_id: userDetails?.tenant_id || 1,
-								branch_id: selectedBrnCode,
-								from_dt: fromDate,
-								to_dt: toDate,
-								approval_status: "A",
-							},
-							{
-								headers: {
-									Authorization: `${tokenValue?.token}`,
-									"Content-Type": "application/json",
-								},
-							}
-						)
-						if (socRecovRes?.data?.success && Array.isArray(socRecovRes?.data?.data)) {
-							const formattedSoc = socRecovRes.data.data.map((item, idx) => ({
-								id: `R_SOC_${item.transaction_id || item.trans_id || item.loan_id}_${idx}`,
-								loan_id: item.loan_id,
-								trans_no: item.transaction_id || item.trans_id || item.loan_id,
-								trans_date: item.trans_dt || item.trans_date,
-								trans_type: "R",
-								trans_type_text: "Recovery",
-								group_code: item.group_code || "N/A",
 								group_name: item.group_name || selectedBrnName,
 								member_name: item.member_name || "N/A",
 								account_no: item.loan_acc_no || item.acc_no || item.loan_id || "N/A",
 								period: item.period || 0,
 								curr_roi: item.curr_roi || 0,
-								debit_amt: 0,
-								credit_amt: Number(item.credit_amount || item.paid_amt || item.cr_amt || 0),
-								outstanding_amt: Number(item.balance || item.disb_amt || 0),
-								branch_code: selectedBrnCode,
-								branch_name: selectedBrnName,
-								pacs_name: selectedBrnName,
+								penal_roi: item.penal_roi || 0,
+								debit_amt: Number(item.dr_amt || item.debit_amt || 0),
+								credit_amt: Number(item.credit_amount || item.cr_amt || item.paid_amt || 0),
+								current_balance: Number(item.current_balance || item.outstanding_amt || item.curr_prn || 0),
+								outstanding_amt: Number(item.outstanding_amt || item.current_balance || item.curr_prn || item.balance || 0),
+								branch_code: item.branch_id || selectedBrnCode,
+								branch_name: item.branch_name || selectedBrnName,
+								pacs_name: item.branch_shg_name || selectedBrnName,
 							}))
-							resultsList = [...resultsList, ...formattedSoc]
+							resultsList = [...resultsList, ...formattedRecov]
 						}
 					} catch (e) {
-						console.warn("Society recov fetch warning:", e)
+						console.warn("SHG recovery fetch warning:", e)
 					}
 				} else if (searchMode === "SOCIETY") {
 					// Society -> Branch (CCB level)
 					try {
 						const socCcbRecovRes = await axios.post(
-							`${url_bdccb}/recov/fetch_soc_recov_dtls_ccb_level`,
+							`${url_bdccb}/report/get_society_recovery_dtls`,
 							{
-								branch_id: selectedBrnCode || "",
-								pacs_id: selectedBrnCode || "",
 								from_dt: fromDate,
 								to_dt: toDate,
+								branch_id: selectedBrnCode || "",
+								mode: "society",
+								recovery_to: "P",
+								trans_type: "R",
+								trans_typ: "R",
+								tenant_id: String(userDetails?.tenant_id || 1),
 								approval_status: "A",
 							},
 							{
@@ -853,26 +836,35 @@ function LoanTransactionReport() {
 								},
 							}
 						)
-						if (socCcbRecovRes?.data?.success && Array.isArray(socCcbRecovRes?.data?.data)) {
-							const formattedSocCcb = socCcbRecovRes.data.data.map((item, idx) => ({
+						const responseData = Array.isArray(socCcbRecovRes?.data?.data)
+							? socCcbRecovRes.data.data
+							: (Array.isArray(socCcbRecovRes?.data?.msg) ? socCcbRecovRes.data.msg : [])
+						if ((socCcbRecovRes?.data?.success || socCcbRecovRes?.data?.suc === 1) && responseData.length > 0) {
+							const formattedSocCcb = responseData.map((item, idx) => ({
 								id: `SR_${item.trans_id || item.transaction_id || item.loan_id}_${idx}`,
 								loan_id: item.loan_id,
+								ccb_loan_id: item.ccb_loan_id || item.loan_id || "N/A",
 								trans_no: item.trans_id || item.transaction_id || item.loan_id,
-								trans_date: item.trans_dt || item.payment_dt || item.trans_date,
-								trans_type: "R",
+								trans_date: item.trans_dt || item.trans_date || item.payment_dt,
+								trans_type: item.trans_type || "R",
 								trans_type_text: "Recovery",
+								branch_shg_id: item.branch_shg_id,
+								branch_shg_name: item.branch_shg_name || item.pacs_name || selectedBrnName,
+								branch_shg_name_with_id: item.branch_shg_name_with_id || (item.branch_shg_name ? `${item.branch_shg_name} (${item.branch_shg_id})` : selectedBrnName),
 								group_code: item.group_code || "N/A",
 								group_name: item.group_name || selectedBrnName,
 								member_name: item.member_name || "N/A",
-								account_no: item.loan_acc_no || item.acc_no || item.loan_id || "N/A",
+								account_no: item.loan_acc_no || item.loan_ac_no || item.acc_no || item.loan_id || "N/A",
 								period: item.period || 0,
 								curr_roi: item.curr_roi || 0,
-								debit_amt: 0,
-								credit_amt: Number(item.credit_amount || item.paid_amt || item.cr_amt || 0),
-								outstanding_amt: Number(item.balance || item.disb_amt || 0),
-								branch_code: selectedBrnCode,
-								branch_name: selectedBrnName,
-								pacs_name: selectedBrnName,
+								penal_roi: item.penal_roi || 0,
+								debit_amt: Number(item.dr_amt || item.debit_amt || 0),
+								credit_amt: Number(item.credit_amount || item.cr_amt || item.paid_amt || 0),
+								current_balance: Number(item.current_balance || item.outstanding_amt || item.curr_prn || 0),
+								outstanding_amt: Number(item.outstanding_amt || item.current_balance || item.curr_prn || item.balance || 0),
+								branch_code: item.branch_id || selectedBrnCode,
+								branch_name: item.branch_name || selectedBrnName,
+								pacs_name: item.branch_shg_name || item.pacs_name || selectedBrnName,
 							}))
 							resultsList = [...resultsList, ...formattedSocCcb]
 						}
@@ -1078,7 +1070,8 @@ function LoanTransactionReport() {
 		// Metadata Subtitle Row
 		worksheet.mergeCells("A2:I2")
 		const metaCell = worksheet.getCell("A2")
-		const locationLabel = (searchMode === "SOCIETY" || searchMode === "SHG")
+		const isSocietyTarget = searchMode === "SOCIETY" || (searchMode === "SHG" && disburseTo === "SOCIETY")
+		const locationLabel = isSocietyTarget
 			? `Society: ${metadataDtls?.pacs_name || "N/A"}`
 			: `Branch: ${metadataDtls?.branch_name || "N/A"}`
 		metaCell.value = `Mode: ${searchMode}   |   ${locationLabel}   |   From: ${moment(fromDate).format("DD/MM/YYYY")} To: ${moment(toDate).format("DD/MM/YYYY")}   |   Total Txns: ${filteredData.length}`
@@ -1116,15 +1109,15 @@ function LoanTransactionReport() {
 				"Sl. No.",
 				"Trans No.",
 				"Transaction Date",
-				"Branch / Society Name",
+				...(showRecoverySocietyCol ? ["Society Name"] : []),
 				"CCB Loan ID",
-				"Loan ID",
 				"Type",
 				"Group Code",
 				"Group Name",
 				...(searchMode === "SHG_MEMBER" ? ["Member Name"] : []),
 				"Loan A/C No.",
 				"Credit (Recovery ₹)",
+				"Current Balance (₹)",
 			]
 		}
 
@@ -1172,17 +1165,16 @@ function LoanTransactionReport() {
 					Number(item?.current_balance !== undefined ? item.current_balance : (item?.outstanding_amt || 0)),
 				]
 			} else {
-				const branchSocName = item?.branch_name || item?.branch_shg_name
-					? `${item?.branch_name || item?.branch_shg_name}${item?.branch_code || item?.branch_shg_id ? ` (${item?.branch_code || item?.branch_shg_id})` : ""}`
-					: "N/A"
+				const branchSocName = item?.branch_shg_name_with_id || (item?.branch_shg_name
+					? `${item.branch_shg_name} (${item.branch_shg_id})`
+					: "N/A")
 
 				rowData = [
 					index + 1,
 					String(item?.trans_no || "N/A"),
 					item?.trans_date ? moment(item.trans_date).format("DD/MM/YYYY") : "N/A",
-					branchSocName,
+					...(showRecoverySocietyCol ? [branchSocName] : []),
 					String(item?.ccb_loan_id || "N/A"),
-					String(item?.loan_id || "N/A"),
 					item?.trans_type_text || item?.trans_type || "Recovery",
 					String(item?.group_code || "N/A"),
 					String(item?.group_name || "N/A"),
@@ -1193,6 +1185,7 @@ function LoanTransactionReport() {
 					] : []),
 					String(item?.account_no || "N/A"),
 					Number(item?.credit_amt || 0),
+					Number(item?.current_balance !== undefined ? item.current_balance : (item?.outstanding_amt || 0)),
 				]
 			}
 			const addedRow = worksheet.addRow(rowData)
@@ -1205,6 +1198,7 @@ function LoanTransactionReport() {
 				addedRow.getCell(headers.length - 1).numFmt = "₹#,##0.00"
 				addedRow.getCell(headers.length).numFmt = "₹#,##0.00"
 			} else {
+				addedRow.getCell(headers.length - 1).numFmt = "₹#,##0.00"
 				addedRow.getCell(headers.length).numFmt = "₹#,##0.00"
 			}
 		})
@@ -1218,7 +1212,8 @@ function LoanTransactionReport() {
 			totalRowArr[headers.length - 2] = Number(stats.totalDebit || 0)
 			totalRowArr[headers.length - 1] = Number(stats.totalOutstanding || 0)
 		} else {
-			totalRowArr[headers.length - 1] = Number(stats.totalCredit || 0)
+			totalRowArr[headers.length - 2] = Number(stats.totalCredit || 0)
+			totalRowArr[headers.length - 1] = Number(stats.totalOutstanding || 0)
 		}
 		const totalRow = worksheet.addRow(totalRowArr)
 		totalRow.font = { name: "Calibri", size: 11, bold: true }
@@ -1228,6 +1223,7 @@ function LoanTransactionReport() {
 			totalRow.getCell(headers.length - 1).numFmt = "₹#,##0.00"
 			totalRow.getCell(headers.length).numFmt = "₹#,##0.00"
 		} else {
+			totalRow.getCell(headers.length - 1).numFmt = "₹#,##0.00"
 			totalRow.getCell(headers.length).numFmt = "₹#,##0.00"
 		}
 
@@ -1278,15 +1274,15 @@ function LoanTransactionReport() {
 				<td style="text-align: center;">${idx + 1}</td>
 				<td style="text-align: center; font-family: monospace; font-weight: bold;">${item?.trans_no || "N/A"}</td>
 				<td style="text-align: center; font-family: monospace;">${item?.trans_date ? moment(item.trans_date).format("DD/MM/YYYY") : "N/A"}</td>
-				<td>${item?.branch_name || item?.branch_shg_name || "N/A"}${item?.branch_code || item?.branch_shg_id ? ` (${item?.branch_code || item?.branch_shg_id})` : ""}</td>
+				${showRecoverySocietyCol ? `<td>${item?.branch_shg_name_with_id || (item?.branch_shg_name ? `${item.branch_shg_name} (${item.branch_shg_id})` : "N/A")}</td>` : ""}
 				<td style="text-align: center; font-family: monospace; font-weight: bold;">${item?.ccb_loan_id || "N/A"}</td>
-				<td style="text-align: center; font-family: monospace;">${item?.loan_id || "N/A"}</td>
 				<td style="text-align: center; font-weight: bold; color: ${item?.trans_type === "D" ? "#047857" : "#b91c1c"};">${item?.trans_type_text || item?.trans_type || "Recovery"}</td>
 				<td style="font-family: monospace;">${item?.group_code || "N/A"}</td>
 				<td style="font-weight: 600;">${item?.group_name || "N/A"}</td>
 				${searchMode === "SHG_MEMBER" ? `<td>${item?.member_name && item?.member_name !== "N/A" ? `${item.member_name}${item?.member_code && item?.member_code !== "N/A" ? ` (${item.member_code})` : ""}` : "-"}</td>` : ""}
 				<td style="text-align: center; font-family: monospace;">${item?.account_no || "N/A"}</td>
 				<td style="text-align: right; font-family: monospace; font-weight: bold; color: #b91c1c;">₹${Number(item?.credit_amt || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+				<td style="text-align: right; font-family: monospace; font-weight: bold; color: #0f766e;">₹${Number(item?.current_balance !== undefined ? item.current_balance : (item?.outstanding_amt || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
 			</tr>
 		`
 			)
@@ -1320,7 +1316,7 @@ function LoanTransactionReport() {
 				<div class="meta-box">
 					<span><strong>Network:</strong> ${searchMode}</span>
 					${isCcbToSociety ? `<span><strong>Disbursement Mode:</strong> ${disbursementModeLabel}</span>` : `<span><strong>Recovery Mode:</strong> ${recoveryModeLabel}</span>`}
-					${(searchMode === "SOCIETY" || searchMode === "SHG") ? `<span><strong>Society:</strong> ${metadataDtls?.pacs_name || "N/A"}</span>` : `<span><strong>Branch:</strong> ${metadataDtls?.branch_name || "N/A"}</span>`}
+					${(searchMode === "SOCIETY" || (searchMode === "SHG" && disburseTo === "SOCIETY")) ? `<span><strong>Society:</strong> ${metadataDtls?.pacs_name || "N/A"}</span>` : `<span><strong>Branch:</strong> ${metadataDtls?.branch_name || "N/A"}</span>`}
 					<span><strong>From:</strong> ${moment(fromDate).format("DD/MM/YYYY")} <strong>To:</strong> ${moment(toDate).format("DD/MM/YYYY")}</span>
 					<span><strong>Total Records:</strong> ${filteredData.length}</span>
 					<span><strong>Generated On:</strong> ${moment().format("DD/MM/YYYY HH:mm")}</span>
@@ -1353,15 +1349,15 @@ function LoanTransactionReport() {
 							<th style="text-align: center;">Sl. No.</th>
 							<th style="text-align: center;">Trans No.</th>
 							<th style="text-align: center;">Transaction Date</th>
-							<th>Branch / Society</th>
+							${showRecoverySocietyCol ? `<th>Society Name</th>` : ""}
 							<th style="text-align: center;">CCB Loan ID</th>
-							<th style="text-align: center;">Loan ID</th>
 							<th style="text-align: center;">Type</th>
 							<th>Group Code</th>
 							<th>Group Name</th>
 							${searchMode === "SHG_MEMBER" ? `<th>Member Name</th>` : ""}
 							<th style="text-align: center;">Loan A/C No.</th>
 							<th style="text-align: right;">Credit (Recovery ₹)</th>
+							<th style="text-align: right;">Current Balance (₹)</th>
 						</tr>
 						`}
 					</thead>
@@ -1378,8 +1374,9 @@ function LoanTransactionReport() {
 						</tr>
 						` : `
 						<tr class="total-row">
-							<td colspan="${searchMode === "SHG_MEMBER" ? 11 : 10}" style="text-align: right; text-transform: uppercase;">Total Recovered Amount:</td>
+							<td colspan="${8 + (showRecoverySocietyCol ? 1 : 0) + (searchMode === "SHG_MEMBER" ? 1 : 0)}" style="text-align: right; text-transform: uppercase;">Total Recovered Amount:</td>
 							<td style="text-align: right; color: #b91c1c; font-family: monospace; font-weight: bold;">₹${stats.totalCredit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+							<td style="text-align: right; color: #0f766e; font-family: monospace; font-weight: bold;">₹${(stats.totalOutstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
 						</tr>
 						`}
 					</tbody>
@@ -1699,9 +1696,10 @@ function LoanTransactionReport() {
 												<th className="px-4 py-3 text-center">#</th>
 												<th className="px-4 py-3 text-center">Trans No.</th>
 												<th className="px-4 py-3 text-center">Transaction Date</th>
-												<th className="px-4 py-3">Branch / Society</th>
+												{showRecoverySocietyCol && (
+													<th className="px-4 py-3">Society Name</th>
+												)}
 												<th className="px-4 py-3 text-center">CCB Loan ID</th>
-												<th className="px-4 py-3 text-center">Loan ID</th>
 												<th className="px-4 py-3 text-center">Type</th>
 												<th className="px-4 py-3">Group Code</th>
 												<th className="px-4 py-3">Group Name</th>
@@ -1710,6 +1708,7 @@ function LoanTransactionReport() {
 												)}
 												<th className="px-4 py-3 text-center">Loan A/C No.</th>
 												<th className="px-4 py-3 text-right">Credit (₹)</th>
+												<th className="px-4 py-3 text-right">Current Balance (₹)</th>
 											</tr>
 										)}
 									</thead>
@@ -1811,15 +1810,13 @@ function LoanTransactionReport() {
 														</>
 													) : (
 														<>
-															<td className="px-4 py-3 min-w-[180px] text-slate-800 dark:text-slate-100 font-medium">
-																{item?.branch_name || item?.branch_shg_name || "N/A"}
-																{(item?.branch_code || item?.branch_shg_id) ? ` (${item?.branch_code || item?.branch_shg_id})` : ""}
-															</td>
+															{showRecoverySocietyCol && (
+																<td className="px-4 py-3 min-w-[180px] text-slate-800 dark:text-slate-100 font-medium">
+																	{item?.branch_shg_name_with_id || (item?.branch_shg_name ? `${item.branch_shg_name} (${item.branch_shg_id})` : "N/A")}
+																</td>
+															)}
 															<td className="px-4 py-3 text-center font-mono font-bold text-teal-700 dark:text-teal-400">
 																{item?.ccb_loan_id || "N/A"}
-															</td>
-															<td className="px-4 py-3 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
-																{item?.loan_id || "N/A"}
 															</td>
 															<td className="px-4 py-3 text-center">
 																<span
@@ -1862,13 +1859,20 @@ function LoanTransactionReport() {
 																	? `₹${Number(item.credit_amt).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
 																	: "-"}
 															</td>
+															<td className="px-4 py-3 text-right font-mono font-bold text-teal-700 dark:text-teal-400 text-sm">
+																{item?.current_balance !== undefined
+																	? `₹${Number(item.current_balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+																	: (item?.outstanding_amt !== undefined
+																		? `₹${Number(item.outstanding_amt).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+																		: "-")}
+															</td>
 														</>
 													)}
 												</tr>
 											))
 										) : (
 											<tr>
-												<td colSpan={isCcbToSociety ? (15 + (showSocietyNameCol ? 1 : 0) + (showCcbLoanIdCol ? 1 : 0) + (showMemberNameCol ? 1 : 0)) : (11 + (searchMode === "SHG_MEMBER" ? 1 : 0))} className="px-4 py-8 text-center text-slate-400 text-sm italic">
+												<td colSpan={isCcbToSociety ? (15 + (showSocietyNameCol ? 1 : 0) + (showCcbLoanIdCol ? 1 : 0) + (showMemberNameCol ? 1 : 0)) : (10 + (showRecoverySocietyCol ? 1 : 0) + (searchMode === "SHG_MEMBER" ? 1 : 0))} className="px-4 py-8 text-center text-slate-400 text-sm italic">
 													No matching records found for the selected criteria.
 												</td>
 											</tr>
