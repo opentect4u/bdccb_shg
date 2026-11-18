@@ -2,6 +2,7 @@ import "./Dashboard.css"
 import React, { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import axios from "axios"
+import HODashboard from "./HODashboard"
 import TDInputTemplateBr from "../../../Components/TDInputTemplateBr"
 import DashboardCard from "../../../Components/Dashboard/DashboardCard"
 import { Alert, Button, Empty, Input, Modal, Select, Spin, Table } from "antd"
@@ -86,7 +87,7 @@ const formatNumber = (num) => new Intl.NumberFormat("en-IN").format(num || 0)
 
 
 
-export default function Dashboard() {
+function BranchDashboard() {
 const userDetails = JSON.parse(localStorage.getItem("user_details")) || {}
 
 const navigate = useNavigate()
@@ -1182,4 +1183,24 @@ const getBranchList = async () => {
 			
 		</div>
 	)
+}
+
+export default function Dashboard() {
+	const userDetails = JSON.parse(localStorage.getItem("user_details")) || {}
+
+	const isHeadOffice =
+		userDetails?.brn_code == 112 ||
+		userDetails?.[0]?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		userDetails?.[0]?.branch_id == 112 ||
+		userDetails?.branch_type === 'H' ||
+		userDetails?.[0]?.branch_type === 'H' ||
+		userDetails?.user_type === 'H' ||
+		userDetails?.[0]?.user_type === 'H'
+
+	if (isHeadOffice) {
+		return <HODashboard />
+	}
+
+	return <BranchDashboard />
 }
