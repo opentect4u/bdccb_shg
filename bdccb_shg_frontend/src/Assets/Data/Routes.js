@@ -42,4 +42,6 @@ export const routePaths = {
 	APPROVE_PERMISSION: "/homebm/approvepermission/",
 	SHG_SAVINGS_BALANCE_REPORT: "/homebm/shg_savings_balance_report/",
 	LOAN_TRANSACTION_REPORT: "/homebm/loan_transaction_report/",
+	GROUP_INFO: "/homebm/groupinfo/",
+	GROUP_DETAILS: "/homebm/groupdetails/",
 }

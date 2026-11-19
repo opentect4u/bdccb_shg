@@ -148,6 +148,12 @@ function Sidebar({ mode = 0 }) {
 								children: [],
 							},
 							{
+								key: "sub9",
+								icon: <DeploymentUnitOutlined />,
+								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+								children: [],
+							},
+							{
 								key: "sub2",
 								icon: <ContainerOutlined />,
 								label: "GRT",
@@ -590,6 +596,12 @@ function Sidebar({ mode = 0 }) {
 								icon: <LineChartOutlined />,
 								label: <Link to={"/homebm/"}>Dashboard</Link>,
 								// hidden: false,
+								children: [],
+							},
+							{
+								key: "sub9",
+								icon: <DeploymentUnitOutlined />,
+								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
 								children: [],
 							},
 							{

@@ -23,6 +23,8 @@ import {
 	SendOutlined,
 	LoadingOutlined,
 	WalletOutlined,
+	TeamOutlined,
+	InfoCircleOutlined,
 } from "@ant-design/icons"
 import { Menu, Spin } from "antd"
 import { Link } from "react-router-dom"
@@ -33,6 +35,7 @@ import DialogBox from "./DialogBox"
 import { routePaths } from "../Assets/Data/Routes"
 import { url, url_bdccb } from "../Address/BaseUrl"
 import axios from "axios"
+import { getLocalStoreTokenDts } from "./getLocalforageTokenDts"
 
 
 function MenusBr({ theme, data, data_ApprovPending }) {
@@ -116,27 +119,89 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 
 	const loadMenu = async () => {
 		try {
-			let uTypeChar = Array.isArray(userDetails) ? userDetails[0]?.user_type : userDetails?.user_type;
-			const loginAs = localStorage.getItem("login_as_branch_society");
-			if (uTypeChar === 'H' && loginAs) {
-				uTypeChar = loginAs;
-			}
+			const rawUser = JSON.parse(localStorage.getItem("user_details")) || {};
+			const uObj = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {};
+			const isHO =
+				uObj.user_type === 'H' ||
+				uObj.branch_type === 'H' ||
+				uObj.brn_code == 112 ||
+				uObj.branch_id == 112 ||
+				String(uObj.branch_name || '').toLowerCase().includes('head office') ||
+				String(uObj.brn_name || '').toLowerCase().includes('head office') ||
+				rawUser.user_type === 'H' ||
+				rawUser?.[0]?.user_type === 'H';
+
 			let uType = 0;
-			if (uTypeChar === 'S') uType = 1;
-			else if (uTypeChar === 'H') uType = 2;
-			else if (uTypeChar === 'B') uType = 3;
-			else if (uTypeChar === 'P') uType = 4;
-			else uType = userDetails?.id || (Array.isArray(userDetails) ? userDetails[0]?.id : 0); // Fallback
-
-			const res = await axios.post(url_bdccb + "/dashboard/get_menu", {
-				user_type_id: uType
-			});
-
-			if (res.data.suc === 1) {
-				console.log("Menu API Response:", res.data.msg);
-				setMenuItems(convertMenu(res.data.msg));
+			if (isHO) {
+				uType = 2;
+			} else if (uObj.user_type === 'S') {
+				uType = 1;
+			} else if (uObj.user_type === 'B') {
+				uType = 3;
+			} else if (uObj.user_type === 'P') {
+				uType = 4;
 			} else {
-				console.log("Menu API Failed:", res.data);
+				uType = uObj.id || 0;
+			}
+
+			const tokenValue = await getLocalStoreTokenDts(navigate);
+			const res = await axios.post(
+				url_bdccb + "/dashboard/get_menu",
+				{ user_type_id: uType },
+				{
+					headers: {
+						Authorization: `${tokenValue?.token}`,
+						"Content-Type": "application/json",
+					},
+				}
+			).catch(() => null);
+
+			let converted = [];
+			if (res?.data?.suc === 1 && Array.isArray(res?.data?.msg) && res.data.msg.length > 0) {
+				console.log("Menu API Response:", res.data.msg);
+				converted = convertMenu(res.data.msg);
+			} else {
+				converted = isHO ? items_bdccb_Supper_User : items_all_user1;
+			}
+
+			// Ensure Group Info is ALWAYS placed directly beside Dashboard for Head Office
+			if (isHO && Array.isArray(converted) && converted.length > 0) {
+				// 1. Remove Group Info from wherever the DB ordered it
+				const existingIdx = converted.findIndex(
+					(m) =>
+						m.key === 'sub9' || String(m.path || '').includes('groupinfo') ||
+						String(m.key || '').includes('group_info') ||
+						(typeof m.label === 'string' && m.label.toLowerCase().includes('group info'))
+				);
+
+				let grpInfoItem = null;
+				if (existingIdx !== -1) {
+					grpInfoItem = converted.splice(existingIdx, 1)[0];
+				}
+
+				// If not returned by DB, build the item
+				if (!grpInfoItem) {
+					grpInfoItem = {
+						key: "sub9",
+						icon: <DeploymentUnitOutlined />,
+						label: <Link to="/homebm/groupinfo">Group Info</Link>,
+						path: '/homebm/groupinfo',
+					};
+				}
+
+				// 2. Insert it directly after Dashboard
+				const dashIdx = converted.findIndex(
+					(m) => m.path === '/homebm/' || m.key === 'sub1'
+				);
+				if (dashIdx !== -1) {
+					converted.splice(dashIdx + 1, 0, grpInfoItem);
+				} else {
+					converted.unshift(grpInfoItem);
+				}
+			}
+
+			if (converted && converted.length > 0) {
+				setMenuItems(converted);
 			}
 		} catch (err) {
 			console.error("Menu API Error:", err);
@@ -146,7 +211,9 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 	const convertMenu = (menus) => {
 		return menus.map(item => ({
 			key: String(item.key),
-			icon: item.icon && menuIcons[item.icon.trim()] ? menuIcons[item.icon.trim()] : undefined,
+			icon: item.icon && menuIcons[item.icon.trim()]
+				? menuIcons[item.icon.trim()]
+				: (item.key === 'sub9' ? <DeploymentUnitOutlined /> : undefined),
 			label: item.link
 				? <Link to={item.link}>{item.label}</Link>
 				: item.label,
@@ -175,6 +242,8 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 		EyeOutlined: <EyeOutlined />,
 		SubnodeOutlined: <SubnodeOutlined />,
 		BarChartOutlined: <BarChartOutlined />,
+		TeamOutlined: <TeamOutlined />,
+		InfoCircleOutlined: <InfoCircleOutlined />,
 	};
 
 	useEffect(() => {
@@ -836,6 +905,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub1",
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
+		},
+		{
+			key: "sub9",
+			icon: <DeploymentUnitOutlined />,
+			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+			children: [],
 		},
 		{
 			key: "sub2",
@@ -1935,6 +2010,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
 		},
+		{
+			key: "sub9",
+			icon: <DeploymentUnitOutlined />,
+			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+			children: [],
+		},
 		// {
 		//  key: "sub5",
 		//  icon: <DatabaseOutlined />,
@@ -2430,11 +2511,17 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 	];
 
 
-	const items_bdccb_Supper_User = [
+	var items_bdccb_Supper_User = [
 		{
 			key: "sub1",
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
+		},
+		{
+			key: "sub9",
+			icon: <DeploymentUnitOutlined />,
+			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+			children: [],
 		},
 		// {
 		// 	key: "sub6",
@@ -2635,6 +2722,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub1",
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
+		},
+		{
+			key: "sub9",
+			icon: <DeploymentUnitOutlined />,
+			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+			children: [],
 		},
 		{
 			key: "sub7",
@@ -2909,6 +3002,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
 		},
 		{
+			key: "sub9",
+			icon: <DeploymentUnitOutlined />,
+			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+			children: [],
+		},
+		{
 			key: "sub3",
 			icon: <DeploymentUnitOutlined />,
 			label: "Groups",
@@ -3088,7 +3187,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 
 	return (
 
-		<div className="bg-slate-600 flex justify-between align-middle gap-4 rounded-full">
+		<div className="bg-slate-600 flex justify-between items-center gap-4 rounded-full w-full max-w-[1350px] px-2 shadow-md">
 			{/* w-12 h-12 p-2 -mr-6 rounded-lg overflow-hidden */}
 			{/* <img src={IMG} className="w-12 h-12 p-2 -mr-6 rounded-lg overflow-hidden" alt="Flowbite Logo" /> */}
 			<img src={IMG} className="w-12 h-12 -mr-6" alt="Flowbite Logo" style={{
@@ -3104,33 +3203,15 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			onClick={onClick}
 			items={items_user_type_4_100}
 			className="rounded-full items-center justify-center"
-			style={{
-			width: 1000,
-			backgroundColor: "transparent",
-			border: "none",
-			}}
+			style={{ flex: 1, minWidth: 0, backgroundColor: "transparent", border: "none" }}
 			/> */}
 
 			<Menu
 				selectedKeys={[current]}
-				// items={
-				// 	userDetails[0]?.user_type === 'B'
-				// 		? items_bdccb
-				// 		: userDetails[0]?.user_type === 'P'
-				// 		? items_bdccb_PACS
-				// 		: userDetails[0]?.user_type === 'H'
-				// 		? userDetails[0]?.branch_type === 'P'
-				// 		? items_bdccb_PACS
-				// 		: items_bdccb
-				// 		: items_bdccb
-				// 	}
 				items={menuItems}
 				mode="horizontal"
-				style={{
-					width: 1000,
-					backgroundColor: "transparent",
-					border: "none",
-				}}
+				disabledOverflow={true}
+				style={{ flex: 1, minWidth: 0, backgroundColor: "transparent", border: "none" }}
 				className="rounded-full items-center justify-center"
 			/>
 

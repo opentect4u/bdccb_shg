@@ -62,6 +62,7 @@ app.use('/v1/memberreport', require('./router/memberreport/indexMemberReportRout
 app.use('/v1/loanclose', require('./router/loanclose/indexLoanCloseRouter'));
 app.use('/v1/interestcharge', require('./router/interestcharge/indexInterestChargeRouter'));
 app.use('/v1/societyinterestcharge', require('./router/societyinterestcharge/indexSocietyInterestChargeRouter'));
+app.use('/v1/groupinfo', require('./router/group_info/groupInfoRouter').groupInfoRouter);
 
 
 // app.post("/v1/login", async (req, res) => {

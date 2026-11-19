@@ -1,3 +1,16 @@
+.ant-menu-horizontal {
+	border-bottom: none !important;
+	display: flex !important;
+	flex-wrap: nowrap !important;
+	line-height: 44px !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item,
+.ant-menu-horizontal > .ant-menu-submenu {
+	white-space: nowrap !important;
+	padding-inline: 13px !important;
+}
+
 .ant-menu-item-selected::after,
 .ant-menu-item:hover::after,
 .ant-menu-submenu::after {

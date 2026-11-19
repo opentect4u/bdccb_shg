@@ -9,7 +9,7 @@ menuRouter.post("/get_menu", async (req, res) => {
       'a.user_type_id, a.menu_id, b.menu_type, b.sl_no, b.key_id as "key", b.icon_name icon, b.link, b.label_name label, b.has_child, b.parent_id',
     table_name = "bdccb.td_user_menu a, bdccb.md_menu b",
     whr = `a.menu_id=b.id AND b.menu_type = 'P' AND a.user_type_id = ${user_type_id} AND a.active_flag = 'Y' AND b.active_flag = 'Y'`,
-    order = "b.id";
+    order = "COALESCE(b.sl_no, b.id) ASC, b.id ASC";
   var parent_menu_list = await db_Select(select, table_name, whr, order);
 
   if (parent_menu_list.suc > 0 && parent_menu_list.msg.length > 0) {
