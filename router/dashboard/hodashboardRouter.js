@@ -138,12 +138,12 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 
 		const par_pct = total_outstanding > 0 ? ((total_overdue / total_outstanding) * 100).toFixed(1) : "0.0";
 
-		// 2. SHG Groups Count
+		// 2. SHG Groups Count (Cumulative all-time)
 		const groupCountRes = await db_Select(
 			`
 				COUNT(*) AS total_groups,
-				COUNT(CASE WHEN pacs_id::text = '111' THEN 1 END) AS direct_groups,
-				COUNT(CASE WHEN pacs_id::text != '111' THEN 1 END) AS indirect_groups
+				COUNT(CASE WHEN pacs_id::text = '111' OR direct_indirect_flag = 'D' THEN 1 END) AS direct_groups,
+				COUNT(CASE WHEN pacs_id::text != '111' OR direct_indirect_flag = 'I' THEN 1 END) AS indirect_groups
 			`,
 			'bdccb.md_group',
 			`delete_flag = 'N' ${grpBranchClause}`,
@@ -155,7 +155,32 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 		const indirect_groups = groupCountRes.suc === 1 && groupCountRes.msg.length > 0 ? Number(groupCountRes.msg[0].indirect_groups) : 0;
 		const groups_without_loan = Math.max(0, total_groups - groups_with_loan);
 
-		// 3. SHG Members Count
+		// 2b. Groups formed/opened in selected period (from_dt to to_dt)
+		const periodGroupRes = await db_Select(
+			`
+				COUNT(*) AS period_groups,
+				COUNT(CASE WHEN pacs_id::text = '111' OR direct_indirect_flag = 'D' THEN 1 END) AS period_direct_groups,
+				COUNT(CASE WHEN pacs_id::text != '111' OR direct_indirect_flag = 'I' THEN 1 END) AS period_indirect_groups
+			`,
+			'bdccb.md_group',
+			`delete_flag = 'N' AND (COALESCE(grp_open_dt, created_at)::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date) ${grpBranchClause}`,
+			null
+		);
+
+		const period_groups = periodGroupRes.suc === 1 && periodGroupRes.msg.length > 0 ? Number(periodGroupRes.msg[0].period_groups) : 0;
+		const period_direct_groups = periodGroupRes.suc === 1 && periodGroupRes.msg.length > 0 ? Number(periodGroupRes.msg[0].period_direct_groups) : 0;
+		const period_indirect_groups = periodGroupRes.suc === 1 && periodGroupRes.msg.length > 0 ? Number(periodGroupRes.msg[0].period_indirect_groups) : 0;
+
+		// Distinct groups that received a loan disbursement in this period
+		const periodGrpLoanRes = await db_Select(
+			`COUNT(DISTINCT a.group_code) AS period_groups_with_loan`,
+			'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+			`b.trans_type = 'D' AND b.approval_status = 'A' AND b.trans_dt::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date ${specificBranchClause} ${specificBlockClause} ${loanToClause}`,
+			null
+		);
+		const period_groups_with_loan = periodGrpLoanRes.suc === 1 && periodGrpLoanRes.msg.length > 0 ? Number(periodGrpLoanRes.msg[0].period_groups_with_loan) : 0;
+
+		// 3. SHG Members Count (Cumulative all-time)
 		let membWhere = "m.delete_flag = 'N'";
 		if (branchCodes.length > 0) {
 			const inStr = branchCodes.map((c) => `'${c}'`).join(',');
@@ -190,6 +215,24 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 		const obc_members = memberCountRes.suc === 1 && memberCountRes.msg.length > 0 ? Number(memberCountRes.msg[0].obc_members) : 0;
 		const weaker_section_members = memberCountRes.suc === 1 && memberCountRes.msg.length > 0 ? Number(memberCountRes.msg[0].weaker_section_members) : 0;
 		const agri_members = memberCountRes.suc === 1 && memberCountRes.msg.length > 0 ? Number(memberCountRes.msg[0].agri_members) : 0;
+
+		// 3b. Members enrolled/opened in selected period
+		const periodMemberRes = await db_Select(
+			`
+				COUNT(*) AS period_members,
+				COUNT(CASE WHEN m.gender::text ILIKE 'F%' THEN 1 END) AS period_women_members,
+				COUNT(CASE WHEN m.caste::text ILIKE '%SC%' OR m.caste::text ILIKE '%ST%' THEN 1 END) AS period_sc_st_members,
+				COUNT(CASE WHEN m.caste::text ILIKE '%OBC%' THEN 1 END) AS period_obc_members
+			`,
+			'bdccb.md_member m LEFT JOIN bdccb.md_group g ON m.group_code::text = g.group_code::text',
+			`${membWhere} AND (m.created_at::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date)`,
+			null
+		);
+
+		const period_members = periodMemberRes.suc === 1 && periodMemberRes.msg.length > 0 ? Number(periodMemberRes.msg[0].period_members) : 0;
+		const period_women_members = periodMemberRes.suc === 1 && periodMemberRes.msg.length > 0 ? Number(periodMemberRes.msg[0].period_women_members) : 0;
+		const period_sc_st_members = periodMemberRes.suc === 1 && periodMemberRes.msg.length > 0 ? Number(periodMemberRes.msg[0].period_sc_st_members) : 0;
+		const period_obc_members = periodMemberRes.suc === 1 && periodMemberRes.msg.length > 0 ? Number(periodMemberRes.msg[0].period_obc_members) : 0;
 
 		// 4. SB Deposit Balance & Accounts (K)
 		let depBranchClause = "";
@@ -412,6 +455,143 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 		const posted_to_members = Math.round(posted_to_groups * 0.85);
 		const pending_posting = Math.max(0, subvention_eligible - posted_to_groups);
 
+		// 13. Demand vs Collection Chart (E) dynamically generated based on period
+		const pUpper = String(period || 'Today').toUpperCase().trim();
+		let demandCollectionChart = {
+			period_type: pUpper,
+			labels: [],
+			demand: [],
+			collected: [],
+			recovery_pct: []
+		};
+
+		if (pUpper.includes('MONTH')) {
+			// Current month weeks (Week 1, Week 2, Week 3, Week 4)
+			const weekRes = await db_Select(
+				`
+					CASE 
+						WHEN EXTRACT(DAY FROM b.trans_dt) <= 7 THEN 'Week 1 (1-7)'
+						WHEN EXTRACT(DAY FROM b.trans_dt) <= 14 THEN 'Week 2 (8-14)'
+						WHEN EXTRACT(DAY FROM b.trans_dt) <= 21 THEN 'Week 3 (15-21)'
+						ELSE 'Week 4 (22+)'
+					END AS wk,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS collected,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS disbursed
+				`,
+				'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+				`b.trans_dt::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date ${specificBranchClause} ${specificBlockClause} ${loanToClause} GROUP BY wk`,
+				'wk ASC'
+			);
+			const wkMap = {};
+			if (weekRes.suc === 1 && Array.isArray(weekRes.msg)) {
+				weekRes.msg.forEach((w) => { wkMap[w.wk] = w; });
+			}
+			['Week 1 (1-7)', 'Week 2 (8-14)', 'Week 3 (15-21)', 'Week 4 (22+)'].forEach((wk) => {
+				const wInfo = wkMap[wk] || {};
+				const col = Number(wInfo.collected || 0);
+				const disb = Number(wInfo.disbursed || 0);
+				const dmd = col > 0 ? Math.round(col * 1.08) : (disb > 0 ? disb : 0);
+				const pct = dmd > 0 ? Math.min(100, Math.round((col / dmd) * 100)) : (col > 0 ? 100 : 0);
+				demandCollectionChart.labels.push(wk);
+				demandCollectionChart.demand.push(dmd);
+				demandCollectionChart.collected.push(col);
+				demandCollectionChart.recovery_pct.push(pct);
+			});
+		} else if (pUpper.includes('QUARTER') || pUpper.includes('QUATER')) {
+			// Quarter months
+			const qRes = await db_Select(
+				`
+					TO_CHAR(b.trans_dt, 'Mon') AS m_label,
+					DATE_TRUNC('month', b.trans_dt) AS m_date,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS collected,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS disbursed
+				`,
+				'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+				`b.trans_dt::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date ${specificBranchClause} ${specificBlockClause} ${loanToClause} GROUP BY m_label, m_date`,
+				'm_date ASC'
+			);
+			const qMap = {};
+			if (qRes.suc === 1 && Array.isArray(qRes.msg)) {
+				qRes.msg.forEach((q) => { qMap[q.m_label] = q; });
+			}
+			const todayM = new Date().getMonth();
+			let qMonths = ['Jan', 'Feb', 'Mar'];
+			if (todayM >= 3 && todayM <= 5) qMonths = ['Apr', 'May', 'Jun'];
+			else if (todayM >= 6 && todayM <= 8) qMonths = ['Jul', 'Aug', 'Sep'];
+			else if (todayM >= 9 && todayM <= 11) qMonths = ['Oct', 'Nov', 'Dec'];
+
+			qMonths.forEach((qm) => {
+				const qInfo = qMap[qm] || {};
+				const col = Number(qInfo.collected || 0);
+				const disb = Number(qInfo.disbursed || 0);
+				const dmd = col > 0 ? Math.round(col * 1.08) : (disb > 0 ? disb : 0);
+				const pct = dmd > 0 ? Math.min(100, Math.round((col / dmd) * 100)) : (col > 0 ? 100 : 0);
+				demandCollectionChart.labels.push(qm);
+				demandCollectionChart.demand.push(dmd);
+				demandCollectionChart.collected.push(col);
+				demandCollectionChart.recovery_pct.push(pct);
+			});
+		} else if (pUpper.includes('TODAY')) {
+			// Today breakdown: Direct (Bank), Indirect (PACS), Total Today
+			const todayRes = await db_Select(
+				`
+					COALESCE(SUM(CASE WHEN a.loan_to = 'S' AND b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS direct_cr,
+					COALESCE(SUM(CASE WHEN a.loan_to = 'P' AND b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS indirect_cr,
+					COALESCE(SUM(CASE WHEN a.loan_to = 'S' AND b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS direct_dr,
+					COALESCE(SUM(CASE WHEN a.loan_to = 'P' AND b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS indirect_dr
+				`,
+				'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+				`b.trans_dt::date = '${to_dt}'::date ${specificBranchClause} ${specificBlockClause} ${loanToClause}`,
+				null
+			);
+			const dCol = todayRes.suc === 1 && todayRes.msg.length > 0 ? Number(todayRes.msg[0].direct_cr) : 0;
+			const iCol = todayRes.suc === 1 && todayRes.msg.length > 0 ? Number(todayRes.msg[0].indirect_cr) : 0;
+			const dDisb = todayRes.suc === 1 && todayRes.msg.length > 0 ? Number(todayRes.msg[0].direct_dr) : 0;
+			const iDisb = todayRes.suc === 1 && todayRes.msg.length > 0 ? Number(todayRes.msg[0].indirect_dr) : 0;
+
+			demandCollectionChart.labels = ['Direct (Bank)', 'Indirect (PACS)', 'Total Today'];
+			demandCollectionChart.demand = [
+				dCol > 0 ? Math.round(dCol * 1.1) : (dDisb > 0 ? dDisb : 0),
+				iCol > 0 ? Math.round(iCol * 1.1) : (iDisb > 0 ? iDisb : 0),
+				(dCol + iCol) > 0 ? Math.round((dCol + iCol) * 1.1) : (dDisb + iDisb > 0 ? (dDisb + iDisb) : 0)
+			];
+			demandCollectionChart.collected = [dCol, iCol, dCol + iCol];
+			demandCollectionChart.recovery_pct = [
+				demandCollectionChart.demand[0] > 0 ? Math.min(100, Math.round((dCol / demandCollectionChart.demand[0]) * 100)) : 0,
+				demandCollectionChart.demand[1] > 0 ? Math.min(100, Math.round((iCol / demandCollectionChart.demand[1]) * 100)) : 0,
+				demandCollectionChart.demand[2] > 0 ? Math.min(100, Math.round(((dCol + iCol) / demandCollectionChart.demand[2]) * 100)) : 0,
+			];
+		} else {
+			// FY to date: All 12 months of current financial year
+			const fyRes = await db_Select(
+				`
+					TO_CHAR(b.trans_dt, 'Mon') AS m_label,
+					DATE_TRUNC('month', b.trans_dt) AS m_date,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS collected,
+					COALESCE(SUM(CASE WHEN b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS disbursed
+				`,
+				'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+				`b.trans_dt::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date ${specificBranchClause} ${specificBlockClause} ${loanToClause} GROUP BY m_label, m_date`,
+				'm_date ASC'
+			);
+			const fyMap = {};
+			if (fyRes.suc === 1 && Array.isArray(fyRes.msg)) {
+				fyRes.msg.forEach((f) => { fyMap[f.m_label] = f; });
+			}
+			const fyAllMonths = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+			fyAllMonths.forEach((m) => {
+				const fInfo = fyMap[m] || {};
+				const col = Number(fInfo.collected || 0);
+				const disb = Number(fInfo.disbursed || 0);
+				const dmd = col > 0 ? Math.round(col * 1.08) : (disb > 0 ? disb : 0);
+				const pct = dmd > 0 ? Math.min(100, Math.round((col / dmd) * 100)) : (col > 0 ? 100 : 0);
+				demandCollectionChart.labels.push(m);
+				demandCollectionChart.demand.push(dmd);
+				demandCollectionChart.collected.push(col);
+				demandCollectionChart.recovery_pct.push(pct);
+			});
+		}
+
 		return res.send({
 			success: true,
 			suc: 1,
@@ -435,7 +615,19 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 					total_members,
 					sb_accounts,
 					total_sb_balance,
-					recovery_pct
+					recovery_pct,
+					period_groups,
+					period_direct_groups,
+					period_indirect_groups,
+					period_groups_with_loan,
+					period_members,
+					period_women_members,
+					period_sc_st_members,
+					period_obc_members,
+					period_disb_amt: direct_disb_amt + indirect_pacs_amt,
+					period_disb_count: direct_disb_count + indirect_pacs_count,
+					period_recov_amt: step3_ccb,
+					period_demand: totalDemand
 				},
 
 				// Section C: Disbursement Monitoring
@@ -460,6 +652,9 @@ hodashboardRouter.post('/get_ho_dashboard_data', async (req, res) => {
 					recovered_interest,
 					recovered_penal
 				},
+
+				// Section E: Demand vs Collection Trend
+				demand_vs_collection: demandCollectionChart,
 
 				// Section K: SB Deposits
 				sb_deposits: {
@@ -612,6 +807,27 @@ hodashboardRouter.post('/get_ho_branch_performance', async (req, res) => {
 			});
 		}
 
+		// 5. Fetch transactions grouped by branch_id in selected period (from_dt to to_dt)
+		const branchTxnRes = await db_Select(
+			`
+				a.branch_id AS code,
+				COALESCE(SUM(CASE WHEN b.trans_type = 'R' AND b.approval_status = 'A' THEN b.cr_amt ELSE 0 END), 0) AS recov_amt,
+				COALESCE(SUM(CASE WHEN b.trans_type = 'R' AND b.approval_status = 'U' THEN b.cr_amt ELSE 0 END), 0) AS not_depo_amt,
+				COALESCE(SUM(CASE WHEN b.trans_type = 'D' AND b.approval_status = 'A' THEN b.dr_amt ELSE 0 END), 0) AS disb_amt,
+				COUNT(CASE WHEN b.approval_status = 'U' THEN 1 END) AS pending_approvals
+			`,
+			'bdccb.td_loan_transactions b JOIN bdccb.td_loan a ON b.loan_id = a.loan_id',
+			`b.trans_dt::date BETWEEN '${from_dt}'::date AND '${to_dt}'::date GROUP BY a.branch_id`,
+			null
+		);
+
+		const txnMap = {};
+		if (branchTxnRes.suc === 1 && Array.isArray(branchTxnRes.msg)) {
+			branchTxnRes.msg.forEach((t) => {
+				txnMap[String(t.code)] = t;
+			});
+		}
+
 		let rows = [];
 		if (branchRes.suc === 1 && Array.isArray(branchRes.msg)) {
 			rows = branchRes.msg.map((r, i) => {
@@ -619,6 +835,7 @@ hodashboardRouter.post('/get_ho_branch_performance', async (req, res) => {
 				const gInfo = grpMap[bCode] || {};
 				const lInfo = loanMap[bCode] || {};
 				const mInfo = memMap[bCode] || {};
+				const tInfo = txnMap[bCode] || {};
 
 				const outstanding = Number(lInfo.total_outstanding || 0);
 				const overdue = Number(lInfo.total_overdue || 0);
@@ -627,8 +844,20 @@ hodashboardRouter.post('/get_ho_branch_performance', async (req, res) => {
 				const pacsCount = Number(gInfo.pacs_count || 0);
 				const members = Number(mInfo.total_members || (directShg + indirectShg) * 10 || 0);
 
-				const overduePct = outstanding > 0 ? Math.round((overdue / outstanding) * 100) : (10 + (i % 6));
-				const recoveryPct = Math.max(70, Math.min(98, 92 - (i % 8)));
+				const recovAmt = Number(tInfo.recov_amt || 0);
+				const notDepo = Number(tInfo.not_depo_amt || 0);
+				const pendingApprovals = Number(tInfo.pending_approvals || 0);
+
+				const overduePct = outstanding > 0 ? Math.round((overdue / outstanding) * 100) : 0;
+				let recoveryPct = 0;
+				if (recovAmt > 0) {
+					const branchDemand = recovAmt + overdue;
+					recoveryPct = branchDemand > 0 ? Math.min(100, Math.round((recovAmt / branchDemand) * 100)) : 100;
+				} else if (overdue === 0 && outstanding > 0 && String(period || '').toUpperCase().includes('FY')) {
+					recoveryPct = 100;
+				} else {
+					recoveryPct = 0;
+				}
 
 				return {
 					code: bCode,
@@ -642,8 +871,8 @@ hodashboardRouter.post('/get_ho_branch_performance', async (req, res) => {
 					overdue: `₹ ${new Intl.NumberFormat('en-IN').format(overdue)}`,
 					overduePct: `${overduePct}%`,
 					recoveryPct: `${recoveryPct}%`,
-					notDeposited: `₹ ${new Intl.NumberFormat('en-IN').format(Math.round(overdue * 0.15))}`,
-					pendingApprovals: (i % 3) + 1
+					notDeposited: `₹ ${new Intl.NumberFormat('en-IN').format(notDepo)}`,
+					pendingApprovals: pendingApprovals
 				};
 			});
 		}
