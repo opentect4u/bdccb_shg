@@ -205,10 +205,45 @@ export default function HODashboard() {
 	// Period Options
 	const periodButtons = ["Today", "This Month", "This Quarter", "FY to date"]
 
-	// Illustrative Demand vs Collection data (12 months from wireframe)
-	const months = ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]
-	const demandPct = [70, 75, 72, 90, 65, 68, 74, 78, 80, 76, 82, 85]
-	const collectPct = [60, 62, 58, 85, 50, 55, 63, 66, 70, 64, 72, 74]
+	// Dynamic Demand vs Collection trend based on selectedPeriod
+	const demandCollectionData = useMemo(() => {
+		if (dashboardData?.demand_vs_collection) {
+			const dvc = dashboardData.demand_vs_collection
+			const labels = dvc.labels || []
+			const demand = dvc.demand || []
+			const collected = dvc.collected || []
+			const recoveryPct = dvc.recovery_pct || []
+
+			const maxVal = Math.max(...demand, ...collected, 1)
+
+			return {
+				labels,
+				demand,
+				collected,
+				recoveryPct,
+				demandFormatted: demand.map(formatCurrency),
+				collectedFormatted: collected.map(formatCurrency),
+				demandBarHeight: demand.map((d) => (maxVal > 0 ? Math.max(d > 0 ? 8 : 2, Math.min(100, Math.round((d / maxVal) * 100))) : 2)),
+				collectedBarHeight: collected.map((c) => (maxVal > 0 ? Math.max(c > 0 ? 8 : 2, Math.min(100, Math.round((c / maxVal) * 100))) : 2)),
+				totalDemand: demand.reduce((a, b) => a + b, 0),
+				totalCollected: collected.reduce((a, b) => a + b, 0),
+			}
+		}
+
+		const defaultLabels = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"]
+		return {
+			labels: defaultLabels,
+			demand: defaultLabels.map(() => 0),
+			collected: defaultLabels.map(() => 0),
+			recoveryPct: defaultLabels.map(() => 0),
+			demandFormatted: defaultLabels.map(() => "₹ 0"),
+			collectedFormatted: defaultLabels.map(() => "₹ 0"),
+			demandBarHeight: defaultLabels.map(() => 2),
+			collectedBarHeight: defaultLabels.map(() => 2),
+			totalDemand: 0,
+			totalCollected: 0,
+		}
+	}, [dashboardData])
 
 	// Branch rows for performance table
 	const defaultBranchRows = useMemo(() => {
@@ -596,7 +631,7 @@ export default function HODashboard() {
 				{/* SECTION B · PORTFOLIO SNAPSHOT (as on date) */}
 				<section aria-label="Portfolio snapshot" className="flex flex-col gap-2.5">
 					<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-						B · PORTFOLIO SNAPSHOT (as on date)
+						B · PORTFOLIO SNAPSHOT ({selectedPeriod})
 					</div>
 					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 						{/* Card 1: Total loan outstanding */}
@@ -612,6 +647,9 @@ export default function HODashboard() {
 								{dashboardData
 									? `Direct ${formatCurrency(dashboardData.portfolio.direct_outstanding)} · Indirect ${formatCurrency(dashboardData.portfolio.indirect_outstanding)}`
 									: "Direct ₹ 0 · Indirect ₹ 0"}
+							</div>
+							<div className="text-[10px] text-teal-700 font-medium">
+								{dashboardData ? `Disbursed in ${selectedPeriod}: ${formatCurrency(dashboardData.portfolio.period_disb_amt)}` : ""}
 							</div>
 						</article>
 
@@ -634,14 +672,17 @@ export default function HODashboard() {
 							onClick={() => navigate("/homebm/searchgroup")}
 							className="bg-white border border-[#d9dee3] rounded-xl p-4 flex flex-col gap-1.5 shadow-sm hover:border-[#0f6b73] transition-all cursor-pointer"
 						>
-							<div className="text-xs text-[#4a5560] font-medium">SHG groups</div>
+							<div className="text-xs text-[#4a5560] font-medium">SHG groups ({selectedPeriod})</div>
 							<div className="text-[20px] font-bold text-slate-900 leading-snug">
-								{dashboardData ? formatCount(dashboardData.portfolio.total_groups) : "N"}
+								{dashboardData ? formatCount(dashboardData.portfolio.period_groups) : "0"}
 							</div>
 							<div className="text-[11px] text-[#4a5560]">
 								{dashboardData
-									? `Direct ${formatCount(dashboardData.portfolio.direct_groups)} · Indirect ${formatCount(dashboardData.portfolio.indirect_groups)} · Without loan ${formatCount(dashboardData.portfolio.groups_without_loan)}`
-									: "Direct N · Indirect N · Without loan N"}
+									? `Direct ${formatCount(dashboardData.portfolio.period_direct_groups)} · Indirect ${formatCount(dashboardData.portfolio.period_indirect_groups)} · With loan ${formatCount(dashboardData.portfolio.period_groups_with_loan)}`
+									: "Direct 0 · Indirect 0 · With loan 0"}
+							</div>
+							<div className="text-[10px] text-slate-500 font-medium">
+								{dashboardData ? `Total active portfolio: ${formatCount(dashboardData.portfolio.total_groups)} groups` : ""}
 							</div>
 						</article>
 
@@ -650,14 +691,17 @@ export default function HODashboard() {
 							onClick={() => navigate("/homebm/searchmember")}
 							className="bg-white border border-[#d9dee3] rounded-xl p-4 flex flex-col gap-1.5 shadow-sm hover:border-[#0f6b73] transition-all cursor-pointer"
 						>
-							<div className="text-xs text-[#4a5560] font-medium">SHG members</div>
+							<div className="text-xs text-[#4a5560] font-medium">SHG members ({selectedPeriod})</div>
 							<div className="text-[20px] font-bold text-slate-900 leading-snug">
-								{dashboardData ? formatCount(dashboardData.portfolio.total_members) : "N"}
+								{dashboardData ? formatCount(dashboardData.portfolio.period_members) : "0"}
 							</div>
 							<div className="text-[11px] text-[#4a5560]">
 								{dashboardData
-									? `With loan ${formatCount(dashboardData.portfolio.groups_with_loan)}`
-									: "With loan N"}
+									? `Women ${formatCount(dashboardData.portfolio.period_women_members)} · SC/ST ${formatCount(dashboardData.portfolio.period_sc_st_members)}`
+									: "Women 0 · SC/ST 0"}
+							</div>
+							<div className="text-[10px] text-slate-500 font-medium">
+								{dashboardData ? `Total active portfolio: ${formatCount(dashboardData.portfolio.total_members)} members` : ""}
 							</div>
 						</article>
 
@@ -673,6 +717,9 @@ export default function HODashboard() {
 							<div className="text-[11px] text-[#4a5560]">
 								{dashboardData ? `${formatCount(dashboardData.portfolio.sb_accounts)} SB accounts` : "0 SB accounts"}
 							</div>
+							<div className="text-[10px] text-teal-700 font-medium">
+								{dashboardData ? `Net flow in ${selectedPeriod}: ${formatCurrency(dashboardData.sb_deposits.net_sb_flow)}` : ""}
+							</div>
 						</article>
 
 						{/* Card 6: Recovery % (period) */}
@@ -680,11 +727,13 @@ export default function HODashboard() {
 							onClick={() => navigate("/homebm/loan_transaction_report")}
 							className="bg-white border border-[#d9dee3] rounded-xl p-4 flex flex-col gap-1.5 shadow-sm hover:border-[#0f6b73] transition-all cursor-pointer"
 						>
-							<div className="text-xs text-[#4a5560] font-medium">Recovery % (period)</div>
+							<div className="text-xs text-[#4a5560] font-medium">Recovery % ({selectedPeriod})</div>
 							<div className="text-[20px] font-bold text-[#0f6b73] leading-snug">
 								{dashboardData ? `${dashboardData.portfolio.recovery_pct}%` : "0%"}
 							</div>
-							<div className="text-[11px] text-[#4a5560]">Collected ÷ EMI demand</div>
+							<div className="text-[11px] text-[#4a5560]">
+								{dashboardData ? `Collected ${formatCurrency(dashboardData.portfolio.period_recov_amt)} ÷ Demand ${formatCurrency(dashboardData.portfolio.period_demand)}` : "Collected ÷ EMI demand"}
+							</div>
 						</article>
 					</div>
 				</section>
@@ -699,10 +748,10 @@ export default function HODashboard() {
 						<div className="flex justify-between items-baseline gap-2 flex-wrap">
 							<div>
 								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-									C · LOAN DISBURSEMENT
+									C · LOAN DISBURSEMENT ({selectedPeriod})
 								</div>
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
-									Disbursed in selected period
+									Disbursed in {selectedPeriod}
 								</h2>
 							</div>
 							<span className="text-xs text-[#4a5560] font-medium">Count · Amount</span>
@@ -785,10 +834,10 @@ export default function HODashboard() {
 					>
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								D · RECOVERY PIPELINE
+								D · RECOVERY PIPELINE ({selectedPeriod})
 							</div>
 							<h2 className="text-base font-semibold text-slate-900 mt-1">
-								Where collected money is sitting
+								Where collected money is sitting ({selectedPeriod})
 							</h2>
 						</div>
 
@@ -880,10 +929,10 @@ export default function HODashboard() {
 						<div className="flex justify-between items-center flex-wrap gap-2">
 							<div>
 								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-									E · DEMAND vs COLLECTION
+									E · DEMAND vs COLLECTION ({selectedPeriod})
 								</div>
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
-									Last 12 months (illustrative bars)
+									Breakdown for {selectedPeriod}
 								</h2>
 							</div>
 							<div className="flex items-center gap-3.5 text-xs text-[#4a5560]">
@@ -904,31 +953,45 @@ export default function HODashboard() {
 
 						{/* Chart Area */}
 						<div className="flex items-end gap-2 h-[200px] border-b border-l border-[#c5ccd3] px-2 pt-4">
-							{months.map((m, i) => (
+							{demandCollectionData.labels.map((m, i) => (
 								<div key={m} className="flex-1 flex items-end justify-center gap-1 h-full group relative">
+									{/* Tooltip on hover */}
+									<div className="hidden group-hover:flex flex-col absolute -top-14 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg z-10 whitespace-nowrap pointer-events-none">
+										<span className="font-semibold text-slate-200">{m}</span>
+										<span>Demand: {demandCollectionData.demandFormatted[i]}</span>
+										<span>Collected: {demandCollectionData.collectedFormatted[i]}</span>
+										<span className="text-teal-300">Recovery: {demandCollectionData.recoveryPct[i]}%</span>
+									</div>
 									{/* Bar 1: Demand */}
 									<div
-										style={{ height: `${demandPct[i]}%` }}
-										className="flex-1 bg-[#9aa5b1] rounded-t-sm transition-all group-hover:brightness-95"
-										title={`Demand: ${demandPct[i]}%`}
+										style={{ height: `${demandCollectionData.demandBarHeight[i]}%` }}
+										className="flex-1 bg-[#9aa5b1] rounded-t-sm transition-all duration-300 group-hover:brightness-95"
+										title={`Demand: ${demandCollectionData.demandFormatted[i]}`}
 									></div>
 									{/* Bar 2: Collected */}
 									<div
-										style={{ height: `${collectPct[i]}%` }}
-										className="flex-1 bg-[#0f6b73] rounded-t-sm transition-all group-hover:brightness-110"
-										title={`Collected: ${collectPct[i]}%`}
+										style={{ height: `${demandCollectionData.collectedBarHeight[i]}%` }}
+										className="flex-1 bg-[#0f6b73] rounded-t-sm transition-all duration-300 group-hover:brightness-110"
+										title={`Collected: ${demandCollectionData.collectedFormatted[i]}`}
 									></div>
 								</div>
 							))}
 						</div>
 
-						{/* Months Labels */}
+						{/* Dynamic Labels */}
 						<div className="flex gap-2 px-2">
-							{months.map((m) => (
-								<span key={m} className="flex-1 text-center text-[11px] text-[#4a5560] font-medium">
+							{demandCollectionData.labels.map((m) => (
+								<span key={m} className="flex-1 text-center text-[11px] text-[#4a5560] font-medium truncate" title={m}>
 									{m}
 								</span>
 							))}
+						</div>
+
+						{/* Period Total Summary */}
+						<div className="flex flex-wrap justify-between items-center text-xs pt-2 border-t border-[#e3e7eb] text-slate-600 font-medium gap-2">
+							<span>Demand: <strong className="text-slate-900 font-mono">{formatCurrency(demandCollectionData.totalDemand)}</strong></span>
+							<span>Collected: <strong className="text-[#0f6b73] font-mono">{formatCurrency(demandCollectionData.totalCollected)}</strong></span>
+							<span>Recovery: <strong className="text-slate-900 font-mono">{demandCollectionData.totalDemand > 0 ? Math.min(100, Math.round((demandCollectionData.totalCollected / demandCollectionData.totalDemand) * 100)) : 0}%</strong></span>
 						</div>
 					</section>
 
@@ -939,10 +1002,10 @@ export default function HODashboard() {
 					>
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								F · OVERDUE &amp; AGEING
+								F · OVERDUE &amp; AGEING ({selectedPeriod})
 							</div>
 							<h2 className="text-base font-semibold text-slate-900 mt-1">
-								Overdue principal by days past due
+								Overdue principal by days past due ({selectedPeriod})
 							</h2>
 						</div>
 
@@ -997,9 +1060,9 @@ export default function HODashboard() {
 					>
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								G · PENDING &amp; EXCEPTIONS
+								G · PENDING &amp; EXCEPTIONS ({selectedPeriod})
 							</div>
-							<h2 className="text-base font-semibold text-slate-900 mt-1">Items needing follow-up</h2>
+							<h2 className="text-base font-semibold text-slate-900 mt-1">Items needing follow-up in {selectedPeriod}</h2>
 						</div>
 
 						<div className="flex flex-col gap-2">
@@ -1014,7 +1077,7 @@ export default function HODashboard() {
 								},
 								{
 									label: "Disbursed to SHG, not distributed to members",
-									val: dashboardData ? `₹ 0 · 0` : "₹ X · N",
+									val: dashboardData ? `₹ 0 · 0` : "₹ 0 · 0",
 								},
 								{
 									label: "Legacy groups without member mapping",
@@ -1154,7 +1217,7 @@ export default function HODashboard() {
 					<div className="flex justify-between items-end flex-wrap gap-2">
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								H · BRANCH-WISE PERFORMANCE
+								H · BRANCH-WISE PERFORMANCE ({selectedPeriod})
 							</div>
 							<h2 className="text-base font-semibold text-slate-900 mt-1">
 								Click a branch to drill down to its PACS → SHGs → members
@@ -1191,9 +1254,9 @@ export default function HODashboard() {
 									<th className="py-2.5 px-3 text-right">Outstanding</th>
 									<th className="py-2.5 px-3 text-right">Overdue</th>
 									<th className="py-2.5 px-3 text-center">Overdue %</th>
-									<th className="py-2.5 px-3 text-center">Recovery % (period)</th>
-									<th className="py-2.5 px-3 text-right">Not deposited</th>
-									<th className="py-2.5 px-3 text-center">Pending approvals</th>
+									<th className="py-2.5 px-3 text-center">Recovery % ({selectedPeriod})</th>
+									<th className="py-2.5 px-3 text-right">Not deposited ({selectedPeriod})</th>
+									<th className="py-2.5 px-3 text-center">Pending approvals ({selectedPeriod})</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[#e3e7eb]">
@@ -1262,7 +1325,7 @@ export default function HODashboard() {
 						<div className="flex flex-col gap-2.5">
 							<div>
 								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-									I · WATCHLIST
+									I · WATCHLIST ({selectedPeriod})
 								</div>
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
 									Top 10 overdue PACS / SHGs
