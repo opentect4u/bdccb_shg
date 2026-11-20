@@ -33,6 +33,7 @@ import {
 	LoadingOutlined,
 	WalletOutlined,
 	ArrowRightOutlined,
+	BankOutlined,
 } from "@ant-design/icons"
 
 import { useSocket } from "../Context/SocketContext"
@@ -151,6 +152,12 @@ function Sidebar({ mode = 0 }) {
 								key: "sub9",
 								icon: <DeploymentUnitOutlined />,
 								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+								children: [],
+							},
+							{
+								key: "sub10",
+								icon: <BankOutlined />,
+								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
 								children: [],
 							},
 							{
@@ -605,6 +612,12 @@ function Sidebar({ mode = 0 }) {
 								children: [],
 							},
 							{
+								key: "sub10",
+								icon: <BankOutlined />,
+								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+								children: [],
+							},
+							{
 								key: "sub2",
 								icon: <ContainerOutlined />,
 								label: "GRT",
@@ -755,6 +768,32 @@ function Sidebar({ mode = 0 }) {
 								userMenuData.push(tempMenuData[0])
 							}
 						}
+
+						// Ensure Group Info (sub9) and Society Info (sub10) are always in Sidebar right after Dashboard
+						const ensureSidebarItems = (menuList, sourceList) => {
+							const grpItem = sourceList.find(m => m.key === 'sub9') || {
+								key: "sub9",
+								icon: <DeploymentUnitOutlined />,
+								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+								children: [],
+							};
+							const socItem = sourceList.find(m => m.key === 'sub10') || {
+								key: "sub10",
+								icon: <BankOutlined />,
+								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+								children: [],
+							};
+							const filtered = menuList.filter(m => m.key !== 'sub9' && m.key !== 'sub10');
+							const dashIdx = filtered.findIndex(m => m.key === 'sub1');
+							if (dashIdx !== -1) {
+								filtered.splice(dashIdx + 1, 0, grpItem, socItem);
+							} else {
+								filtered.unshift(grpItem, socItem);
+							}
+							return filtered;
+						};
+
+						userMenuData = ensureSidebarItems(userMenuData, items_all_user1);
 						setPermissions(userMenuData)
 
 
@@ -782,6 +821,7 @@ function Sidebar({ mode = 0 }) {
 								userMenuData_ApprPend.push(tempMenuData[0])
 							}
 						}
+						userMenuData_ApprPend = ensureSidebarItems(userMenuData_ApprPend, items_all_user2);
 						setPermissions_ApprovPending(userMenuData_ApprPend)
 
 

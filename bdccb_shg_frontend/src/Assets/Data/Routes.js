@@ -43,5 +43,6 @@ export const routePaths = {
 	SHG_SAVINGS_BALANCE_REPORT: "/homebm/shg_savings_balance_report/",
 	LOAN_TRANSACTION_REPORT: "/homebm/loan_transaction_report/",
 	GROUP_INFO: "/homebm/groupinfo/",
+	SOCIETY_INFO: "/homebm/societyinfo/",
 	GROUP_DETAILS: "/homebm/groupdetails/",
 }

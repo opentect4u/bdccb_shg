@@ -81,6 +81,7 @@ const EditBranchMaster = lazy(() => import("./Screens/Admin/Master/BranchMaster/
 const HomeBM = lazy(() => import("./Screens/BMHome/HomeBM"))
 const Dashboard = lazy(() => import("./Screens/BMHome/Dashboard/Dashboard"));
 const GroupInfoBM = lazy(() => import("./Screens/BMHome/GroupInfoBM"));
+const SocietyInfoBM = lazy(() => import("./Screens/BMHome/SocietyInfoBM"));
 const GroupDetailsBM = lazy(() => import("./Screens/BMHome/GroupDetailsBM"));
 
 const SearchGroupBM = lazy(() => import("./Screens/BMHome/SearchGroupBM"))
@@ -414,6 +415,10 @@ const router = createBrowserRouter([
 							{
 								path: "groupinfo",
 								element: <GroupInfoBM />,
+							},
+							{
+								path: "societyinfo",
+								element: <SocietyInfoBM />,
 							},
 							{
 								path: "groupdetails/:group_code",
