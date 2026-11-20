@@ -26,6 +26,7 @@ import {
 	TeamOutlined,
 	InfoCircleOutlined,
 	BankOutlined,
+	AuditOutlined,
 } from "@ant-design/icons"
 import { Menu, Spin } from "antd"
 import { Link } from "react-router-dom"
@@ -165,69 +166,6 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 				converted = isHO ? items_bdccb_Supper_User : items_all_user1;
 			}
 
-			// Group Info (sub9) and Society Info (sub10) are STRICTLY for Head Office (Branch 112 / user_type 'H' / user_type_id 2)
-			if (Array.isArray(converted) && converted.length > 0) {
-				if (!isHO) {
-					// Strictly remove Group Info and Society Info for Branch / Society users
-					converted = converted.filter(
-						(m) =>
-							m.key !== 'sub9' &&
-							m.key !== 'sub10' &&
-							!String(m.path || '').includes('groupinfo') &&
-							!String(m.path || '').includes('societyinfo') &&
-							!(typeof m.label === 'string' && (m.label.toLowerCase().includes('group info') || m.label.toLowerCase().includes('society info')))
-					);
-				} else {
-					// For Head Office: position Group Info & Society Info directly beside Dashboard
-					const existingIdx = converted.findIndex(
-						(m) =>
-							m.key === 'sub9' || String(m.path || '').includes('groupinfo') ||
-							String(m.key || '').includes('group_info') ||
-							(typeof m.label === 'string' && m.label.toLowerCase().includes('group info'))
-					);
-
-					let grpInfoItem = null;
-					if (existingIdx !== -1) {
-						grpInfoItem = converted.splice(existingIdx, 1)[0];
-					} else {
-						grpInfoItem = {
-							key: "sub9",
-							icon: <DeploymentUnitOutlined />,
-							label: <Link to="/homebm/groupinfo">Group Info</Link>,
-							path: '/homebm/groupinfo',
-						};
-					}
-
-					const existingSocIdx = converted.findIndex(
-						(m) =>
-							m.key === 'sub10' || String(m.path || '').includes('societyinfo') ||
-							String(m.key || '').includes('society_info') ||
-							(typeof m.label === 'string' && m.label.toLowerCase().includes('society info'))
-					);
-
-					let socInfoItem = null;
-					if (existingSocIdx !== -1) {
-						socInfoItem = converted.splice(existingSocIdx, 1)[0];
-					} else {
-						socInfoItem = {
-							key: "sub10",
-							icon: <BankOutlined />,
-							label: <Link to="/homebm/societyinfo">Society Info</Link>,
-							path: '/homebm/societyinfo',
-						};
-					}
-
-					const dashIdx = converted.findIndex(
-						(m) => m.path === '/homebm/' || m.key === 'sub1'
-					);
-					if (dashIdx !== -1) {
-						converted.splice(dashIdx + 1, 0, grpInfoItem, socInfoItem);
-					} else {
-						converted.unshift(grpInfoItem, socInfoItem);
-					}
-				}
-			}
-
 			if (converted && converted.length > 0) {
 				setMenuItems(converted);
 			}
@@ -241,7 +179,13 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: String(item.key),
 			icon: item.icon && menuIcons[item.icon.trim()]
 				? menuIcons[item.icon.trim()]
-				: (item.key === 'sub9' ? <DeploymentUnitOutlined /> : item.key === 'sub10' ? <BankOutlined /> : undefined),
+				: (item.key === 'sub9'
+					? <DeploymentUnitOutlined />
+					: item.key === 'sub10'
+						? <BankOutlined />
+						: item.key === 'sub11'
+							? <AuditOutlined />
+							: undefined),
 			label: item.link
 				? <Link to={item.link}>{item.label}</Link>
 				: item.label,
@@ -263,6 +207,7 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 		FileSearchOutlined: <FileSearchOutlined />,
 		DeploymentUnitOutlined: <DeploymentUnitOutlined />,
 		BankOutlined: <BankOutlined />,
+		AuditOutlined: <AuditOutlined />,
 		PlusCircleOutlined: <PlusCircleOutlined />,
 		ThunderboltOutlined: <ThunderboltOutlined />,
 		DatabaseOutlined: <DatabaseOutlined />,
@@ -945,6 +890,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub10",
 			icon: <BankOutlined />,
 			label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+			children: [],
+		},
+		{
+			key: "sub11",
+			icon: <AuditOutlined />,
+			label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
 			children: [],
 		},
 		{
@@ -2558,6 +2509,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
 			children: [],
 		},
+		{
+			key: "sub11",
+			icon: <AuditOutlined />,
+			label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
+			children: [],
+		},
 		// {
 		// 	key: "sub6",
 		// 	icon: <ImportOutlined />,
@@ -2768,6 +2725,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub10",
 			icon: <BankOutlined />,
 			label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+			children: [],
+		},
+		{
+			key: "sub11",
+			icon: <AuditOutlined />,
+			label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
 			children: [],
 		},
 		{
@@ -3052,6 +3015,12 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub10",
 			icon: <BankOutlined />,
 			label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+			children: [],
+		},
+		{
+			key: "sub11",
+			icon: <AuditOutlined />,
+			label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
 			children: [],
 		},
 		{

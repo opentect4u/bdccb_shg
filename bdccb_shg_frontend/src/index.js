@@ -82,6 +82,7 @@ const HomeBM = lazy(() => import("./Screens/BMHome/HomeBM"))
 const Dashboard = lazy(() => import("./Screens/BMHome/Dashboard/Dashboard"));
 const GroupInfoBM = lazy(() => import("./Screens/BMHome/GroupInfoBM"));
 const SocietyInfoBM = lazy(() => import("./Screens/BMHome/SocietyInfoBM"));
+const LoanTrackingBM = lazy(() => import("./Screens/BMHome/LoanTrackingBM"));
 const GroupDetailsBM = lazy(() => import("./Screens/BMHome/GroupDetailsBM"));
 
 const SearchGroupBM = lazy(() => import("./Screens/BMHome/SearchGroupBM"))
@@ -419,6 +420,10 @@ const router = createBrowserRouter([
 							{
 								path: "societyinfo",
 								element: <SocietyInfoBM />,
+							},
+							{
+								path: "loantracking",
+								element: <LoanTrackingBM />,
 							},
 							{
 								path: "groupdetails/:group_code",

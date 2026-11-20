@@ -64,6 +64,7 @@ app.use('/v1/interestcharge', require('./router/interestcharge/indexInterestChar
 app.use('/v1/societyinterestcharge', require('./router/societyinterestcharge/indexSocietyInterestChargeRouter'));
 app.use('/v1/groupinfo', require('./router/group_info/groupInfoRouter').groupInfoRouter);
 app.use('/v1/societyinfo', require('./router/society_info/societyinfoRouter').societyinfoRouter);
+app.use('/v1/loantracking', require('./router/loan_tracking/loan_trackingRouter').loanTrackingRouter);
 
 
 // app.post("/v1/login", async (req, res) => {

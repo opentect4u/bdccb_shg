@@ -44,5 +44,6 @@ export const routePaths = {
 	LOAN_TRANSACTION_REPORT: "/homebm/loan_transaction_report/",
 	GROUP_INFO: "/homebm/groupinfo/",
 	SOCIETY_INFO: "/homebm/societyinfo/",
+	LOAN_TRACKING: "/homebm/loantracking/",
 	GROUP_DETAILS: "/homebm/groupdetails/",
 }

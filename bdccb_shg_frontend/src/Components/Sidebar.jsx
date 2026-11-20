@@ -34,6 +34,7 @@ import {
 	WalletOutlined,
 	ArrowRightOutlined,
 	BankOutlined,
+	AuditOutlined,
 } from "@ant-design/icons"
 
 import { useSocket } from "../Context/SocketContext"
@@ -146,6 +147,24 @@ function Sidebar({ mode = 0 }) {
 								icon: <LineChartOutlined />,
 								label: <Link to={"/homebm/"}>Dashboard</Link>,
 								// hidden: false,
+								children: [],
+							},
+							{
+								key: "sub9",
+								icon: <DeploymentUnitOutlined />,
+								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+								children: [],
+							},
+							{
+								key: "sub10",
+								icon: <BankOutlined />,
+								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+								children: [],
+							},
+							{
+								key: "sub11",
+								icon: <AuditOutlined />,
+								label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
 								children: [],
 							},
 							{
@@ -594,6 +613,24 @@ function Sidebar({ mode = 0 }) {
 								children: [],
 							},
 							{
+								key: "sub9",
+								icon: <DeploymentUnitOutlined />,
+								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
+								children: [],
+							},
+							{
+								key: "sub10",
+								icon: <BankOutlined />,
+								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
+								children: [],
+							},
+							{
+								key: "sub11",
+								icon: <AuditOutlined />,
+								label: <Link to={"/homebm/loantracking"}>Loan Tracking</Link>,
+								children: [],
+							},
+							{
 								key: "sub2",
 								icon: <ContainerOutlined />,
 								label: "GRT",
@@ -745,46 +782,7 @@ function Sidebar({ mode = 0 }) {
 							}
 						}
 
-						// Group Info (sub9) and Society Info (sub10) are STRICTLY for Head Office (Branch 112 / user_type 'H')
-						const isHOUser =
-							userDetails?.user_type === 'H' ||
-							userDetails?.[0]?.user_type === 'H' ||
-							userDetails?.branch_type === 'H' ||
-							userDetails?.[0]?.branch_type === 'H' ||
-							userDetails?.brn_code == 112 ||
-							userDetails?.[0]?.brn_code == 112 ||
-							userDetails?.branch_id == 112 ||
-							userDetails?.[0]?.branch_id == 112;
-
-						const ensureSidebarItems = (menuList, sourceList) => {
-							const filtered = menuList.filter(m => m.key !== 'sub9' && m.key !== 'sub10');
-							if (!isHOUser) {
-								return filtered;
-							}
-							const grpItem = sourceList.find(m => m.key === 'sub9') || {
-								key: "sub9",
-								icon: <DeploymentUnitOutlined />,
-								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
-								children: [],
-							};
-							const socItem = sourceList.find(m => m.key === 'sub10') || {
-								key: "sub10",
-								icon: <BankOutlined />,
-								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
-								children: [],
-							};
-							const dashIdx = filtered.findIndex(m => m.key === 'sub1');
-							if (dashIdx !== -1) {
-								filtered.splice(dashIdx + 1, 0, grpItem, socItem);
-							} else {
-								filtered.unshift(grpItem, socItem);
-							}
-							return filtered;
-						};
-
-						userMenuData = ensureSidebarItems(userMenuData, items_all_user1);
 						setPermissions(userMenuData)
-
 
 						var data_ApprPend = res?.data?.msg
 						var userMenuData_ApprPend = []
@@ -810,7 +808,6 @@ function Sidebar({ mode = 0 }) {
 								userMenuData_ApprPend.push(tempMenuData[0])
 							}
 						}
-						userMenuData_ApprPend = ensureSidebarItems(userMenuData_ApprPend, items_all_user2);
 						setPermissions_ApprovPending(userMenuData_ApprPend)
 
 
