@@ -44,6 +44,24 @@ function formatDate(dt) {
 function GroupInfoBM() {
 	const navigate = useNavigate()
 
+	// Restrict access strictly to Head Office (Branch 112 / user_type 'H')
+	const rawUser = JSON.parse(localStorage.getItem("user_details")) || {}
+	const userObj = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
+	const isHO =
+		userObj.user_type === 'H' ||
+		userObj.branch_type === 'H' ||
+		userObj.brn_code == 112 ||
+		userObj.branch_id == 112 ||
+		String(userObj.branch_name || '').toLowerCase().includes('head office') ||
+		String(userObj.brn_name || '').toLowerCase().includes('head office')
+
+	useEffect(() => {
+		if (!isHO) {
+			Message("error", "Access Denied: Group Info is restricted to Head Office (Branch 112) only.")
+			navigate("/homebm/", { replace: true })
+		}
+	}, [isHO, navigate])
+
 	// Search Mode: 'group' | 'branch' | 'society'
 	const [searchMode, setSearchMode] = useState("group")
 

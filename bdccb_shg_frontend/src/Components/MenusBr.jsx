@@ -165,61 +165,66 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 				converted = isHO ? items_bdccb_Supper_User : items_all_user1;
 			}
 
-			// Ensure Group Info (sub9) and Society Info (sub10) are ALWAYS placed directly beside Dashboard
+			// Group Info (sub9) and Society Info (sub10) are STRICTLY for Head Office (Branch 112 / user_type 'H' / user_type_id 2)
 			if (Array.isArray(converted) && converted.length > 0) {
-				// 1. Remove Group Info from wherever the DB ordered it
-				const existingIdx = converted.findIndex(
-					(m) =>
-						m.key === 'sub9' || String(m.path || '').includes('groupinfo') ||
-						String(m.key || '').includes('group_info') ||
-						(typeof m.label === 'string' && m.label.toLowerCase().includes('group info'))
-				);
-
-				let grpInfoItem = null;
-				if (existingIdx !== -1) {
-					grpInfoItem = converted.splice(existingIdx, 1)[0];
-				}
-
-				// If not returned by DB, build the item
-				if (!grpInfoItem) {
-					grpInfoItem = {
-						key: "sub9",
-						icon: <DeploymentUnitOutlined />,
-						label: <Link to="/homebm/groupinfo">Group Info</Link>,
-						path: '/homebm/groupinfo',
-					};
-				}
-
-				// Remove Society Info if already present in converted
-				const existingSocIdx = converted.findIndex(
-					(m) =>
-						m.key === 'sub10' || String(m.path || '').includes('societyinfo') ||
-						String(m.key || '').includes('society_info') ||
-						(typeof m.label === 'string' && m.label.toLowerCase().includes('society info'))
-				);
-
-				let socInfoItem = null;
-				if (existingSocIdx !== -1) {
-					socInfoItem = converted.splice(existingSocIdx, 1)[0];
-				}
-
-				if (!socInfoItem) {
-					socInfoItem = {
-						key: "sub10",
-						icon: <BankOutlined />,
-						label: <Link to="/homebm/societyinfo">Society Info</Link>,
-						path: '/homebm/societyinfo',
-					};
-				}
-
-				// 2. Insert Group Info (sub9) & Society Info (sub10) directly after Dashboard
-				const dashIdx = converted.findIndex(
-					(m) => m.path === '/homebm/' || m.key === 'sub1'
-				);
-				if (dashIdx !== -1) {
-					converted.splice(dashIdx + 1, 0, grpInfoItem, socInfoItem);
+				if (!isHO) {
+					// Strictly remove Group Info and Society Info for Branch / Society users
+					converted = converted.filter(
+						(m) =>
+							m.key !== 'sub9' &&
+							m.key !== 'sub10' &&
+							!String(m.path || '').includes('groupinfo') &&
+							!String(m.path || '').includes('societyinfo') &&
+							!(typeof m.label === 'string' && (m.label.toLowerCase().includes('group info') || m.label.toLowerCase().includes('society info')))
+					);
 				} else {
-					converted.unshift(grpInfoItem, socInfoItem);
+					// For Head Office: position Group Info & Society Info directly beside Dashboard
+					const existingIdx = converted.findIndex(
+						(m) =>
+							m.key === 'sub9' || String(m.path || '').includes('groupinfo') ||
+							String(m.key || '').includes('group_info') ||
+							(typeof m.label === 'string' && m.label.toLowerCase().includes('group info'))
+					);
+
+					let grpInfoItem = null;
+					if (existingIdx !== -1) {
+						grpInfoItem = converted.splice(existingIdx, 1)[0];
+					} else {
+						grpInfoItem = {
+							key: "sub9",
+							icon: <DeploymentUnitOutlined />,
+							label: <Link to="/homebm/groupinfo">Group Info</Link>,
+							path: '/homebm/groupinfo',
+						};
+					}
+
+					const existingSocIdx = converted.findIndex(
+						(m) =>
+							m.key === 'sub10' || String(m.path || '').includes('societyinfo') ||
+							String(m.key || '').includes('society_info') ||
+							(typeof m.label === 'string' && m.label.toLowerCase().includes('society info'))
+					);
+
+					let socInfoItem = null;
+					if (existingSocIdx !== -1) {
+						socInfoItem = converted.splice(existingSocIdx, 1)[0];
+					} else {
+						socInfoItem = {
+							key: "sub10",
+							icon: <BankOutlined />,
+							label: <Link to="/homebm/societyinfo">Society Info</Link>,
+							path: '/homebm/societyinfo',
+						};
+					}
+
+					const dashIdx = converted.findIndex(
+						(m) => m.path === '/homebm/' || m.key === 'sub1'
+					);
+					if (dashIdx !== -1) {
+						converted.splice(dashIdx + 1, 0, grpInfoItem, socInfoItem);
+					} else {
+						converted.unshift(grpInfoItem, socInfoItem);
+					}
 				}
 			}
 
@@ -2039,18 +2044,6 @@ function MenusBr({ theme, data, data_ApprovPending }) {
 			key: "sub1",
 			icon: <LineChartOutlined />,
 			label: <Link to={"/homebm/"}>Dashboard</Link>,
-		},
-		{
-			key: "sub9",
-			icon: <DeploymentUnitOutlined />,
-			label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
-			children: [],
-		},
-		{
-			key: "sub10",
-			icon: <BankOutlined />,
-			label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
-			children: [],
 		},
 		// {
 		//  key: "sub5",

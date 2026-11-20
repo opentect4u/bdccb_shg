@@ -149,18 +149,6 @@ function Sidebar({ mode = 0 }) {
 								children: [],
 							},
 							{
-								key: "sub9",
-								icon: <DeploymentUnitOutlined />,
-								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
-								children: [],
-							},
-							{
-								key: "sub10",
-								icon: <BankOutlined />,
-								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
-								children: [],
-							},
-							{
 								key: "sub2",
 								icon: <ContainerOutlined />,
 								label: "GRT",
@@ -606,18 +594,6 @@ function Sidebar({ mode = 0 }) {
 								children: [],
 							},
 							{
-								key: "sub9",
-								icon: <DeploymentUnitOutlined />,
-								label: <Link to={"/homebm/groupinfo"}>Group Info</Link>,
-								children: [],
-							},
-							{
-								key: "sub10",
-								icon: <BankOutlined />,
-								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
-								children: [],
-							},
-							{
 								key: "sub2",
 								icon: <ContainerOutlined />,
 								label: "GRT",
@@ -769,8 +745,22 @@ function Sidebar({ mode = 0 }) {
 							}
 						}
 
-						// Ensure Group Info (sub9) and Society Info (sub10) are always in Sidebar right after Dashboard
+						// Group Info (sub9) and Society Info (sub10) are STRICTLY for Head Office (Branch 112 / user_type 'H')
+						const isHOUser =
+							userDetails?.user_type === 'H' ||
+							userDetails?.[0]?.user_type === 'H' ||
+							userDetails?.branch_type === 'H' ||
+							userDetails?.[0]?.branch_type === 'H' ||
+							userDetails?.brn_code == 112 ||
+							userDetails?.[0]?.brn_code == 112 ||
+							userDetails?.branch_id == 112 ||
+							userDetails?.[0]?.branch_id == 112;
+
 						const ensureSidebarItems = (menuList, sourceList) => {
+							const filtered = menuList.filter(m => m.key !== 'sub9' && m.key !== 'sub10');
+							if (!isHOUser) {
+								return filtered;
+							}
 							const grpItem = sourceList.find(m => m.key === 'sub9') || {
 								key: "sub9",
 								icon: <DeploymentUnitOutlined />,
@@ -783,7 +773,6 @@ function Sidebar({ mode = 0 }) {
 								label: <Link to={"/homebm/societyinfo"}>Society Info</Link>,
 								children: [],
 							};
-							const filtered = menuList.filter(m => m.key !== 'sub9' && m.key !== 'sub10');
 							const dashIdx = filtered.findIndex(m => m.key === 'sub1');
 							if (dashIdx !== -1) {
 								filtered.splice(dashIdx + 1, 0, grpItem, socItem);

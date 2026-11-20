@@ -59,6 +59,24 @@ function SocietyInfoBM() {
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
 
+	// Restrict access strictly to Head Office (Branch 112 / user_type 'H')
+	const rawUser = JSON.parse(localStorage.getItem("user_details")) || {}
+	const userObj = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
+	const isHO =
+		userObj.user_type === 'H' ||
+		userObj.branch_type === 'H' ||
+		userObj.brn_code == 112 ||
+		userObj.branch_id == 112 ||
+		String(userObj.branch_name || '').toLowerCase().includes('head office') ||
+		String(userObj.brn_name || '').toLowerCase().includes('head office')
+
+	useEffect(() => {
+		if (!isHO) {
+			Message("error", "Access Denied: Society Info is restricted to Head Office (Branch 112) only.")
+			navigate("/homebm/", { replace: true })
+		}
+	}, [isHO, navigate])
+
 	// 1. Radio Button Filter: 'branch' | 'society' (clean initial state, unbound on refresh)
 	const [viewMode, setViewMode] = useState("branch")
 	const [selectedBranch, setSelectedBranch] = useState("")
