@@ -267,12 +267,15 @@ function GroupDetailsBM() {
 										<BankOutlined className="text-teal-300" />
 										<b className="text-white">Branch:</b> {groupData.branch_name}
 									</span>
-									{groupData.pacs_name && groupData.pacs_name !== "Direct" && (
-										<span className="flex items-center gap-1.5 font-medium">
-											<SafetyCertificateOutlined className="text-sky-300" />
-											<b className="text-white">Society / PACS:</b> {groupData.pacs_name}
-										</span>
-									)}
+									{groupData.direct_indirect_flag !== "D" &&
+										groupData.pacs_name &&
+										groupData.pacs_name !== "Direct" &&
+										!groupData.pacs_name.toLowerCase().includes("demo society") && (
+											<span className="flex items-center gap-1.5 font-medium">
+												<SafetyCertificateOutlined className="text-sky-300" />
+												<b className="text-white">Society / PACS:</b> {groupData.pacs_name}
+											</span>
+										)}
 									<span className="flex items-center gap-1.5 font-medium">
 										<CalendarOutlined className="text-indigo-300" />
 										<b className="text-white">Opened:</b> {formatDate(groupData.grp_open_dt)}
@@ -364,16 +367,19 @@ function GroupDetailsBM() {
 
 						<div className="bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm hover:shadow-md transition-shadow">
 							<div className="flex items-center justify-between mb-2">
-								<span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">CHANNEL TYPE</span>
-								<span className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center text-lg font-bold">
-									<SafetyCertificateOutlined />
+								<span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">TOTAL MEMBER SAVINGS</span>
+								<span className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+									<WalletOutlined />
 								</span>
 							</div>
-							<div className="text-xl font-black text-slate-900">
-								{groupData.direct_indirect_flag === "D" ? "Direct SHG" : "PACS Indirect"}
+							<div className="text-2xl font-black text-slate-900 font-mono">
+								{formatCurrency(
+									summary?.total_member_savings ??
+									members.reduce((acc, m) => acc + (parseFloat(m.savings_balance) || 0), 0)
+								)}
 							</div>
 							<div className="mt-1 text-xs text-slate-600 font-semibold truncate">
-								{groupData.pacs_name || "Direct with Bank"}
+								Across all {summary?.total_members || members.length} group members
 							</div>
 						</div>
 					</div>

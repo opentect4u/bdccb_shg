@@ -24,7 +24,7 @@ export default function HODashboard() {
 	const [exportingExcel, setExportingExcel] = useState(false)
 	const [watchlistType, setWatchlistType] = useState("PACS")
 	const [blockToggle, setBlockToggle] = useState("Outstanding")
-	const [branchSortBy, setBranchSortBy] = useState("overdue_pct_desc")
+	const [branchSortBy, setBranchSortBy] = useState("outstanding_desc")
 
 	// Current date of operation and refresh timestamp
 	const dateOfOperation = moment().format("DD-MM-YYYY")
@@ -509,14 +509,15 @@ export default function HODashboard() {
 				>
 					<div className="flex flex-wrap justify-between items-baseline gap-2">
 						<div>
-							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
+							{/* A · CONTEXT & FILTERS - TEXT COMMENTED OFF AS REQUESTED */}
+							{/* <div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
 								A · CONTEXT &amp; FILTERS
-							</div>
+							</div> */}
 							<h1 className="text-xl font-semibold text-[#1f2933] mt-1">
 								Welcome, {userDetails?.user_name || "Admin"} · Head Office
 							</h1>
 						</div>
-						<div className="text-xs text-[#4a5560]">
+						<div className="text-xs text-[#4a5560] mt-1 sm:mt-2.5">
 							{loadingDashboard ? (
 								<span className="text-[#0f6b73] font-medium animate-pulse">Updating live data...</span>
 							) : (
@@ -631,9 +632,9 @@ export default function HODashboard() {
 				{/* SECTION B · PORTFOLIO SNAPSHOT (as on date) */}
 				<section aria-label="Portfolio snapshot" className="flex flex-col gap-2.5">
 					<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-						B · PORTFOLIO SNAPSHOT ({selectedPeriod})
+						{/* B · */} PORTFOLIO SNAPSHOT ({selectedPeriod})
 					</div>
-					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
 						{/* Card 1: Total loan outstanding */}
 						<article
 							onClick={() => navigate("/homebm/loan_transaction_report")}
@@ -653,8 +654,8 @@ export default function HODashboard() {
 							</div>
 						</article>
 
-						{/* Card 2: Overdue amount */}
-						<article
+						{/* Card 2: Overdue amount - COMMENTED OFF AS REQUESTED */}
+						{/* <article
 							onClick={() => navigate("/homebm/loan_transaction_report")}
 							className="bg-white border border-[#d9dee3] rounded-xl p-4 flex flex-col gap-1.5 shadow-sm hover:border-[#0f6b73] transition-all cursor-pointer"
 						>
@@ -665,7 +666,7 @@ export default function HODashboard() {
 							<div className="text-[11px] text-[#4a5560]">
 								{dashboardData ? `${dashboardData.portfolio.par_pct}% of outstanding (PAR)` : "0% of outstanding (PAR)"}
 							</div>
-						</article>
+						</article> */}
 
 						{/* Card 3: SHG groups */}
 						<article
@@ -747,9 +748,10 @@ export default function HODashboard() {
 					>
 						<div className="flex justify-between items-baseline gap-2 flex-wrap">
 							<div>
-								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
+								{/* C · LOAN DISBURSEMENT - TEXT COMMENTED OFF AS REQUESTED */}
+								{/* <div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
 									C · LOAN DISBURSEMENT ({selectedPeriod})
-								</div>
+								</div> */}
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
 									Disbursed in {selectedPeriod}
 								</h2>
@@ -833,9 +835,10 @@ export default function HODashboard() {
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col gap-3.5"
 					>
 						<div>
-							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								D · RECOVERY PIPELINE ({selectedPeriod})
-							</div>
+							{/* RECOVERY PIPELINE - TEXT COMMENTED OFF AS REQUESTED */}
+							{/* <div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
+								RECOVERY PIPELINE ({selectedPeriod})
+							</div> */}
 							<h2 className="text-base font-semibold text-slate-900 mt-1">
 								Where collected money is sitting ({selectedPeriod})
 							</h2>
@@ -903,25 +906,27 @@ export default function HODashboard() {
 									{dashboardData ? formatCurrency(dashboardData.recovery_pipeline.recovered_principal) : "₹ 0"}
 								</strong>
 							</span>
-							<span>
+							{/* Interest: ₹ 0 - COMMENTED OFF AS REQUESTED */}
+							{/* <span>
 								Interest:{" "}
 								<strong className="font-mono text-slate-900">
 									{dashboardData ? formatCurrency(dashboardData.recovery_pipeline.recovered_interest) : "₹ 0"}
 								</strong>
-							</span>
-							<span>
+							</span> */}
+							{/* Penal: ₹ 0 - COMMENTED OFF AS REQUESTED */}
+							{/* <span>
 								Penal:{" "}
 								<strong className="font-mono text-slate-900">
 									{dashboardData ? formatCurrency(dashboardData.recovery_pipeline.recovered_penal) : "₹ 0"}
 								</strong>
-							</span>
+							</span> */}
 						</div>
 					</section>
 				</div>
 
-				{/* SECTIONS E + F: DEMAND vs COLLECTION & OVERDUE & AGEING */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-					{/* E · DEMAND vs COLLECTION */}
+				{/* SECTIONS E + F: DEMAND vs COLLECTION & OVERDUE & AGEING - COMMENTED OFF AS REQUESTED */}
+				{/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+					// E · DEMAND vs COLLECTION
 					<section
 						aria-label="Demand versus collection trend"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col gap-3.5"
@@ -951,24 +956,24 @@ export default function HODashboard() {
 							</div>
 						</div>
 
-						{/* Chart Area */}
+						// Chart Area
 						<div className="flex items-end gap-2 h-[200px] border-b border-l border-[#c5ccd3] px-2 pt-4">
 							{demandCollectionData.labels.map((m, i) => (
 								<div key={m} className="flex-1 flex items-end justify-center gap-1 h-full group relative">
-									{/* Tooltip on hover */}
+									// Tooltip on hover
 									<div className="hidden group-hover:flex flex-col absolute -top-14 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg z-10 whitespace-nowrap pointer-events-none">
 										<span className="font-semibold text-slate-200">{m}</span>
 										<span>Demand: {demandCollectionData.demandFormatted[i]}</span>
 										<span>Collected: {demandCollectionData.collectedFormatted[i]}</span>
 										<span className="text-teal-300">Recovery: {demandCollectionData.recoveryPct[i]}%</span>
 									</div>
-									{/* Bar 1: Demand */}
+									// Bar 1: Demand
 									<div
 										style={{ height: `${demandCollectionData.demandBarHeight[i]}%` }}
 										className="flex-1 bg-[#9aa5b1] rounded-t-sm transition-all duration-300 group-hover:brightness-95"
 										title={`Demand: ${demandCollectionData.demandFormatted[i]}`}
 									></div>
-									{/* Bar 2: Collected */}
+									// Bar 2: Collected
 									<div
 										style={{ height: `${demandCollectionData.collectedBarHeight[i]}%` }}
 										className="flex-1 bg-[#0f6b73] rounded-t-sm transition-all duration-300 group-hover:brightness-110"
@@ -978,7 +983,7 @@ export default function HODashboard() {
 							))}
 						</div>
 
-						{/* Dynamic Labels */}
+						// Dynamic Labels
 						<div className="flex gap-2 px-2">
 							{demandCollectionData.labels.map((m) => (
 								<span key={m} className="flex-1 text-center text-[11px] text-[#4a5560] font-medium truncate" title={m}>
@@ -987,7 +992,7 @@ export default function HODashboard() {
 							))}
 						</div>
 
-						{/* Period Total Summary */}
+						// Period Total Summary
 						<div className="flex flex-wrap justify-between items-center text-xs pt-2 border-t border-[#e3e7eb] text-slate-600 font-medium gap-2">
 							<span>Demand: <strong className="text-slate-900 font-mono">{formatCurrency(demandCollectionData.totalDemand)}</strong></span>
 							<span>Collected: <strong className="text-[#0f6b73] font-mono">{formatCurrency(demandCollectionData.totalCollected)}</strong></span>
@@ -995,7 +1000,7 @@ export default function HODashboard() {
 						</div>
 					</section>
 
-					{/* F · OVERDUE & AGEING */}
+					// F · OVERDUE & AGEING
 					<section
 						aria-label="Overdue and ageing"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col gap-3.5"
@@ -1009,7 +1014,7 @@ export default function HODashboard() {
 							</h2>
 						</div>
 
-						{/* 3 Metric Boxes */}
+						// 3 Metric Boxes
 						<div className="grid grid-cols-3 gap-2.5">
 							<div className="p-2.5 border border-[#e3e7eb] rounded-lg bg-slate-50/50">
 								<div className="text-xs text-[#4a5560]">Overdue groups</div>
@@ -1031,7 +1036,7 @@ export default function HODashboard() {
 							</div>
 						</div>
 
-						{/* Ageing Horizontal Bars */}
+						// Ageing Horizontal Bars
 						<div className="flex flex-col gap-2.5">
 							{ageingBrackets.map((a) => (
 								<div key={a.label} className="flex items-center gap-3">
@@ -1049,19 +1054,19 @@ export default function HODashboard() {
 							))}
 						</div>
 					</section>
-				</div>
+				</div> */}
 
 				{/* SECTIONS G + N + K: PENDING & EXCEPTIONS, ALERTS, SHG SB DEPOSITS */}
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 					{/* G · PENDING & EXCEPTIONS */}
 					<section
 						aria-label="Pending actions and exceptions"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col gap-3"
 					>
 						<div>
-							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
+							{/* <div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
 								G · PENDING &amp; EXCEPTIONS ({selectedPeriod})
-							</div>
+							</div> */}
 							<h2 className="text-base font-semibold text-slate-900 mt-1">Items needing follow-up in {selectedPeriod}</h2>
 						</div>
 
@@ -1083,10 +1088,10 @@ export default function HODashboard() {
 									label: "Legacy groups without member mapping",
 									val: dashboardData ? formatCount(dashboardData.pending_exceptions.legacy_groups_unmapped) : "N",
 								},
-								{
-									label: "Members with incomplete KYC (Aadhaar/phone)",
-									val: dashboardData ? formatCount(dashboardData.pending_exceptions.incomplete_kyc) : "N",
-								},
+								// {
+								// 	label: "Members with incomplete KYC (Aadhaar/phone)",
+								// 	val: dashboardData ? formatCount(dashboardData.pending_exceptions.incomplete_kyc) : "N",
+								// },
 							].map((item) => (
 								<div
 									key={item.label}
@@ -1099,8 +1104,8 @@ export default function HODashboard() {
 						</div>
 					</section>
 
-					{/* N · ALERTS */}
-					<section
+					{/* N · ALERTS - COMMENTED OFF AS REQUESTED */}
+					{/* <section
 						aria-label="Alerts"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col gap-3"
 					>
@@ -1157,7 +1162,7 @@ export default function HODashboard() {
 								</div>
 							))}
 						</div>
-					</section>
+					</section> */}
 
 					{/* K · SHG SB DEPOSITS */}
 					<section
@@ -1217,7 +1222,7 @@ export default function HODashboard() {
 					<div className="flex justify-between items-end flex-wrap gap-2">
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								H · BRANCH-WISE PERFORMANCE ({selectedPeriod})
+								{/* H · */} BRANCH-WISE PERFORMANCE ({selectedPeriod})
 							</div>
 							<h2 className="text-base font-semibold text-slate-900 mt-1">
 								Click a branch to drill down to its PACS → SHGs → members
@@ -1232,7 +1237,7 @@ export default function HODashboard() {
 								onChange={(e) => setBranchSortBy(e.target.value)}
 								className="h-9 border border-[#c5ccd3] rounded-lg px-2 text-xs bg-white text-[#1f2933] focus:outline-none focus:ring-1 focus:ring-[#0f6b73]"
 							>
-								<option value="overdue_pct_desc">Overdue % (high → low)</option>
+								{/* <option value="overdue_pct_desc">Overdue % (high → low)</option> */}
 								<option value="outstanding_desc">Outstanding (high → low)</option>
 								<option value="recovery_desc">Recovery % (high → low)</option>
 								<option value="name_asc">Branch Name (A → Z)</option>
@@ -1252,8 +1257,8 @@ export default function HODashboard() {
 									<th className="py-2.5 px-3 text-center">Indirect SHGs</th>
 									<th className="py-2.5 px-3 text-center">Members</th>
 									<th className="py-2.5 px-3 text-right">Outstanding</th>
-									<th className="py-2.5 px-3 text-right">Overdue</th>
-									<th className="py-2.5 px-3 text-center">Overdue %</th>
+									{/* <th className="py-2.5 px-3 text-right">Overdue</th> */}
+									{/* <th className="py-2.5 px-3 text-center">Overdue %</th> */}
 									<th className="py-2.5 px-3 text-center">Recovery % ({selectedPeriod})</th>
 									<th className="py-2.5 px-3 text-right">Not deposited ({selectedPeriod})</th>
 									<th className="py-2.5 px-3 text-center">Pending approvals ({selectedPeriod})</th>
@@ -1262,7 +1267,7 @@ export default function HODashboard() {
 							<tbody className="divide-y divide-[#e3e7eb]">
 								{loadingBranchRows ? (
 									<tr>
-										<td colSpan={12} className="py-6 text-center text-slate-500 font-medium">
+										<td colSpan={10} className="py-6 text-center text-slate-500 font-medium">
 											Loading branch performance data...
 										</td>
 									</tr>
@@ -1287,8 +1292,8 @@ export default function HODashboard() {
 											<td className="py-2.5 px-3 text-center font-mono">{r.indirectShg}</td>
 											<td className="py-2.5 px-3 text-center font-mono">{r.members}</td>
 											<td className="py-2.5 px-3 text-right font-mono font-medium">{r.outstanding}</td>
-											<td className="py-2.5 px-3 text-right font-mono text-[#c2410c] font-medium">{r.overdue}</td>
-											<td className="py-2.5 px-3 text-center font-mono font-semibold">{r.overduePct}</td>
+											{/* <td className="py-2.5 px-3 text-right font-mono text-[#c2410c] font-medium">{r.overdue}</td> */}
+											{/* <td className="py-2.5 px-3 text-center font-mono font-semibold">{r.overduePct}</td> */}
 											<td className="py-2.5 px-3 text-center font-mono font-semibold text-[#0f6b73]">{r.recoveryPct}</td>
 											<td className="py-2.5 px-3 text-right font-mono">{r.notDeposited}</td>
 											<td className="py-2.5 px-3 text-center font-mono font-semibold text-slate-700">{r.pendingApprovals}</td>
@@ -1304,8 +1309,8 @@ export default function HODashboard() {
 									<td className="py-2.5 px-3 text-center font-mono">{tableTotals.indirectShg}</td>
 									<td className="py-2.5 px-3 text-center font-mono">{tableTotals.members}</td>
 									<td className="py-2.5 px-3 text-right font-mono">{tableTotals.outstanding}</td>
-									<td className="py-2.5 px-3 text-right font-mono text-[#c2410c]">{tableTotals.overdue}</td>
-									<td className="py-2.5 px-3 text-center font-mono">{tableTotals.overduePct}</td>
+									{/* <td className="py-2.5 px-3 text-right font-mono text-[#c2410c]">{tableTotals.overdue}</td> */}
+									{/* <td className="py-2.5 px-3 text-center font-mono">{tableTotals.overduePct}</td> */}
 									<td className="py-2.5 px-3 text-center font-mono text-[#0f6b73]">{tableTotals.recoveryPct}</td>
 									<td className="py-2.5 px-3 text-right font-mono">{tableTotals.notDeposited}</td>
 									<td className="py-2.5 px-3 text-center font-mono">{tableTotals.pendingApprovals}</td>
@@ -1316,9 +1321,9 @@ export default function HODashboard() {
 				</section>
 
 				{/* BOTTOM GRID: SECTIONS I, J, L, M */}
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
-					{/* I · WATCHLIST */}
-					<section
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+					{/* I · WATCHLIST - COMMENTED OFF AS REQUESTED */}
+					{/* <section
 						aria-label="PACS watchlist"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col justify-between min-h-[310px]"
 					>
@@ -1332,7 +1337,7 @@ export default function HODashboard() {
 								</h2>
 							</div>
 
-							{/* Toggle Buttons */}
+							// Toggle Buttons
 							<div role="group" aria-label="Watchlist level" className="flex gap-1.5 my-1">
 								<button
 									type="button"
@@ -1356,7 +1361,7 @@ export default function HODashboard() {
 								</button>
 							</div>
 
-							{/* Watchlist Rows */}
+							// Watchlist Rows
 							<div className="flex flex-col">
 								{dynamicWatchlist.length === 0 ? (
 									<div className="py-6 text-center text-xs text-slate-500 font-medium bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2">
@@ -1378,7 +1383,7 @@ export default function HODashboard() {
 								)}
 							</div>
 						</div>
-					</section>
+					</section> */}
 
 					{/* J · BLOCK-WISE */}
 					<section
@@ -1388,7 +1393,7 @@ export default function HODashboard() {
 						<div className="flex flex-col gap-2.5">
 							<div>
 								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-									J · BLOCK-WISE
+									{/* J · */} BLOCK-WISE
 								</div>
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
 									{blockToggle} by block
@@ -1421,7 +1426,7 @@ export default function HODashboard() {
 						<div className="pt-3 border-t border-[#f1f5f9] mt-3">
 							<span className="text-[11px] text-[#4a5560] block mb-1 font-medium">Toggle:</span>
 							<div className="flex flex-wrap gap-1 text-[11px]">
-								{["Outstanding", "Disbursed", "Overdue", "Purpose-wise"].map((t) => (
+								{["Outstanding", "Disbursed", /* "Overdue", */ "Purpose-wise"].map((t) => (
 									<button
 										key={t}
 										type="button"
@@ -1438,8 +1443,8 @@ export default function HODashboard() {
 						</div>
 					</section>
 
-					{/* L · INTEREST SUBVENTION */}
-					<section
+					{/* L · INTEREST SUBVENTION - COMMENTED OFF AS REQUESTED */}
+					{/* <section
 						aria-label="Interest subvention"
 						className="bg-white border border-[#d9dee3] rounded-xl p-5 shadow-sm flex flex-col justify-between min-h-[310px]"
 					>
@@ -1470,7 +1475,7 @@ export default function HODashboard() {
 								))}
 							</div>
 						</div>
-					</section>
+					</section> */}
 
 					{/* M · MEMBER PROFILE */}
 					<section
@@ -1480,7 +1485,7 @@ export default function HODashboard() {
 						<div className="flex flex-col gap-2.5">
 							<div>
 								<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-									M · MEMBER PROFILE
+									{/* M · */} MEMBER PROFILE
 								</div>
 								<h2 className="text-base font-semibold text-slate-900 mt-1">
 									Financial inclusion mix

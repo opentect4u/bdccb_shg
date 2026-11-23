@@ -291,6 +291,7 @@ function LoanTrackingBM() {
 	// Switch Fund Type in Modal (e.g. Bank Fund vs Own Fund)
 	const handleSwitchFundType = (fundType) => {
 		if (!selectedGroupModal) return
+		setSelectedFundType(fundType)
 		handleOpenLoanModal(selectedGroupModal, null, fundType, null)
 	}
 
@@ -299,6 +300,9 @@ function LoanTrackingBM() {
 		if (!selectedGroupModal || !hierarchyData?.loan_accounts) return
 		const portfolio = hierarchyData.loan_accounts.find((p) => p.portfolio_id === portfolioId)
 		if (portfolio) {
+			setSelectedPortfolioId(portfolioId)
+			setSelectedLoanAcc(portfolio.loan_acc_no || "")
+			setSelectedFundType(portfolio.fund_type || "")
 			handleOpenLoanModal(selectedGroupModal, portfolio.loan_acc_no, portfolio.fund_type, portfolio.loan_id)
 		}
 	}
@@ -688,10 +692,15 @@ function LoanTrackingBM() {
 																<BankOutlined className="text-teal-600" />
 																<b>Branch:</b> {g.branch_name} ({g.branch_code})
 															</span>
-															<span className="flex items-center gap-1.5 font-medium">
-																<SafetyCertificateOutlined className="text-indigo-600" />
-																<b>PACS:</b> {g.pacs_name}
-															</span>
+															{g.direct_indirect_flag !== "D" &&
+																g.pacs_name &&
+																g.pacs_name !== "Direct" &&
+																!String(g.pacs_name).toLowerCase().includes("demo") && (
+																	<span className="flex items-center gap-1.5 font-medium">
+																		<SafetyCertificateOutlined className="text-indigo-600" />
+																		<b>PACS:</b> {g.pacs_name}
+																	</span>
+																)}
 															<span className="flex items-center gap-1.5 font-medium">
 																<TeamOutlined className="text-sky-600" />
 																<b>Members:</b> {g.member_count}
@@ -834,7 +843,7 @@ function LoanTrackingBM() {
 			{/* SUMMARY STATISTICS KPI CARDS                                              */}
 			{/* ========================================================================= */}
 			{!loading && summary && groupList.length > 0 && searchMode !== "group" && (
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
 					<div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
 						<span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 block">
 							Total Groups
@@ -891,7 +900,8 @@ function LoanTrackingBM() {
 						<span className="text-[11px] text-sky-700 font-medium">Standard book balance</span>
 					</div>
 
-					<div className="bg-rose-50/70 p-4 sm:p-5 rounded-2xl border border-rose-200 shadow-xs">
+					{/* Total Overdue card commented off as requested */}
+					{/* <div className="bg-rose-50/70 p-4 sm:p-5 rounded-2xl border border-rose-200 shadow-xs">
 						<span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-rose-800 block">
 							Total Overdue
 						</span>
@@ -901,7 +911,7 @@ function LoanTrackingBM() {
 						<span className="text-[11px] text-rose-700 font-medium">
 							Prn: {formatCurrency(summary.total_ovd_prn)}
 						</span>
-					</div>
+					</div> */}
 				</div>
 			)}
 
@@ -978,7 +988,7 @@ function LoanTrackingBM() {
 								<tr>
 									<th className="py-3.5 px-4 text-center w-12">#</th>
 									<th className="py-3.5 px-4">Group Code & Name</th>
-									<th className="py-3.5 px-4">Branch & PACS</th>
+									<th className="py-3.5 px-4">{searchMode === "branch" ? "Branch" : "Branch & PACS"}</th>
 									<th className="py-3.5 px-3 text-center">Members</th>
 									<th className="py-3.5 px-3 text-center">Loan Status</th>
 									{/* Disbursed, Current Prn, Overdue, Outstanding commented off as requested */}
@@ -1020,9 +1030,14 @@ function LoanTrackingBM() {
 													<div className="font-bold text-slate-800">
 														{g.branch_name} ({g.branch_code})
 													</div>
-													<div className="text-[11px] text-slate-500">
-														{g.pacs_name || "Direct"}
-													</div>
+													{g.direct_indirect_flag !== "D" &&
+														g.pacs_name &&
+														g.pacs_name !== "Direct" &&
+														!String(g.pacs_name).toLowerCase().includes("demo") && (
+															<div className="text-[11px] text-slate-500">
+																{g.pacs_name}
+															</div>
+														)}
 												</td>
 												<td className="py-3.5 px-3 text-center font-mono font-bold text-slate-800">
 													{g.member_count}
@@ -1134,11 +1149,18 @@ function LoanTrackingBM() {
 								<span>
 									<b>Branch:</b> {hierarchyData?.group?.branch_name || selectedGroupModal?.branch_name}
 								</span>
-								<span>•</span>
-								<span>
-									<b>Society / PACS:</b>{" "}
-									{hierarchyData?.group?.pacs_name || selectedGroupModal?.pacs_name || "Direct"}
-								</span>
+								{((hierarchyData?.group?.direct_indirect_flag !== "D" && selectedGroupModal?.direct_indirect_flag !== "D") &&
+									(hierarchyData?.group?.pacs_name || selectedGroupModal?.pacs_name) &&
+									(hierarchyData?.group?.pacs_name || selectedGroupModal?.pacs_name) !== "Direct" &&
+									!String(hierarchyData?.group?.pacs_name || selectedGroupModal?.pacs_name).toLowerCase().includes("demo")) && (
+										<>
+											<span>•</span>
+											<span>
+												<b>Society / PACS:</b>{" "}
+												{hierarchyData?.group?.pacs_name || selectedGroupModal?.pacs_name}
+											</span>
+										</>
+									)}
 								<span>•</span>
 								<span>
 									<b>Total Members:</b>{" "}
@@ -1156,8 +1178,8 @@ function LoanTrackingBM() {
 										{(selectedFundType || hierarchyData.selected_fund_type) === "B"
 											? "Bank Fund (B)"
 											: (selectedFundType || hierarchyData.selected_fund_type) === "O"
-											? "Own Fund (O)"
-											: ""}
+												? "Own Fund (O)"
+												: ""}
 									</span>
 								</div>
 								<Select
@@ -1224,13 +1246,12 @@ function LoanTrackingBM() {
 												key={f.fund_type}
 												type="button"
 												onClick={() => handleSwitchFundType(f.fund_type)}
-												className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-													isActive
+												className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${isActive
 														? isBank
 															? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-300"
 															: "bg-purple-600 text-white shadow-sm ring-2 ring-purple-300"
 														: "bg-white text-slate-700 hover:bg-slate-100 border border-slate-300"
-												}`}
+													}`}
 											>
 												<span>{isBank ? "🏦 Bank Fund (B)" : "💼 Own Fund (O)"}</span>
 												{isActive && <CheckCircleFilled className="text-white text-xs" />}
@@ -1328,9 +1349,9 @@ function LoanTrackingBM() {
 									</div>
 									<div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
 										<span>Prn: {formatCurrency(hierarchyData.ccb_level?.loan?.curr_prn || 0)}</span>
-										<span className="text-rose-600 font-bold">
+										{/* <span className="text-rose-600 font-bold">
 											Ovd: {formatCurrency(hierarchyData.ccb_level?.loan?.total_overdue || 0)}
-										</span>
+										</span> */}
 									</div>
 								</div>
 							</div>
@@ -1383,9 +1404,9 @@ function LoanTrackingBM() {
 									</div>
 									<div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
 										<span>Prn: {formatCurrency(hierarchyData.society_level?.loan?.curr_prn || 0)}</span>
-										<span className="text-rose-600 font-bold">
+										{/* <span className="text-rose-600 font-bold">
 											Ovd: {formatCurrency(hierarchyData.society_level?.loan?.total_overdue || 0)}
-										</span>
+										</span> */}
 									</div>
 								</div>
 							</div>
@@ -1497,9 +1518,9 @@ function LoanTrackingBM() {
 									</div>
 									<div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
 										<span>Active Accounts: {hierarchyData.member_level?.total_loanee_members || 0}</span>
-										<span className="text-rose-600 font-bold">
+										{/* <span className="text-rose-600 font-bold">
 											Ovd: {formatCurrency(hierarchyData.member_level?.total_member_overdue || 0)}
-										</span>
+										</span> */}
 									</div>
 								</div>
 							</div>

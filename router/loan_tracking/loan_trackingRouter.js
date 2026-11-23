@@ -43,6 +43,55 @@ loanTrackingRouter.all("/get_branches_and_societies", async (req, res) => {
 });
 
 /**
+ * Helper to construct flexible whitespace-insensitive and token-aware group search condition.
+ * Handles cases where database has multiple spaces (e.g. 'ARIYAN  SHG') or user copies text with single space.
+ */
+function buildLoanTrackingQueryCondition(rawQuery, params, includeBranchPacs = false) {
+  const normalized = String(rawQuery).trim().replace(/\s+/g, ' ');
+  const tokens = normalized.split(' ').filter(Boolean);
+
+  params.push(`%${normalized}%`);
+  const phraseIdx = params.length;
+
+  let tokenCondition = '';
+  if (tokens.length > 1) {
+    const tokenClauses = tokens.map(t => {
+      params.push(`%${t}%`);
+      const tIdx = params.length;
+      return `(g.group_code::text ILIKE $${tIdx} OR regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${tIdx})`;
+    });
+    tokenCondition = ` OR (${tokenClauses.join(' AND ')})`;
+  }
+
+  const loanAccSubquery = `
+    EXISTS (
+      SELECT 1 FROM bdccb.td_loan lchk 
+      WHERE (lchk.group_code::text = g.group_code::text OR lchk.branch_shg_id::text = g.group_code::text)
+        AND lchk.loan_acc_no::text ILIKE $${phraseIdx}
+        AND lchk.acc_status = 'O'
+    )
+  `;
+
+  if (includeBranchPacs) {
+    return `(
+      g.group_code::text ILIKE $${phraseIdx} OR 
+      regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${phraseIdx} OR 
+      b.branch_name ILIKE $${phraseIdx} OR 
+      p.branch_name ILIKE $${phraseIdx} OR
+      ${loanAccSubquery}
+      ${tokenCondition}
+    )`;
+  }
+
+  return `(
+    g.group_code::text ILIKE $${phraseIdx} OR 
+    regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${phraseIdx} OR 
+    ${loanAccSubquery}
+    ${tokenCondition}
+  )`;
+}
+
+/**
  * 2. Search Groups & Loan Tracking Information
  * POST /v1/loantracking/search_loan_tracking
  * 
@@ -70,34 +119,18 @@ loanTrackingRouter.post("/search_loan_tracking", async (req, res) => {
 
     // Filter by Search Type
     if (search_type === 'group' && query && String(query).trim()) {
-      const q = `%${String(query).trim()}%`;
-      params.push(q);
-      const qIdx = params.length;
-      conditions.push(`(
-        g.group_code::text ILIKE $${qIdx} OR 
-        g.group_name ILIKE $${qIdx} OR
-        EXISTS (
-          SELECT 1 FROM bdccb.td_loan lchk 
-          WHERE (lchk.group_code::text = g.group_code::text OR lchk.branch_shg_id::text = g.group_code::text)
-            AND lchk.loan_acc_no::text ILIKE $${qIdx}
-            AND lchk.acc_status = 'O'
-        )
-      )`);
+      conditions.push(buildLoanTrackingQueryCondition(query, params, false));
     } else if (search_type === 'branch' && branch_code && branch_code !== 'All branches' && branch_code !== 'ALL') {
       params.push(String(branch_code));
       conditions.push(`g.branch_code::text = $${params.length}`);
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(g.group_code::text ILIKE $${qIdx} OR g.group_name ILIKE $${qIdx})`);
+        conditions.push(buildLoanTrackingQueryCondition(query, params, false));
       }
     } else if (search_type === 'society' && pacs_id && pacs_id !== 'All PACS' && pacs_id !== 'ALL') {
       params.push(String(pacs_id));
       conditions.push(`g.pacs_id::text = $${params.length}`);
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(g.group_code::text ILIKE $${qIdx} OR g.group_name ILIKE $${qIdx})`);
+        conditions.push(buildLoanTrackingQueryCondition(query, params, false));
       }
     } else {
       // General / Smart search
@@ -110,14 +143,7 @@ loanTrackingRouter.post("/search_loan_tracking", async (req, res) => {
         conditions.push(`g.pacs_id::text = $${params.length}`);
       }
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(
-          g.group_code::text ILIKE $${qIdx} OR 
-          g.group_name ILIKE $${qIdx} OR 
-          b.branch_name ILIKE $${qIdx} OR 
-          p.branch_name ILIKE $${qIdx}
-        )`);
+        conditions.push(buildLoanTrackingQueryCondition(query, params, true));
       }
     }
 
@@ -134,7 +160,11 @@ loanTrackingRouter.post("/search_loan_tracking", async (req, res) => {
         g.branch_code,
         COALESCE(b.branch_name, 'Branch ' || g.branch_code::text) as branch_name,
         g.pacs_id,
-        COALESCE(p.branch_name, 'Direct') as pacs_name,
+        CASE 
+          WHEN g.direct_indirect_flag = 'D' THEN 'Direct'
+          WHEN p.branch_name ILIKE '%demo%' THEN 'Direct'
+          ELSE COALESCE(p.branch_name, 'Direct')
+        END as pacs_name,
         g.direct_indirect_flag,
         g.grp_open_dt,
         g.open_close_flag,
@@ -362,7 +392,12 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
         g.branch_code, 
         COALESCE(b.branch_name, 'Branch ' || g.branch_code::text) as branch_name, 
         g.pacs_id, 
-        COALESCE(p.branch_name, 'Society ' || g.pacs_id::text) as pacs_name, 
+        CASE 
+          WHEN g.direct_indirect_flag = 'D' THEN 'Direct'
+          WHEN p.branch_name ILIKE '%demo%' THEN 'Direct'
+          ELSE COALESCE(p.branch_name, 'Direct')
+        END as pacs_name, 
+        g.direct_indirect_flag,
         g.grp_open_dt, 
         g.phone1,
         COALESCE(m.member_count, 0) as member_count
@@ -385,13 +420,12 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
         c.loan_id, c.branch_id, c.loan_acc_no, c.loan_to, c.branch_shg_id, c.group_code,
         c.period, c.curr_roi, c.penal_roi, c.disb_dt, c.disb_amt, c.pay_mode,
         c.rep_start_dt, c.rep_end_dt, c.curr_prn, c.curr_intt, c.ovd_prn, c.ovd_intt,
-        c.tot_grp, c.tot_memb, c.sanction_no, c.sanction_dt, c.fund_type,
+        c.tot_grp, c.tot_memb, c.sanction_no, c.sanction_dt, c.fund_type, c.acc_status,
         (COALESCE(c.curr_prn, 0) + COALESCE(c.ovd_prn, 0) + COALESCE(c.curr_intt, 0) + COALESCE(c.ovd_intt, 0)) AS present_outstanding,
         (COALESCE(c.ovd_prn, 0) + COALESCE(c.ovd_intt, 0)) AS total_overdue
       FROM bdccb.td_loan_ccb c
       WHERE (c.group_code::text = $1 OR c.branch_shg_id::text = $1)
-        AND c.acc_status = 'O'
-      ORDER BY c.disb_dt DESC NULLS LAST, c.loan_id DESC
+      ORDER BY (CASE WHEN c.acc_status = 'O' THEN 0 ELSE 1 END) ASC, c.disb_dt DESC NULLS LAST, c.loan_id DESC
     `, [gCodeStr]);
 
     // 3. Society Level Loans (td_loan)
@@ -400,13 +434,12 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
         s.loan_id, s.branch_id, s.loan_acc_no, s.loan_to, s.branch_shg_id, s.group_code,
         s.period, s.curr_roi, s.penal_roi, s.disb_dt, s.disb_amt, s.pay_mode,
         s.rep_start_dt, s.rep_end_dt, s.curr_prn, s.curr_intt, s.ovd_prn, s.ovd_intt,
-        s.tot_grp, s.tot_memb, s.sanction_no, s.sanction_dt, s.fund_type,
+        s.tot_grp, s.tot_memb, s.sanction_no, s.sanction_dt, s.fund_type, s.acc_status,
         (COALESCE(s.curr_prn, 0) + COALESCE(s.ovd_prn, 0) + COALESCE(s.curr_intt, 0) + COALESCE(s.ovd_intt, 0)) AS present_outstanding,
         (COALESCE(s.ovd_prn, 0) + COALESCE(s.ovd_intt, 0)) AS total_overdue
       FROM bdccb.td_loan s
       WHERE (s.group_code::text = $1 OR s.branch_shg_id::text = $1)
-        AND s.acc_status = 'O'
-      ORDER BY s.disb_dt DESC NULLS LAST, s.loan_id DESC
+      ORDER BY (CASE WHEN s.acc_status = 'O' THEN 0 ELSE 1 END) ASC, s.disb_dt DESC NULLS LAST, s.loan_id DESC
     `, [gCodeStr]);
 
     // 4. Member Level Loans (td_loan_member)
@@ -417,14 +450,13 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
         m.period, m.curr_roi, m.penal_roi, m.disb_dt, m.disb_amt, m.period_mode,
         m.rep_start_dt, m.rep_end_dt, m.prn_amt AS curr_prn, m.ovd_prn_amt AS ovd_prn,
         m.intt_amt AS curr_intt, m.ovd_intt_amt AS ovd_intt, m.outstanding,
-        m.prn_emi, m.intt_emi, m.tot_emi, m.last_trn_dt, m.fund_type,
+        m.prn_emi, m.intt_emi, m.tot_emi, m.last_trn_dt, m.fund_type, m.acc_status,
         (COALESCE(m.prn_amt, 0) + COALESCE(m.ovd_prn_amt, 0) + COALESCE(m.intt_amt, 0) + COALESCE(m.ovd_intt_amt, 0)) AS present_outstanding,
         (COALESCE(m.ovd_prn_amt, 0) + COALESCE(m.ovd_intt_amt, 0)) AS total_overdue
       FROM bdccb.td_loan_member m
       LEFT JOIN bdccb.md_member mm ON m.member_code::text = mm.member_code::text
       WHERE (m.group_code::text = $1 OR m.branch_shg_id::text = $1)
-        AND m.acc_status = 'O'
-      ORDER BY m.member_code::text ASC
+      ORDER BY (CASE WHEN m.acc_status = 'O' THEN 0 ELSE 1 END) ASC, m.member_code::text ASC
     `, [gCodeStr]);
 
     const ccbLoans = ccbLoansRes.rows || [];
@@ -462,6 +494,7 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
           disb_dt: l.disb_dt,
           curr_roi: l.curr_roi,
           period: l.period,
+          acc_status: l.acc_status,
           present_outstanding: l.present_outstanding,
           total_overdue: l.total_overdue
         });
@@ -476,7 +509,13 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
     }
     if (!selectedPortfolio && targetAccNo && targetFundType) {
       selectedPortfolio = loanAccounts.find(
-        l => l.loan_acc_no === targetAccNo && l.fund_type === String(targetFundType).toUpperCase()
+        l => String(l.loan_acc_no || '').trim().toLowerCase() === String(targetAccNo).trim().toLowerCase() &&
+          l.fund_type === String(targetFundType).toUpperCase()
+      ) || null;
+    }
+    if (!selectedPortfolio && targetAccNo) {
+      selectedPortfolio = loanAccounts.find(
+        l => String(l.loan_acc_no || '').trim().toLowerCase() === String(targetAccNo).trim().toLowerCase()
       ) || null;
     }
     if (!selectedPortfolio && targetFundType) {
@@ -484,43 +523,59 @@ loanTrackingRouter.post("/get_loan_hierarchy_details", async (req, res) => {
         l => l.fund_type === String(targetFundType).toUpperCase()
       ) || null;
     }
-    if (!selectedPortfolio && targetAccNo) {
-      selectedPortfolio = loanAccounts.find(l => l.loan_acc_no === targetAccNo) || null;
-    }
     if (!selectedPortfolio && loanAccounts.length > 0) {
-      // Pick first active loan with present_outstanding > 0, else first loan
-      selectedPortfolio = loanAccounts.find(l => Number(l.present_outstanding) > 0) || loanAccounts[0];
+      // Pick first open loan with present_outstanding > 0, else first open loan, else first with balance, else first
+      selectedPortfolio = loanAccounts.find(l => l.acc_status === 'O' && Number(l.present_outstanding) > 0) ||
+        loanAccounts.find(l => l.acc_status === 'O') ||
+        loanAccounts.find(l => Number(l.present_outstanding) > 0) ||
+        loanAccounts[0];
     }
 
     const activeFundType = selectedPortfolio?.fund_type || (distinctFunds[0]?.fund_type || 'B');
     const activeLoanAccNo = selectedPortfolio?.loan_acc_no || null;
     const activeLoanId = selectedPortfolio?.loan_id || null;
 
-    // Filter level loan record for the active account strictly by fund_type
-    const activeCcbLoan = ccbLoans.find(l =>
-      (activeLoanId && Number(l.loan_id) === Number(activeLoanId)) ||
-      (activeLoanAccNo && l.loan_acc_no === activeLoanAccNo && (l.fund_type || 'B').toUpperCase() === activeFundType)
-    ) || ccbLoans.find(l => (l.fund_type || 'B').toUpperCase() === activeFundType) || ccbLoans[0] || null;
+    // Filter level loan record strictly for the active selected account
+    let activeCcbLoan = null;
+    if (activeLoanAccNo) {
+      activeCcbLoan = ccbLoans.find(l =>
+        String(l.loan_acc_no || '').trim().toLowerCase() === String(activeLoanAccNo).trim().toLowerCase() &&
+        (l.fund_type || 'B').toUpperCase() === activeFundType
+      ) || ccbLoans.find(l =>
+        String(l.loan_acc_no || '').trim().toLowerCase() === String(activeLoanAccNo).trim().toLowerCase()
+      ) || null;
+    }
+    if (!activeCcbLoan && activeLoanId) {
+      activeCcbLoan = ccbLoans.find(l => Number(l.loan_id) === Number(activeLoanId)) || null;
+    }
 
-    const activeSociLoan = sociLoans.find(l =>
-      (activeLoanId && Number(l.loan_id) === Number(activeLoanId)) ||
-      (activeLoanAccNo && l.loan_acc_no === activeLoanAccNo && (l.fund_type || 'B').toUpperCase() === activeFundType)
-    ) || sociLoans.find(l => (l.fund_type || 'B').toUpperCase() === activeFundType) || sociLoans[0] || null;
+    let activeSociLoan = null;
+    if (activeLoanAccNo) {
+      activeSociLoan = sociLoans.find(l =>
+        String(l.loan_acc_no || '').trim().toLowerCase() === String(activeLoanAccNo).trim().toLowerCase() &&
+        (l.fund_type || 'B').toUpperCase() === activeFundType
+      ) || sociLoans.find(l =>
+        String(l.loan_acc_no || '').trim().toLowerCase() === String(activeLoanAccNo).trim().toLowerCase()
+      ) || null;
+    }
+    if (!activeSociLoan && activeLoanId) {
+      activeSociLoan = sociLoans.find(l => Number(l.loan_id) === Number(activeLoanId)) || null;
+    }
 
-    const ccbLoanId = activeCcbLoan?.loan_id || null;
+    const ccbLoanId = activeCcbLoan?.loan_id || (activeLoanId ? activeLoanId : null);
     const sociLoanId = activeSociLoan?.loan_id || null;
 
     // Filter member loans strictly for this fund_type and matching ccb_loan_id / loan_acc_no
     let activeMembLoans = membLoans.filter(l => {
       const membFund = (l.fund_type || 'B').toUpperCase();
       if (membFund !== activeFundType) return false;
+      if (activeLoanAccNo && l.loan_acc_no && String(l.loan_acc_no).trim().toLowerCase() === String(activeLoanAccNo).trim().toLowerCase()) return true;
       if (ccbLoanId && l.ccb_loan_id && Number(l.ccb_loan_id) === Number(ccbLoanId)) return true;
-      if (activeLoanAccNo && l.loan_acc_no === activeLoanAccNo) return true;
-      return !activeLoanAccNo;
+      if (activeLoanId && l.ccb_loan_id && Number(l.ccb_loan_id) === Number(activeLoanId)) return true;
+      // If the member loan has neither loan_acc_no nor ccb_loan_id, and group only has 1 loan account
+      if (!l.loan_acc_no && !l.ccb_loan_id && loanAccounts.length <= 1) return true;
+      return false;
     });
-    if (activeMembLoans.length === 0 && activeFundType) {
-      activeMembLoans = membLoans.filter(l => (l.fund_type || 'B').toUpperCase() === activeFundType);
-    }
 
     const memberLoanIds = activeMembLoans.map(m => m.loan_id);
 

@@ -176,7 +176,7 @@ function GroupInfoBM() {
 			const tokenValue = await getLocalStoreTokenDts(navigate)
 			const payload = {
 				search_type: mode,
-				query: mode === "group" ? String(queryVal).trim() : "",
+				query: mode === "group" ? String(queryVal).trim().replace(/\s+/g, " ") : "",
 				branch_code: branchVal || "",
 				pacs_id: pacsVal || "",
 				limit: 1000,
@@ -247,7 +247,7 @@ function GroupInfoBM() {
 				{ header: "Branch Name", key: "branch_name", width: 22 },
 				{ header: "Group Code", key: "group_code", width: 14 },
 				{ header: "Group Name", key: "group_name", width: 32 },
-				{ header: "Society / PACS", key: "pacs_name", width: 26 },
+				// { header: "Society / PACS", key: "pacs_name", width: 26 },
 				{ header: "Channel", key: "channel", width: 14 },
 				{ header: "Opening Date", key: "grp_open_dt", width: 14 },
 				{ header: "Members", key: "member_count", width: 10 },
@@ -459,7 +459,7 @@ function GroupInfoBM() {
 																<SafetyCertificateOutlined className="text-indigo-600" />
 																<span>Society:</span>
 																<strong className="text-slate-800 font-semibold">
-																	{g.direct_indirect_flag === "D" || !g.pacs_id || g.pacs_name === "Direct"
+																	{g.direct_indirect_flag === "D" || !g.pacs_id || g.pacs_name === "Direct" || String(g.pacs_name).toLowerCase().includes("demo society")
 																		? "Direct SHG"
 																		: `${g.pacs_id ? `${g.pacs_id} - ` : ""}${g.pacs_name}`}
 																</strong>
@@ -700,7 +700,7 @@ function GroupInfoBM() {
 											<th className="py-3 px-4">#</th>
 											<th className="py-3 px-4">Branch (Code Wise)</th>
 											<th className="py-3 px-4">Group Name & Code</th>
-											<th className="py-3 px-4">Society / PACS</th>
+											{/* <th className="py-3 px-4">Society / PACS</th> */}
 											<th className="py-3 px-4">Channel</th>
 											<th className="py-3 px-4">Opened Date</th>
 											<th className="py-3 px-4 text-center">Action</th>
@@ -732,15 +732,16 @@ function GroupInfoBM() {
 													</div>
 												</td>
 
-												<td className="py-3 px-4">
-													{g.pacs_name && g.pacs_name !== "Direct" ? (
+												{/* Society / PACS - COMMENTED OFF AS REQUESTED */}
+												{/* <td className="py-3 px-4">
+													{g.direct_indirect_flag !== "D" && g.pacs_name && g.pacs_name !== "Direct" && !String(g.pacs_name).toLowerCase().includes("demo society") ? (
 														<div className="font-semibold text-slate-800 text-xs">
 															<span className="font-mono text-slate-500">[{g.pacs_id}]</span> {g.pacs_name}
 														</div>
 													) : (
 														<span className="text-xs text-slate-400 font-medium">Direct Bank Linkage</span>
 													)}
-												</td>
+												</td> */}
 
 												<td className="py-3 px-4">
 													{g.direct_indirect_flag === "D" ? (

@@ -40,6 +40,44 @@ groupInfoRouter.all("/get_branches_and_societies", async (req, res) => {
 });
 
 /**
+ * Helper to construct flexible whitespace-insensitive and token-aware group search condition.
+ * Handles cases where database has multiple spaces (e.g. 'ARIYAN  SHG') or user copies text with single space.
+ */
+function buildGroupQueryCondition(rawQuery, params, includeBranchPacs = false) {
+  const normalized = String(rawQuery).trim().replace(/\s+/g, ' ');
+  const tokens = normalized.split(' ').filter(Boolean);
+
+  params.push(`%${normalized}%`);
+  const phraseIdx = params.length;
+
+  let tokenCondition = '';
+  if (tokens.length > 1) {
+    const tokenClauses = tokens.map(t => {
+      params.push(`%${t}%`);
+      const tIdx = params.length;
+      return `(g.group_code::text ILIKE $${tIdx} OR regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${tIdx})`;
+    });
+    tokenCondition = ` OR (${tokenClauses.join(' AND ')})`;
+  }
+
+  if (includeBranchPacs) {
+    return `(
+      g.group_code::text ILIKE $${phraseIdx} OR 
+      regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${phraseIdx} OR 
+      b.branch_name ILIKE $${phraseIdx} OR 
+      p.branch_name ILIKE $${phraseIdx}
+      ${tokenCondition}
+    )`;
+  }
+
+  return `(
+    g.group_code::text ILIKE $${phraseIdx} OR 
+    regexp_replace(trim(g.group_name), '\\s+', ' ', 'g') ILIKE $${phraseIdx}
+    ${tokenCondition}
+  )`;
+}
+
+/**
  * 2. Search Groups by Group Code, Group Name, Branch Name, or Society Name
  * POST /v1/groupinfo/search_group_info
  * 
@@ -67,27 +105,18 @@ groupInfoRouter.post("/search_group_info", async (req, res) => {
 
     // Filter by Search Type
     if (search_type === 'group' && query && String(query).trim()) {
-      const q = `%${String(query).trim()}%`;
-      params.push(q);
-      const paramIdx = params.length;
-      conditions.push(`(g.group_code::text ILIKE $${paramIdx} OR g.group_name ILIKE $${paramIdx})`);
+      conditions.push(buildGroupQueryCondition(query, params, false));
     } else if (search_type === 'branch' && branch_code && branch_code !== 'All branches' && branch_code !== 'ALL') {
       params.push(String(branch_code));
-      const paramIdx = params.length;
-      conditions.push(`g.branch_code::text = $${paramIdx}`);
+      conditions.push(`g.branch_code::text = $${params.length}`);
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(g.group_code::text ILIKE $${qIdx} OR g.group_name ILIKE $${qIdx})`);
+        conditions.push(buildGroupQueryCondition(query, params, false));
       }
     } else if (search_type === 'society' && pacs_id && pacs_id !== 'All PACS' && pacs_id !== 'ALL') {
       params.push(String(pacs_id));
-      const paramIdx = params.length;
-      conditions.push(`g.pacs_id::text = $${paramIdx}`);
+      conditions.push(`g.pacs_id::text = $${params.length}`);
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(g.group_code::text ILIKE $${qIdx} OR g.group_name ILIKE $${qIdx})`);
+        conditions.push(buildGroupQueryCondition(query, params, false));
       }
     } else {
       // General / Smart search:
@@ -100,14 +129,7 @@ groupInfoRouter.post("/search_group_info", async (req, res) => {
         conditions.push(`g.pacs_id::text = $${params.length}`);
       }
       if (query && String(query).trim()) {
-        params.push(`%${String(query).trim()}%`);
-        const qIdx = params.length;
-        conditions.push(`(
-          g.group_code::text ILIKE $${qIdx} OR 
-          g.group_name ILIKE $${qIdx} OR 
-          b.branch_name ILIKE $${qIdx} OR 
-          p.branch_name ILIKE $${qIdx}
-        )`);
+        conditions.push(buildGroupQueryCondition(query, params, true));
       }
     }
 
@@ -124,7 +146,11 @@ groupInfoRouter.post("/search_group_info", async (req, res) => {
         g.branch_code,
         COALESCE(b.branch_name, 'Branch ' || g.branch_code::text) as branch_name,
         g.pacs_id,
-        COALESCE(p.branch_name, 'Direct') as pacs_name,
+        CASE 
+          WHEN g.direct_indirect_flag = 'D' THEN 'Direct'
+          WHEN p.branch_name ILIKE '%demo society%' THEN 'Direct'
+          ELSE COALESCE(p.branch_name, 'Direct')
+        END as pacs_name,
         g.direct_indirect_flag,
         g.grp_open_dt,
         g.open_close_flag,
@@ -266,7 +292,11 @@ groupInfoRouter.post("/get_group_complete_details", async (req, res) => {
         g.branch_code,
         COALESCE(b.branch_name, 'Branch ' || g.branch_code::text) as branch_name,
         g.pacs_id,
-        COALESCE(p.branch_name, 'Direct') as pacs_name,
+        CASE 
+          WHEN g.direct_indirect_flag = 'D' THEN 'Direct'
+          WHEN p.branch_name ILIKE '%demo society%' THEN 'Direct'
+          ELSE COALESCE(p.branch_name, 'Direct')
+        END as pacs_name,
         g.direct_indirect_flag,
         g.grp_open_dt,
         g.grp_close_dt,
@@ -417,6 +447,7 @@ groupInfoRouter.post("/get_group_complete_details", async (req, res) => {
     const totalDisbursed = loans.reduce((acc, curr) => acc + (parseFloat(curr.disb_amt) || 0), 0);
     const totalOutstanding = loans.reduce((acc, curr) => acc + (parseFloat(curr.total_outstanding) || 0), 0);
     const activeLoansCount = loans.filter(l => l.acc_status === 'O').length;
+    const totalMemberSavings = members.reduce((acc, m) => acc + (parseFloat(m.savings_balance) || 0), 0);
 
     return res.json({
       success: true,
@@ -432,7 +463,8 @@ groupInfoRouter.post("/get_group_complete_details", async (req, res) => {
         total_loans: loans.length,
         active_loans: activeLoansCount,
         total_disbursed: totalDisbursed,
-        total_outstanding: totalOutstanding
+        total_outstanding: totalOutstanding,
+        total_member_savings: totalMemberSavings
       }
     });
   } catch (err) {
@@ -823,7 +855,11 @@ groupInfoRouter.post("/get_society_branch_analytics", async (req, res) => {
         g.open_close_flag,
         g.sb_ac_no,
         COALESCE(b.branch_name, 'Branch ' || g.branch_code::text) as branch_name,
-        COALESCE(p.branch_name, 'Direct') as pacs_name,
+        CASE 
+          WHEN g.direct_indirect_flag = 'D' THEN 'Direct'
+          WHEN p.branch_name ILIKE '%demo society%' THEN 'Direct'
+          ELSE COALESCE(p.branch_name, 'Direct')
+        END as pacs_name,
         COALESCE(m.member_count, 0) as member_count,
         COALESCE(dep.balance, 0) as group_savings_balance,
         COALESCE(l.total_outstanding, 0) as total_outstanding,
