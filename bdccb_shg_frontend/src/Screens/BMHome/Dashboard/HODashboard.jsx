@@ -1171,7 +1171,7 @@ export default function HODashboard() {
 					>
 						<div>
 							<div className="text-[11px] font-bold tracking-wider text-[#0f6b73] uppercase">
-								K · SHG SB DEPOSITS
+								SHG SB DEPOSITS
 							</div>
 							<h2 className="text-base font-semibold text-slate-900 mt-1">Savings accounts</h2>
 						</div>
