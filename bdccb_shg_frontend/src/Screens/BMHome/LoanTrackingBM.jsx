@@ -1825,7 +1825,8 @@ function LoanTrackingBM() {
 																<th className="py-3 px-3 text-center">ROI</th>
 																<th className="py-3 px-3 text-center">Period</th>
 																<th className="py-3 px-3 text-right">Current Prn (₹)</th>
-																<th className="py-3 px-3 text-right">Overdue (₹)</th>
+																{/* Overdue column commented off as requested */}
+																{/* <th className="py-3 px-3 text-right">Overdue (₹)</th> */}
 																<th className="py-3 px-3 text-right">Outstanding (₹)</th>
 																<th className="py-3 px-3 text-center">Action</th>
 															</tr>
@@ -1834,7 +1835,7 @@ function LoanTrackingBM() {
 															{hierarchyData.member_level?.members?.length === 0 ? (
 																<tr>
 																	<td
-																		colSpan={11}
+																		colSpan={10}
 																		className="py-8 text-center text-slate-400 font-medium"
 																	>
 																		No individual member loans mapped to this account.
@@ -1879,9 +1880,10 @@ function LoanTrackingBM() {
 																		<td className="py-2.5 px-3 text-right font-mono font-semibold text-sky-800">
 																			{formatCurrency(m.curr_prn || 0)}
 																		</td>
-																		<td className="py-2.5 px-3 text-right font-mono font-semibold text-rose-600">
+																		{/* Overdue column commented off as requested */}
+																		{/* <td className="py-2.5 px-3 text-right font-mono font-semibold text-rose-600">
 																			{formatCurrency(m.total_overdue || 0)}
-																		</td>
+																		</td> */}
 																		<td className="py-2.5 px-3 text-right font-mono font-black text-amber-700">
 																			{formatCurrency(m.present_outstanding || 0)}
 																		</td>
