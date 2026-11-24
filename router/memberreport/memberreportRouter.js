@@ -5,16 +5,21 @@ const memberreportRouter = express.Router();
 // 1. Member Master List Endpoint
 memberreportRouter.post("/get_group_memb_list", async (req, res) => {
   try {
-    const { branch_code, group_name_code } = req.body;
+    const { branch_code, pacs_id, group_name_code } = req.body;
 
     let select = "distinct a.branch_id, a.group_code, b.group_name, a.member_code, a.member_name, a.gender, a.dob, a.gurdian_name, a.address, a.phone_no, a.pin_no, a.aadhar_no, a.pan_no, a.voter_id, a.member_account_no, a.ifsc, a.economic_activity, a.religion, a.caste, a.education, a.occupation, a.gp_leader_flag, a.asst_gp_leader_flag";
     let table_name = "bdccb.md_member a JOIN bdccb.md_group b ON a.group_code = b.group_code";
     let whr = "";
 
-    if (!branch_code || branch_code == '0' || branch_code == 0) {
+    const isSociety = pacs_id && pacs_id !== '111' && pacs_id !== 111;
+    const targetCode = isSociety ? pacs_id : branch_code;
+
+    if (!targetCode || targetCode == '0' || targetCode == 0) {
       whr = `a.delete_flag = 'N' ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%' OR a.member_name ILIKE '%${group_name_code}%' OR a.member_code::text ILIKE '%${group_name_code}%')` : ""}`;
+    } else if (isSociety) {
+      whr = `(a.branch_id = '${targetCode}' OR b.pacs_id::text = '${targetCode}') AND a.delete_flag = 'N' ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%' OR a.member_name ILIKE '%${group_name_code}%' OR a.member_code::text ILIKE '%${group_name_code}%')` : ""}`;
     } else {
-      whr = `a.branch_id = '${branch_code}' AND a.delete_flag = 'N' ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%' OR a.member_name ILIKE '%${group_name_code}%' OR a.member_code::text ILIKE '%${group_name_code}%')` : ""}`;
+      whr = `(a.branch_id = '${targetCode}' OR b.branch_code = '${targetCode}') AND a.delete_flag = 'N' ${group_name_code && group_name_code.trim() !== "" ? `AND (b.group_name ILIKE '%${group_name_code}%' OR a.group_code::text ILIKE '%${group_name_code}%' OR a.member_name ILIKE '%${group_name_code}%' OR a.member_code::text ILIKE '%${group_name_code}%')` : ""}`;
     }
 
     let order = "a.member_code DESC";

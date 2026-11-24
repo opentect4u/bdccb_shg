@@ -47,16 +47,44 @@ function ShgSavingsBalanceReport() {
 	const rawUser = JSON.parse(localStorage.getItem("user_details"))
 	const userDetails = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
 
+	// Role checks
+	const isHO =
+		userDetails?.user_type === "H" ||
+		userDetails?.branch_type === "H" ||
+		userDetails?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
+		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
+
+	const isPacsUser =
+		!isHO && (
+			userDetails?.user_type === "P" ||
+			userDetails?.user_type === "S" ||
+			userDetails?.branch_type === "P" ||
+			userDetails?.branch_type === "S" ||
+			Boolean(typeof window !== "undefined" && window?.location?.pathname?.includes("/homepacs"))
+		)
+
+	const isBranchUser = !isHO && !isPacsUser
+
+	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
+	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || ""
+	const userBrnCode = userBranchCode
+	const userBrnName = userBranchName
+	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
+	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
+
 	// Form & Filter States
-	const [searchMode, setSearchMode] = useState("CCB") // CCB vs SOCIETY
+	const [searchMode, setSearchMode] = useState(() => (isPacsUser ? "SOCIETY" : "CCB")) // CCB vs SOCIETY
 	const [reportType, setReportType] = useState("GROUP") // GROUP vs MEMBERS
 
 	const [branches, setBranches] = useState([])
-	const [selectedBranch, setSelectedBranch] = useState("")
+	const [selectedBranch, setSelectedBranch] = useState(() => (isBranchUser && userBranchCode ? `${userBranchCode},${userBranchName}` : ""))
 
 	const [pacsList, setPacsList] = useState([])
-	const [selectedPacs, setSelectedPacs] = useState("")
+	const [selectedPacs, setSelectedPacs] = useState(() => (isPacsUser ? userPacsCode : ""))
 	const [loadingPacs, setLoadingPacs] = useState(false)
+	const [parentBranch, setParentBranch] = useState({ code: "", name: "" })
 
 	const [shgData, setShgData] = useState([])
 	const [loading, setLoading] = useState(false)
@@ -75,7 +103,7 @@ function ShgSavingsBalanceReport() {
 	const [selectedGroupDtls, setSelectedGroupDtls] = useState(null)
 	const [groupTransactions, setGroupTransactions] = useState([])
 
-	// Fetch Branch List on Load
+	// Fetch Branch List on Load (for HO selection)
 	const handleFetchBranchList = async () => {
 		const tokenValue = await getLocalStoreTokenDts(navigate)
 		try {
@@ -155,8 +183,44 @@ function ShgSavingsBalanceReport() {
 	}
 
 	useEffect(() => {
-		handleFetchBranchList()
-	}, [])
+		if (isHO) {
+			handleFetchBranchList()
+		}
+	}, [isHO])
+
+	// Fetch Parent Branch for PACS User
+	useEffect(() => {
+		const fetchParentBranchForPacs = async () => {
+			if (!isPacsUser || !userPacsCode) return
+			try {
+				const tokenValue = await getLocalStoreTokenDts(navigate)
+				const res = await axios.post(
+					`${url}/fetch_parent_branch_by_pacs`,
+					{ pacs_id: userPacsCode },
+					{
+						headers: {
+							Authorization: `${tokenValue?.token}`,
+							"Content-Type": "application/json",
+						},
+					}
+				)
+				if (res?.data?.suc === 1 && res?.data?.msg) {
+					const pBrn = res.data.msg
+					const parentCode = String(pBrn.branch_code || "")
+					const parentName = pBrn.branch_name || ""
+					setParentBranch({
+						code: parentCode,
+						name: parentName,
+					})
+					setSelectedBranch(`${parentCode},${parentName}`)
+				}
+			} catch (err) {
+				console.error("Fetch parent branch error for PACS:", err)
+			}
+		}
+
+		fetchParentBranchForPacs()
+	}, [isPacsUser, userPacsCode])
 
 	const branchOptions = useMemo(() => {
 		const filtered = branches.filter((b) => {
@@ -241,6 +305,12 @@ function ShgSavingsBalanceReport() {
 
 	// Validation for Fetch button
 	const isFetchEnabled = useMemo(() => {
+		if (isBranchUser) {
+			return Boolean(userBranchCode && userBranchCode.trim() !== "")
+		}
+		if (isPacsUser) {
+			return Boolean(userPacsCode && userPacsCode.trim() !== "")
+		}
 		const hasBranch = Boolean(selectedBranch && selectedBranch.trim() !== "" && selectedBranch.split(",")[0] !== "")
 		if (searchMode === "CCB") {
 			return hasBranch
@@ -249,7 +319,7 @@ function ShgSavingsBalanceReport() {
 			return hasBranch && hasPacs
 		}
 		return false
-	}, [searchMode, selectedBranch, selectedPacs])
+	}, [isBranchUser, isPacsUser, userBranchCode, userPacsCode, searchMode, selectedBranch, selectedPacs])
 
 	// Main Fetch Savings Balance API Call
 	const handleSearchSavingsBalance = async () => {
@@ -261,17 +331,34 @@ function ShgSavingsBalanceReport() {
 		setCurrentPage(1)
 		setSearchTerm("")
 
-		const selectedBrnCode = selectedBranch ? selectedBranch.split(",")[0] : ""
-		const selectedBrnName = selectedBranch ? selectedBranch.split(",")[1] : ""
-		const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
-		const selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
+		const effectiveMode = isBranchUser ? "CCB" : (isPacsUser ? "SOCIETY" : searchMode)
 
-		const selectedPacsCode = searchMode === "CCB" ? "111" : selectedPacs
+		let selectedBrnCode = ""
+		let selectedBrnName = ""
+		let selectedPacsName = ""
+		let targetPacsId = ""
+
+		if (isBranchUser) {
+			selectedBrnCode = userBranchCode
+			selectedBrnName = userBranchName
+			targetPacsId = "111"
+		} else if (isPacsUser) {
+			selectedBrnCode = parentBranch.code || userBranchCode
+			selectedBrnName = parentBranch.name || userBranchName
+			selectedPacsName = userPacsName
+			targetPacsId = userPacsCode
+		} else {
+			selectedBrnCode = selectedBranch ? selectedBranch.split(",")[0] : ""
+			selectedBrnName = selectedBranch ? selectedBranch.split(",")[1] : ""
+			const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
+			selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
+			targetPacsId = searchMode === "CCB" ? "111" : selectedPacs
+		}
 
 		const creds = {
-			search_mode: searchMode,
+			search_mode: effectiveMode,
 			branch_code: selectedBrnCode,
-			pacs_id: selectedPacsCode,
+			pacs_id: targetPacsId,
 			group_name_code: searchTerm || "",
 			report_type: reportType,
 			tenant_id: userDetails?.tenant_id || 1,
@@ -297,7 +384,7 @@ function ShgSavingsBalanceReport() {
 					member_name: item?.member_name || "N/A",
 					branch_code: item?.branch_code || item?.branch_id || selectedBrnCode,
 					branch_name: selectedBrnName,
-					pacs_id: item?.pacs_id || selectedPacs,
+					pacs_id: item?.pacs_id || targetPacsId,
 					pacs_name: selectedPacsName,
 					phone1: item?.phone1 || "N/A",
 					acc_no: item?.acc_no || item?.member_account_no || item?.shg_acc_no || "N/A",
@@ -309,7 +396,7 @@ function ShgSavingsBalanceReport() {
 
 				setShgData(list)
 				setMetadataDtls({
-					search_mode: searchMode,
+					search_mode: effectiveMode,
 					report_type: reportType,
 					branch_code: selectedBrnCode,
 					branch_name: selectedBrnName,
@@ -891,91 +978,218 @@ function ShgSavingsBalanceReport() {
 
 					{/* Filter Card */}
 					<div className="bg-slate-50/90 dark:bg-slate-800/60 p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm mb-6">
-						<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-5">
-							{/* Row 1: Search By Mode (3 Cols) */}
-							<div className="w-full md:col-span-3">
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Search By Mode <span className="text-red-500">*</span>
-								</label>
-								<div className="h-[40px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
-									<Radiobtn
-										data={searchModeOptions}
-										val={searchMode}
-										className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
-										onChangeVal={(val) => handleSearchModeChange(val)}
-									/>
+						{/* Branch User Info Banner (user_type B) - Mode and Branch Select removed/commented off */}
+						{isBranchUser && (
+							<>
+								<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl mb-4">
+									<div className="flex items-center gap-3">
+										<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+										<div className="text-xs">
+											<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider mr-2">
+												Logged-in Branch:
+											</span>
+											<span className="font-semibold text-slate-800 dark:text-slate-100">
+												{userBranchName || "Current Branch"} (Code: {userBranchCode})
+											</span>
+										</div>
+									</div>
+									<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+										CCB Savings Balance
+									</span>
 								</div>
-							</div>
 
-							{/* Row 1: Search By Target/Type (3 Cols) */}
-							<div className="w-full md:col-span-3">
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Search By Type <span className="text-red-500">*</span>
-								</label>
-								<div className="h-[40px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
-									<Radiobtn
-										data={targetTypeOptions}
-										val={reportType}
-										className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
-										onChangeVal={(val) => handleReportTypeChange(val)}
-									/>
+								<div className="flex flex-wrap items-end justify-start gap-4 sm:gap-6">
+									{/* Search By Type (GROUP vs MEMBERS) */}
+									<div className="w-full sm:w-auto">
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Search By Type <span className="text-red-500">*</span>
+										</label>
+										<div className="h-[38px] flex items-center justify-center px-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
+											<Radiobtn
+												data={targetTypeOptions}
+												val={reportType}
+												className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
+												onChangeVal={(val) => handleReportTypeChange(val)}
+											/>
+										</div>
+									</div>
+
+									{/* Fetch Balance Button (Placed right next to Search By Type) */}
+									<div className="pb-[1px]">
+										<button
+											disabled={!isFetchEnabled}
+											className={`h-[38px] px-6 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
+												? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+												: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+												}`}
+											onClick={handleSearchSavingsBalance}
+										>
+											<SearchOutlined className="text-sm" />
+											<span>Fetch Balance</span>
+										</button>
+									</div>
 								</div>
-							</div>
+							</>
+						)}
 
-							{/* Row 1: Select Branch (6 Cols - Spacious) */}
-							<div className="w-full md:col-span-6">
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Select Branch <span className="text-red-500">*</span>
-								</label>
-								<TDInputTemplateBr
-									placeholder="Select Branch..."
-									type="text"
-									label=""
-									name="branch"
-									formControlName={selectedBranch && selectedBranch !== "undefined" ? selectedBranch.split(",")[0] : ""}
-									handleChange={handleBranchChange}
-									mode={2}
-									data={branchOptions}
-								/>
-							</div>
+						{/* PACS User Info Banner (user_type P) - Mode, Branch, and Society Select removed/commented off */}
+						{isPacsUser && (
+							<>
+								<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl mb-4">
+									<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs">
+										<div className="flex items-center gap-2">
+											<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+											<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+												Society (PACS):
+											</span>
+											<span className="font-semibold text-slate-800 dark:text-slate-100">
+												{userPacsName || "Current Society"} (Code: {userPacsCode})
+											</span>
+										</div>
+										<div className="text-slate-600 dark:text-slate-300">
+											<span className="font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider mr-1">
+												Under Branch:
+											</span>
+											<span className="font-semibold text-slate-800 dark:text-slate-100">
+												{parentBranch.name ? `${parentBranch.name} (Code: ${parentBranch.code})` : (userBranchName || "Loading...")}
+											</span>
+										</div>
+									</div>
+									<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+										Society Savings Balance
+									</span>
+								</div>
 
-							{/* Row 2: Select PACS / Society (Full 12 Cols Width in SOCIETY mode) */}
-							{searchMode === "SOCIETY" && (
-								<div className="w-full md:col-span-12 mt-1">
-									<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-										Select Society / PACS <span className="text-red-500">*</span>
-									</label>
-									<Spin spinning={loadingPacs} indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />}>
+								<div className="flex flex-wrap items-end justify-start gap-4 sm:gap-6">
+									{/* Search By Type (GROUP vs MEMBERS) */}
+									<div className="w-full sm:w-auto">
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Search By Type <span className="text-red-500">*</span>
+										</label>
+										<div className="h-[38px] flex items-center justify-center px-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
+											<Radiobtn
+												data={targetTypeOptions}
+												val={reportType}
+												className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
+												onChangeVal={(val) => handleReportTypeChange(val)}
+											/>
+										</div>
+									</div>
+
+									{/* Fetch Balance Button (Placed right next to Search By Type) */}
+									<div className="pb-[1px]">
+										<button
+											disabled={!isFetchEnabled}
+											className={`h-[38px] px-6 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
+												? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+												: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+												}`}
+											onClick={handleSearchSavingsBalance}
+										>
+											<SearchOutlined className="text-sm" />
+											<span>Fetch Balance</span>
+										</button>
+									</div>
+								</div>
+							</>
+						)}
+
+						{/* For Head Office (isHO): Original controls */}
+						{isHO && (
+							<>
+								<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-5">
+									{/* Row 1: Search By Mode (3 Cols) */}
+									<div className="w-full md:col-span-3">
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Search By Mode <span className="text-red-500">*</span>
+										</label>
+										<div className="h-[40px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
+											<Radiobtn
+												data={searchModeOptions}
+												val={searchMode}
+												className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
+												onChangeVal={(val) => handleSearchModeChange(val)}
+											/>
+										</div>
+									</div>
+
+									{/* Row 1: Search By Target/Type (3 Cols) */}
+									<div className="w-full md:col-span-3">
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Search By Type <span className="text-red-500">*</span>
+										</label>
+										<div className="h-[40px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
+											<Radiobtn
+												data={targetTypeOptions}
+												val={reportType}
+												className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center text-xs font-semibold"
+												onChangeVal={(val) => handleReportTypeChange(val)}
+											/>
+										</div>
+									</div>
+
+									{/* Row 1: Select Branch (6 Cols - Spacious) */}
+									<div className="w-full md:col-span-6">
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Select Branch <span className="text-red-500">*</span>
+										</label>
 										<TDInputTemplateBr
-											placeholder="Choose Society..."
+											placeholder="Select Branch..."
 											type="text"
 											label=""
-											name="selectedPacs"
-											formControlName={selectedPacs}
-											handleChange={handlePacsChange}
+											name="branch"
+											formControlName={selectedBranch && selectedBranch !== "undefined" ? selectedBranch.split(",")[0] : ""}
+											handleChange={handleBranchChange}
 											mode={2}
-											disabled={!selectedBranch}
-											data={[{ code: "", name: "Select Society" }, ...pacsList]}
+											data={branchOptions}
 										/>
-									</Spin>
-								</div>
-							)}
-						</div>
+									</div>
 
-						{/* Dedicated Centered Row for Fetch Balance Button */}
-						<div className="w-full flex items-center justify-center mt-5 pt-4 border-t border-slate-200/70 dark:border-slate-700/60">
-							<button
-								disabled={!isFetchEnabled}
-								className={`h-[40px] px-8 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 min-w-[200px] ${isFetchEnabled
-										? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
-										: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
-									}`}
-								onClick={handleSearchSavingsBalance}
-							>
-								<SearchOutlined className="text-sm" />
-								<span>Fetch Balance</span>
-							</button>
-						</div>
+									{/* Row 2: Select PACS / Society (Full 12 Cols Width in SOCIETY mode) */}
+									{searchMode === "SOCIETY" && (
+										<div className="w-full md:col-span-12 mt-1">
+											<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+												Select Society / PACS <span className="text-red-500">*</span>
+											</label>
+											<Spin spinning={loadingPacs} indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />}>
+												<TDInputTemplateBr
+													placeholder="Choose Society..."
+													type="text"
+													label=""
+													name="selectedPacs"
+													formControlName={selectedPacs}
+													handleChange={handlePacsChange}
+													mode={2}
+													disabled={!selectedBranch}
+													data={[{ code: "", name: "Select Society" }, ...pacsList]}
+												/>
+											</Spin>
+										</div>
+									)}
+								</div>
+
+								{/* Dedicated Centered Row for Fetch Balance Button */}
+								<div className="w-full flex items-center justify-center mt-5 pt-4 border-t border-slate-200/70 dark:border-slate-700/60">
+									<button
+										disabled={!isFetchEnabled}
+										className={`h-[40px] px-8 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 min-w-[200px] ${isFetchEnabled
+											? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+											: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+											}`}
+										onClick={handleSearchSavingsBalance}
+									>
+										<SearchOutlined className="text-sm" />
+										<span>Fetch Balance</span>
+									</button>
+								</div>
+							</>
+						)}
+
+						{/*
+						{(!isHO) && (
+							// Search By Mode, Select Branch, and Select Society are hidden/commented off for Branch and PACS users
+						)}
+						*/}
 					</div>
 
 					{/* Summary Statistics Cards */}
@@ -1216,8 +1430,8 @@ function ShgSavingsBalanceReport() {
 											disabled={currentPage === 1}
 											onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
 											className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${currentPage === 1
-													? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
-													: "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer"
+												? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
+												: "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer"
 												}`}
 										>
 											Previous
@@ -1229,8 +1443,8 @@ function ShgSavingsBalanceReport() {
 											disabled={currentPage === totalPages}
 											onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
 											className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${currentPage === totalPages
-													? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
-													: "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer"
+												? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed"
+												: "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 cursor-pointer"
 												}`}
 										>
 											Next
@@ -1334,11 +1548,10 @@ function ShgSavingsBalanceReport() {
 														<td className="px-3.5 py-2.5 text-center font-mono text-sm font-bold">{item.trans_no || "N/A"}</td>
 														<td className="px-3.5 py-2.5 text-center font-mono text-xs font-bold">{item.trans_dt || "N/A"}</td>
 														<td className="px-3.5 py-2.5 text-center font-bold whitespace-nowrap">
-															<span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black tracking-wide shadow-xs ${
-																isDeposit
-																	? "bg-emerald-700 text-white dark:bg-emerald-600"
-																	: "bg-rose-700 text-white dark:bg-rose-600"
-															}`}>
+															<span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black tracking-wide shadow-xs ${isDeposit
+																? "bg-emerald-700 text-white dark:bg-emerald-600"
+																: "bg-rose-700 text-white dark:bg-rose-600"
+																}`}>
 																{isDeposit ? "Deposit" : "Withdrawal"}
 															</span>
 														</td>

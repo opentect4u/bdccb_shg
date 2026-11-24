@@ -67,38 +67,64 @@ const brnchwis_divwise = [
 function LoanStatementMain() {
 	const [selectedColumns, setSelectedColumns] = useState(null);
 	const [md_columns, setColumns] = useState([]);
-	const userDetails = JSON.parse(localStorage.getItem("user_details")) || ""
-	const [loading, setLoading] = useState(false)
+	const rawUser = JSON.parse(localStorage.getItem("user_details")) || "";
+	const userDetails = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {};
+	const [loading, setLoading] = useState(false);
 
-	const [openModal, setOpenModal] = useState(false)
+	const isHO =
+		userDetails?.user_type === "H" ||
+		userDetails?.branch_type === "H" ||
+		userDetails?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
+		String(userDetails?.brn_name || "").toLowerCase().includes("head office");
+
+	const isPacsUser =
+		!isHO && (
+			userDetails?.user_type === "P" ||
+			userDetails?.user_type === "S" ||
+			userDetails?.branch_type === "P" ||
+			userDetails?.branch_type === "S" ||
+			Boolean(typeof window !== "undefined" && window?.location?.pathname?.includes("/homepacs"))
+		);
+
+	const isBranchUser = !isHO && !isPacsUser;
+
+	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "");
+	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || "";
+	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "");
+	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || "";
+
+	const [openModal, setOpenModal] = useState(false);
 	// const [approvalStatus, setApprovalStatus] = useState("S")
-	const [searchType, setSearchType] = useState(() => "C")
+	const [searchType, setSearchType] = useState(() => (isPacsUser ? "S" : "C"));
+	const isSocietyMode = isPacsUser || (!isBranchUser && (searchType === "S" || searchType === "P"));
 
-	const [fromDate, setFromDate] = useState()
-	const [toDate, setToDate] = useState()
-	const [reportData, setReportData] = useState(() => [])
-	const [reportTxnData, setReportTxnData] = useState(() => [])
+	const [fromDate, setFromDate] = useState();
+	const [toDate, setToDate] = useState();
+	const [reportData, setReportData] = useState(() => []);
+	const [reportTxnData, setReportTxnData] = useState(() => []);
 	// const [tot_sum, setTotSum] = useState(0)
-	const [search, setSearch] = useState("")
+	const [search, setSearch] = useState("");
 
-	const [metadataDtls, setMetadataDtls] = useState(() => null)
-	const [groupLoanList, setGroupLoanList] = useState(() => [])
-	const [selectedGroup, setSelectedGroup] = useState(() => null)
-	const [transactionModalOpen, setTransactionModalOpen] = useState(false)
-	const [loanTxnList, setLoanTxnList] = useState(() => [])
-	const [selectedLoanId, setSelectedLoanId] = useState(null)
-	const [branches, setBranches] = useState(() => [])
-	const [societies, setSocieties] = useState(() => [])
-	const [society, setSociety] = useState(() => "")
-	const [branchesDiv, setBranchesDiv] = useState(() => [])
-	const userBrnCode = userDetails?.brn_code || userDetails?.[0]?.brn_code;
-	const userBrnName = userDetails?.branch_name || userDetails?.[0]?.branch_name || "";
+	const [metadataDtls, setMetadataDtls] = useState(() => null);
+	const [groupLoanList, setGroupLoanList] = useState(() => []);
+	const [selectedGroup, setSelectedGroup] = useState(() => null);
+	const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+	const [loanTxnList, setLoanTxnList] = useState(() => []);
+	const [selectedLoanId, setSelectedLoanId] = useState(null);
+	const [branches, setBranches] = useState(() => []);
+	const [societies, setSocieties] = useState(() => []);
+	const [society, setSociety] = useState(() => (isPacsUser && userPacsCode ? `${userPacsCode},${userPacsName}` : ""));
+	const [branchesDiv, setBranchesDiv] = useState(() => []);
+	const userBrnCode = userDetails?.brn_code || userDetails?.branch_id;
+	const userBrnName = userDetails?.branch_name || userDetails?.brn_name || "";
 
 	const [branch, setBranch] = useState(() =>
 		userBrnCode && +userBrnCode !== 112
 			? `${userBrnCode},${userBrnName}`
 			: ""
-	)
+	);
 
 	// Branchwise And Divisionwise options
 	const [searchBrnchDiv, setSearchBrnchDiv] = useState(() => "B")
@@ -172,22 +198,23 @@ function LoanStatementMain() {
 	};
 
 	useEffect(() => {
-		if (searchType === "S" || searchType === "P") {
-			handleFetchSocietyList();
-		} else {
-			handleFetchBranchList();
+		if (isHO) {
+			if (searchType === "S" || searchType === "P") {
+				handleFetchSocietyList();
+			} else {
+				handleFetchBranchList();
+			}
 		}
-	}, [searchType]);
+	}, [searchType, isHO]);
 
 	const handleFetchGroupLoanMaster = async (groupCode) => {
 		setLoading(true);
 		setGroupLoanList([]);
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
-		const isSociety = (searchType === "S" || searchType === "P");
 		const payload = {
 			group_code: groupCode,
-			loan_to: isSociety ? "P" : "B",
+			loan_to: isSocietyMode ? "P" : "B",
 			tenant_id: userDetails?.tenant_id || 1,
 		};
 		if (fromDate) payload.from_date = formatDateToYYYYMMDD(fromDate);
@@ -227,10 +254,9 @@ function LoanStatementMain() {
 		setSelectedLoanId(loanId);
 		const tokenValue = await getLocalStoreTokenDts(navigate);
 
-		const isSociety = (searchType === "S" || searchType === "P");
 		const payload = {
 			loan_id: loanId,
-			loan_to: isSociety ? "P" : "B",
+			loan_to: isSocietyMode ? "P" : "B",
 			tenant_id: userDetails?.tenant_id || 1,
 		};
 		if (fromDate) payload.from_date = formatDateToYYYYMMDD(fromDate);
@@ -268,7 +294,7 @@ function LoanStatementMain() {
 			"Group Code": item?.group_code,
 			"Group Name": item?.group_name,
 			"Branch Name": item?.branch_name || "N/A",
-			...(searchType === "S" ? { "Society Name": item?.society_name || item?.pacs_name || item?.branch_shg_name || "N/A" } : {}),
+			...(isSocietyMode ? { "Society Name": item?.society_name || item?.pacs_name || item?.branch_shg_name || "N/A" } : {}),
 		}));
 
 		const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -460,8 +486,7 @@ function LoanStatementMain() {
 		const printWindow = window.open("", "_blank");
 		if (!printWindow) return;
 
-		const isSociety = (searchType === "S" || searchType === "P");
-		const titleText = isSociety ? "SOCIETY LOAN TRANSACTION DETAILS" : "CCB LOAN TRANSACTION DETAILS";
+		const titleText = isSocietyMode ? "SOCIETY LOAN TRANSACTION DETAILS" : "CCB LOAN TRANSACTION DETAILS";
 		const formattedFromDt = fromDate ? moment(fromDate).format("DD/MM/YYYY") : "N/A";
 		const formattedToDt = toDate ? moment(toDate).format("DD/MM/YYYY") : "N/A";
 
@@ -1222,15 +1247,26 @@ function LoanStatementMain() {
 		setSelectedLoanId(null)
 		let creds;
 
-		const isSociety = (searchType === "S" || searchType === "P");
-		const loanToVal = isSociety ? "P" : "B";
-		const selectedBrn = isSociety
-			? (society?.split(",")[0] || branch?.split(",")[0] || (+userDetails?.brn_code === 112 ? "" : userDetails?.brn_code))
-			: (branch?.split(",")[0] || (+userDetails?.brn_code === 112 ? "" : userDetails?.brn_code));
-		const branchType = userDetails?.branch_type || "H";
+		let loanToVal = "B";
+		let selectedBrn = "";
+
+		if (isPacsUser) {
+			loanToVal = "P";
+			selectedBrn = userPacsCode;
+		} else if (isBranchUser) {
+			loanToVal = "B";
+			selectedBrn = userBranchCode;
+		} else {
+			// HO mode
+			const isSociety = (searchType === "S" || searchType === "P");
+			loanToVal = isSociety ? "P" : "B";
+			selectedBrn = isSociety
+				? (society?.split(",")[0] || "")
+				: (branch?.split(",")[0] || "");
+		}
 
 		creds = {
-			grp: search,
+			grp: search ? search.trim() : "",
 			loan_to: loanToVal,
 			branch_code: selectedBrn,
 			tenant_id: userDetails?.tenant_id || 1,
@@ -1355,10 +1391,14 @@ function LoanStatementMain() {
 
 
 	const searchData = () => {
-		if (searchType === "M" && search.length > 2) {
-			handleFetchReportMemberwise()
-		} else if ((searchType === "C" || searchType === "S" || searchType === "G") && search.length > 2) {
-			handleFetchReportGroupwise()
+		if (!search || !search.trim()) {
+			Message('warning', 'Please enter Group Code or Group Name to search');
+			return;
+		}
+		if (searchType === "M") {
+			handleFetchReportMemberwise();
+		} else {
+			handleFetchReportGroupwise();
 		}
 	}
 
@@ -1377,10 +1417,12 @@ function LoanStatementMain() {
 		setLoanTxnList(() => [])
 		setSelectedGroup(() => null)
 		setSelectedLoanId(null)
-		setBranch("")
-		setSociety("")
+		if (isHO) {
+			setBranch("")
+			setSociety("")
+		}
 		setSearch("")
-	}, [searchType])
+	}, [searchType, isHO])
 
 	const fetchSearchTypeName = (searchType) => {
 		if (searchType === "C") {
@@ -1511,58 +1553,88 @@ function LoanStatementMain() {
 
 					{/* Filters Card */}
 					<div className="bg-slate-50/90 dark:bg-slate-800/60 p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm mb-6 space-y-4">
-						<div className="flex flex-wrap items-center gap-6">
-							<div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
-								<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Search By:</span>
-								<Radiobtn
-									data={options}
-									val={searchType}
-									className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center"
-									onChangeVal={(value) => {
-										onChange(value)
-									}}
-								/>
-							</div>
+						{/* Head Office (user_type 'H') gets full Search By CCB/Society radio and Branch/Society selection dropdowns */}
+						{isHO ? (
+							<div className="flex flex-wrap items-center gap-6">
+								<div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
+									<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Search By:</span>
+									<Radiobtn
+										data={options}
+										val={searchType}
+										className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center"
+										onChangeVal={(value) => {
+											onChange(value)
+										}}
+									/>
+								</div>
 
-							{/* Render Select Society dropdown when Society ('S' or 'P') is selected, else Select Branch dropdown */}
-							{(searchType === "S" || searchType === "P") ? (
-								<div className="flex items-center justify-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700 flex-1 min-w-[240px]">
-									<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap text-center">
-										Select Society:
-									</span>
-									<div className="flex-1">
-										<TDInputTemplateBr
-											placeholder="Select Society..."
-											type="text"
-											label=""
-											name="society"
-											formControlName={(society && society !== "undefined" && society.split(",")[0] !== "undefined") ? society.split(",")[0] : ""}
-											handleChange={handleSocietyChange}
-											mode={2}
-											data={societyOptions}
-										/>
+								{/* Render Select Society dropdown when Society ('S' or 'P') is selected, else Select Branch dropdown */}
+								{(searchType === "S" || searchType === "P") ? (
+									<div className="flex items-center justify-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700 flex-1 min-w-[240px]">
+										<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap text-center">
+											Select Society:
+										</span>
+										<div className="flex-1">
+											<TDInputTemplateBr
+												placeholder="Select Society..."
+												type="text"
+												label=""
+												name="society"
+												formControlName={(society && society !== "undefined" && society.split(",")[0] !== "undefined") ? society.split(",")[0] : ""}
+												handleChange={handleSocietyChange}
+												mode={2}
+												data={societyOptions}
+											/>
+										</div>
 									</div>
-								</div>
-							) : (
-								<div className="flex items-center justify-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700 flex-1 min-w-[240px]">
-									<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap text-center">
-										Select Branch:
-									</span>
-									<div className="flex-1">
-										<TDInputTemplateBr
-											placeholder="Select Branch..."
-											type="text"
-											label=""
-											name="branch"
-											formControlName={(branch && branch !== "undefined" && branch.split(",")[0] !== "undefined") ? branch.split(",")[0] : ""}
-											handleChange={handleBranchChange}
-											mode={2}
-											data={branchOptions}
-										/>
+								) : (
+									<div className="flex items-center justify-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700 flex-1 min-w-[240px]">
+										<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap text-center">
+											Select Branch:
+										</span>
+										<div className="flex-1">
+											<TDInputTemplateBr
+												placeholder="Select Branch..."
+												type="text"
+												label=""
+												name="branch"
+												formControlName={(branch && branch !== "undefined" && branch.split(",")[0] !== "undefined") ? branch.split(",")[0] : ""}
+												handleChange={handleBranchChange}
+												mode={2}
+												data={branchOptions}
+											/>
+										</div>
 									</div>
+								)}
+							</div>
+						) : (
+							/* Branch (user_type 'B') and PACS (user_type 'P') view: CCB/Society radio and dropdown commented off / not shown */
+							/*
+							<div className="flex flex-wrap items-center gap-6">
+								<div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
+									<span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Search By:</span>
+									<Radiobtn data={options} val={searchType} onChangeVal={onChange} />
 								</div>
-							)}
-						</div>
+								...
+							</div>
+							*/
+							<div className="flex items-center justify-between bg-teal-50/70 dark:bg-slate-800/80 px-4 py-2.5 rounded-xl border border-teal-200/70 dark:border-teal-800/50">
+								<div className="flex items-center gap-2">
+									<span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+									<span className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+										{isPacsUser ? "Logged-in Society (PACS):" : "Logged-in Branch:"}
+									</span>
+									<span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+										{isPacsUser
+											? `${userPacsName || "PACS"} (Code: ${userPacsCode})`
+											: `${userBranchName || "Branch"} (Code: ${userBranchCode})`}
+									</span>
+								</div>
+								<span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+									{isPacsUser ? "Society Loan Statements" : "CCB Loan Statements"}
+								</span>
+							</div>
+						)}
 
 						<div className="flex flex-col sm:flex-row items-end gap-3 mt-4">
 							<div className="flex-1 w-full">
@@ -1572,19 +1644,26 @@ function LoanStatementMain() {
 									label="Group Code / Group Name"
 									name="search_val"
 									handleChange={(txt) => setSearch(txt.target.value)}
+									handleKeyDown={(e) => {
+										if (e.key === "Enter") {
+											searchData();
+										}
+									}}
 									formControlName={search}
 									mode={1}
 								/>
 							</div>
 							<div className="pb-[1px]">
 								{(() => {
-									const isSocietyMode = (searchType === "S" || searchType === "P");
-									const isBranchOrSocietySelected = isSocietyMode ? Boolean(society && society.trim()) : Boolean(branch && branch.trim());
+									const isBranchOrSocietySelected = isHO
+										? ((searchType === "S" || searchType === "P") ? Boolean(society && society.trim()) : Boolean(branch && branch.trim()))
+										: true;
+									const canSearch = isBranchOrSocietySelected && Boolean(search && search.trim());
 									return (
 										<button
-											disabled={!isBranchOrSocietySelected}
+											disabled={!canSearch}
 											className={`h-[38px] inline-flex items-center justify-center px-4 text-xs font-semibold text-white rounded transition-all duration-200 shadow-sm gap-1.5 ${
-												isBranchOrSocietySelected
+												canSearch
 													? "bg-teal-500 hover:bg-green-600 border border-teal-500 hover:border-green-600 cursor-pointer active:scale-95"
 													: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
 											}`}
@@ -1733,7 +1812,7 @@ function LoanStatementMain() {
 											<th scope="col" className="px-6 py-3.5 font-bold tracking-wider">Group Code</th>
 											<th scope="col" className="px-6 py-3.5 font-bold tracking-wider">Group Name</th>
 											<th scope="col" className="px-6 py-3.5 font-bold tracking-wider">Branch Name</th>
-											{searchType === "S" && (
+											{isSocietyMode && (
 												<th scope="col" className="px-6 py-3.5 font-bold tracking-wider">Society Name</th>
 											)}
 											<th scope="col" className="px-6 py-3.5 font-bold tracking-wider text-center">Action</th>
@@ -1748,7 +1827,7 @@ function LoanStatementMain() {
 												<td className="px-6 py-3.5 font-mono text-teal-600 font-medium">{item?.group_code}</td>
 												<td className="px-6 py-3.5 font-semibold text-slate-800 dark:text-slate-200">{item?.group_name}</td>
 												<td className="px-6 py-3.5">{item?.branch_name}</td>
-												{searchType === "S" && (
+												{isSocietyMode && (
 													<td className="px-6 py-3.5 font-medium text-slate-800 dark:text-slate-100">
 														{item?.society_name || item?.pacs_name || item?.branch_shg_name || item?.pacs_id || "N/A"}
 													</td>
@@ -1784,7 +1863,7 @@ function LoanStatementMain() {
 								<div>
 									<h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
 										<span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
-										<span>{(searchType === "S" || searchType === "P") ? "Society Loan Details" : "CCB Loan Details"}</span>
+										<span>{isSocietyMode ? "Society Loan Details" : "CCB Loan Details"}</span>
 									</h3>
 									<p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
 										Group: <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedGroup?.group_name} ({selectedGroup?.group_code})</span>

@@ -163,6 +163,47 @@ reportRouter.post("/fetch_branch_society_list", async (req, res) => {
 	}
 });
 
+// Fetch Parent Branch details for a given PACS / Society ID
+reportRouter.post("/fetch_parent_branch_by_pacs", async (req, res) => {
+	try {
+		const { pacs_id, tenant_id } = req.body;
+		if (!pacs_id) {
+			return res.send({ suc: 0, msg: "pacs_id is required" });
+		}
+		let select = "p.branch_id as pacs_id, p.branch_name as pacs_name, p.branch_jurisdiction_id as branch_code, COALESCE(b.branch_name, '') as branch_name";
+		let table_name = "public.md_branch p LEFT JOIN public.md_branch b ON p.branch_jurisdiction_id = b.branch_id";
+		let whr = `p.branch_id = '${pacs_id}'`;
+		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
+			whr += ` AND p.tenant_id = '${tenant_id}'`;
+		}
+		let result = await db_Select(select, table_name, whr, null);
+		if (result.suc === 1 && result.msg && result.msg.length > 0 && result.msg[0].branch_code) {
+			return res.send({ suc: 1, msg: result.msg[0] });
+		}
+
+		// Fallback check from bdccb.md_group
+		let grpSelect = "g.branch_code, COALESCE(b.branch_name, '') as branch_name";
+		let grpTable = "bdccb.md_group g LEFT JOIN public.md_branch b ON g.branch_code = b.branch_id";
+		let grpWhr = `g.pacs_id = '${pacs_id}' AND g.delete_flag = 'N'`;
+		let grpRes = await db_Select(grpSelect, grpTable, grpWhr, "g.created_at DESC LIMIT 1");
+		if (grpRes.suc === 1 && grpRes.msg && grpRes.msg.length > 0 && grpRes.msg[0].branch_code) {
+			return res.send({
+				suc: 1,
+				msg: {
+					pacs_id,
+					branch_code: grpRes.msg[0].branch_code,
+					branch_name: grpRes.msg[0].branch_name,
+				}
+			});
+		}
+
+		return res.send({ suc: 0, msg: "Branch not found for this PACS" });
+	} catch (error) {
+		console.error("Error in fetch_parent_branch_by_pacs:", error);
+		return res.send({ suc: 0, msg: "Internal server error" });
+	}
+});
+
 // 1. Fetch Loan Statement Group Details (CCB vs Society)
 reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 	try {
@@ -172,9 +213,11 @@ reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 
 		// If group name or code is provided, first validate if the group exists and matches CCB vs Society type
 		if (grp && grp.trim() !== "") {
+			const cleanGrp = grp.trim();
+			const cleanGrpNorm = cleanGrp.replace(/\s+/g, ' ');
 			let checkSelect = "a.group_code, a.group_name, a.pacs_id, a.branch_code";
 			let checkTable = "bdccb.md_group a";
-			let checkWhr = `a.delete_flag = 'N' AND (a.group_name ILIKE '%${grp.trim()}%' OR a.group_code::text ILIKE '%${grp.trim()}%')`;
+			let checkWhr = `a.delete_flag = 'N' AND (regexp_replace(trim(a.group_name), '\\s+', ' ', 'g') ILIKE '%${cleanGrpNorm}%' OR a.group_code::text ILIKE '%${cleanGrp}%')`;
 			if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
 				checkWhr += ` AND a.tenant_id = '${tenant_id}'`;
 			}
@@ -198,7 +241,7 @@ reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 
 			// Fallback global check if not found under specific branch filter
 			if (checkResult.suc !== 1 || !checkResult.msg || checkResult.msg.length === 0) {
-				let globalWhr = `a.delete_flag = 'N' AND (a.group_name ILIKE '%${grp.trim()}%' OR a.group_code::text ILIKE '%${grp.trim()}%')`;
+				let globalWhr = `a.delete_flag = 'N' AND (regexp_replace(trim(a.group_name), '\\s+', ' ', 'g') ILIKE '%${cleanGrpNorm}%' OR a.group_code::text ILIKE '%${cleanGrp}%')`;
 				if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
 					globalWhr += ` AND a.tenant_id = '${tenant_id}'`;
 				}
@@ -214,7 +257,7 @@ reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 					return res.send({
 						suc: 0,
 						isMismatch: true,
-						msg: "This is a Society group. Please select Society under Search By."
+						msg: "This is a Society group. Please select Society under Search By or use Society login."
 					});
 				}
 
@@ -222,7 +265,7 @@ reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 					return res.send({
 						suc: 0,
 						isMismatch: true,
-						msg: "This is a CCB group. Please select CCB under Search By."
+						msg: "This is a CCB group. Please select CCB under Search By or use Branch login."
 					});
 				}
 			}
@@ -234,7 +277,9 @@ reportRouter.post("/loan_statement_group_dtls", async (req, res) => {
 
 		let whr = "a.delete_flag = 'N'";
 		if (grp && grp.trim() !== "") {
-			whr += ` AND (a.group_name ILIKE '%${grp.trim()}%' OR a.group_code::text ILIKE '%${grp.trim()}%')`;
+			const cleanGrp = grp.trim();
+			const cleanGrpNorm = cleanGrp.replace(/\s+/g, ' ');
+			whr += ` AND (regexp_replace(trim(a.group_name), '\\s+', ' ', 'g') ILIKE '%${cleanGrpNorm}%' OR a.group_code::text ILIKE '%${cleanGrp}%')`;
 		}
 		if (tenant_id && tenant_id !== 1 && tenant_id !== "1") {
 			whr += ` AND a.tenant_id = '${tenant_id}'`;

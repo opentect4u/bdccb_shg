@@ -82,18 +82,43 @@ function MemberMasterReport() {
 	const rawUser = JSON.parse(localStorage.getItem("user_details"))
 	const userDetails = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
 
-	const userBrnCode = userDetails?.brn_code || userDetails?.[0]?.brn_code || ""
-	const userBrnName = userDetails?.branch_name || userDetails?.[0]?.branch_name || ""
+	// Role checks
+	const isHO =
+		userDetails?.user_type === "H" ||
+		userDetails?.branch_type === "H" ||
+		userDetails?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
+		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
+
+	const isPacsUser =
+		!isHO && (
+			userDetails?.user_type === "P" ||
+			userDetails?.user_type === "S" ||
+			userDetails?.branch_type === "P" ||
+			userDetails?.branch_type === "S" ||
+			Boolean(typeof window !== "undefined" && window?.location?.pathname?.includes("/homepacs"))
+		)
+
+	const isBranchUser = !isHO && !isPacsUser
+
+	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
+	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || ""
+	const userBrnCode = userBranchCode
+	const userBrnName = userBranchName
+	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
+	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
 	const userType = userDetails?.user_type || userDetails?.[0]?.user_type || "B"
 
 	// Form & Filter States
-	const [searchMode, setSearchMode] = useState("CCB") // CCB vs SOCIETY
+	const [searchMode, setSearchMode] = useState(() => (isPacsUser ? "SOCIETY" : "CCB")) // CCB vs SOCIETY
 	const [branches, setBranches] = useState([])
-	const [selectedBranch, setSelectedBranch] = useState("")
+	const [selectedBranch, setSelectedBranch] = useState(() => (isBranchUser && userBranchCode ? `${userBranchCode},${userBranchName}` : ""))
 
 	const [pacsList, setPacsList] = useState([])
-	const [selectedPacs, setSelectedPacs] = useState("")
+	const [selectedPacs, setSelectedPacs] = useState(() => (isPacsUser ? userPacsCode : ""))
 	const [loadingPacs, setLoadingPacs] = useState(false)
+	const [parentBranch, setParentBranch] = useState({ code: "", name: "" })
 
 	const [searchKeywords, setSearchKeywords] = useState("")
 	const [searchTerm, setSearchTerm] = useState("")
@@ -105,7 +130,7 @@ function MemberMasterReport() {
 	const [currentPage, setCurrentPage] = useState(1)
 	const [itemsPerPage, setItemsPerPage] = useState(10)
 
-	// Fetch Branch List
+	// Fetch Branch List (only needed for HO selection)
 	const handleFetchBranchList = async () => {
 		const tokenValue = await getLocalStoreTokenDts(navigate)
 		try {
@@ -180,8 +205,44 @@ function MemberMasterReport() {
 	}
 
 	useEffect(() => {
-		handleFetchBranchList()
-	}, [])
+		if (isHO) {
+			handleFetchBranchList()
+		}
+	}, [isHO])
+
+	// Fetch Parent Branch for PACS User
+	useEffect(() => {
+		const fetchParentBranchForPacs = async () => {
+			if (!isPacsUser || !userPacsCode) return
+			try {
+				const tokenValue = await getLocalStoreTokenDts(navigate)
+				const res = await axios.post(
+					`${url}/fetch_parent_branch_by_pacs`,
+					{ pacs_id: userPacsCode },
+					{
+						headers: {
+							Authorization: `${tokenValue?.token}`,
+							"Content-Type": "application/json",
+						},
+					}
+				)
+				if (res?.data?.suc === 1 && res?.data?.msg) {
+					const pBrn = res.data.msg
+					const parentCode = String(pBrn.branch_code || "")
+					const parentName = pBrn.branch_name || ""
+					setParentBranch({
+						code: parentCode,
+						name: parentName,
+					})
+					setSelectedBranch(`${parentCode},${parentName}`)
+				}
+			} catch (err) {
+				console.error("Fetch parent branch error for PACS:", err)
+			}
+		}
+
+		fetchParentBranchForPacs()
+	}, [isPacsUser, userPacsCode])
 
 	const branchOptions = useMemo(() => {
 		const sorted = [...branches].sort((a, b) => {
@@ -252,9 +313,17 @@ function MemberMasterReport() {
 	}
 
 	// Dynamic Validation for Fetch Members button:
-	// If CCB: Enabled ONLY when Branch is selected
-	// If SOCIETY: Enabled ONLY when BOTH Branch and Society are selected
+	// If Branch User (user_type B): Enabled when logged-in branch exists
+	// If PACS User (user_type P): Enabled when logged-in PACS exists
+	// If CCB (HO): Enabled ONLY when Branch is selected
+	// If SOCIETY (HO): Enabled ONLY when BOTH Branch and Society are selected
 	const isFetchEnabled = useMemo(() => {
+		if (isBranchUser) {
+			return Boolean(userBranchCode && userBranchCode.trim() !== "")
+		}
+		if (isPacsUser) {
+			return Boolean(userPacsCode && userPacsCode.trim() !== "")
+		}
 		const hasBranch = Boolean(selectedBranch && selectedBranch.trim() !== "" && selectedBranch.split(",")[0] !== "")
 		if (searchMode === "CCB") {
 			return hasBranch
@@ -263,7 +332,7 @@ function MemberMasterReport() {
 			return hasBranch && hasPacs
 		}
 		return false
-	}, [searchMode, selectedBranch, selectedPacs])
+	}, [isBranchUser, isPacsUser, userBranchCode, userPacsCode, searchMode, selectedBranch, selectedPacs])
 
 	// Main Fetch Members API Call
 	const handleSearchMembers = async () => {
@@ -275,16 +344,34 @@ function MemberMasterReport() {
 		setCurrentPage(1)
 		setSearchTerm("")
 
-		const selectedBrnCode = selectedBranch ? selectedBranch.split(",")[0] : ""
-		const selectedBrnName = selectedBranch ? selectedBranch.split(",")[1] : ""
-		const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
-		const selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
+		const effectiveMode = isBranchUser ? "CCB" : (isPacsUser ? "SOCIETY" : searchMode)
 
-		const targetBranchCode = searchMode === "CCB" ? selectedBrnCode : selectedPacs
+		let selectedBrnCode = ""
+		let selectedBrnName = ""
+		let selectedPacsName = ""
+		let targetBranchCode = ""
+
+		if (isBranchUser) {
+			selectedBrnCode = userBranchCode
+			selectedBrnName = userBranchName
+			targetBranchCode = userBranchCode
+		} else if (isPacsUser) {
+			selectedBrnCode = parentBranch.code || userBranchCode
+			selectedBrnName = parentBranch.name || userBranchName
+			selectedPacsName = userPacsName
+			targetBranchCode = userPacsCode
+		} else {
+			selectedBrnCode = selectedBranch ? selectedBranch.split(",")[0] : ""
+			selectedBrnName = selectedBranch ? selectedBranch.split(",")[1] : ""
+			const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
+			selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
+			targetBranchCode = searchMode === "CCB" ? selectedBrnCode : selectedPacs
+		}
 
 		const creds = {
 			group_name_code: searchKeywords || "",
 			branch_code: targetBranchCode,
+			pacs_id: effectiveMode === "CCB" ? "111" : (isPacsUser ? userPacsCode : selectedPacs),
 			tenant_id: userDetails?.tenant_id || 1,
 		}
 
@@ -381,7 +468,7 @@ function MemberMasterReport() {
 
 				setMemberData(list)
 				setMetadataDtls({
-					search_mode: searchMode,
+					search_mode: effectiveMode,
 					branch_code: selectedBrnCode,
 					branch_name: selectedBrnName,
 					pacs_name: selectedPacsName,
@@ -398,6 +485,20 @@ function MemberMasterReport() {
 		}
 		setLoading(false)
 	}
+
+	// Auto-fetch data on mount for Branch user
+	useEffect(() => {
+		if (isBranchUser && userBranchCode) {
+			handleSearchMembers()
+		}
+	}, [isBranchUser, userBranchCode])
+
+	// Auto-fetch data on mount for PACS user
+	useEffect(() => {
+		if (isPacsUser && userPacsCode && parentBranch.code) {
+			handleSearchMembers()
+		}
+	}, [isPacsUser, userPacsCode, parentBranch.code])
 
 	// Filter data by live search text (Member Code, Member Name, Group Code, Group Name, Phone, Account)
 	const filteredMemberData = useMemo(() => {
@@ -726,69 +827,29 @@ function MemberMasterReport() {
 
 					{/* Filter Card (Search Mode -> Branch -> PACS/Society -> Group Search -> Fetch Members Button) */}
 					<div className="bg-slate-50/90 dark:bg-slate-800/60 p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm mb-6">
-						<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-4">
-							{/* Search Mode Radio Buttons (CCB vs SOCIETY) */}
-							<div className={`w-full ${searchMode === "SOCIETY" ? "md:col-span-3" : "md:col-span-3"}`}>
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Search By Mode <span className="text-red-500">*</span>
-								</label>
-								<div className="h-[38px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
-									<Radiobtn
-										data={searchModeOptions}
-										val={searchMode}
-										className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center"
-										onChangeVal={(val) => handleSearchModeChange(val)}
-									/>
+						{/* Branch User Info Banner (user_type B) - Mode and Branch Select removed/commented off */}
+						{isBranchUser && (
+							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl">
+								<div className="flex items-center gap-3">
+									<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+									<div className="text-xs">
+										<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider mr-2">
+											Logged-in Branch:
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{userBranchName || "Current Branch"} (Code: {userBranchCode})
+										</span>
+									</div>
 								</div>
-							</div>
-
-							{/* Select Branch */}
-							<div className={`w-full ${searchMode === "SOCIETY" ? "md:col-span-4" : "md:col-span-6"}`}>
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Select Branch <span className="text-red-500">*</span>
-								</label>
-								<TDInputTemplateBr
-									placeholder="Select Branch..."
-									type="text"
-									label=""
-									name="branch"
-									formControlName={selectedBranch && selectedBranch !== "undefined" ? selectedBranch.split(",")[0] : ""}
-									handleChange={handleBranchChange}
-									mode={2}
-									data={branchOptions}
-								/>
-							</div>
-
-							{/* Select PACS / Society (Big Section ONLY when searchMode === "SOCIETY") */}
-							{searchMode === "SOCIETY" && (
-								<div className="w-full md:col-span-5">
-									<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-										Select Society / PACS <span className="text-red-500">*</span>
-									</label>
-									<Spin spinning={loadingPacs} indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />}>
-										<TDInputTemplateBr
-											placeholder="Choose Society..."
-											type="text"
-											label=""
-											name="selectedPacs"
-											formControlName={selectedPacs}
-											handleChange={handlePacsChange}
-											mode={2}
-											disabled={!selectedBranch}
-											data={[{ code: "", name: "Select Society" }, ...pacsList]}
-										/>
-									</Spin>
-								</div>
-							)}
-
-							{/* Fetch Members Button FOR CCB MODE (Inline beside Branch) */}
-							{searchMode === "CCB" && (
-								<div className="w-full md:col-span-3 pb-[1px]">
+								<div className="flex items-center gap-3">
+									<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+										CCB Member Master
+									</span>
 									<button
 										disabled={!isFetchEnabled}
-										className={`h-[38px] px-6 inline-flex items-center justify-center w-full text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
-												? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
-												: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+										className={`h-[38px] px-6 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
+											? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+											: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
 											}`}
 										onClick={handleSearchMembers}
 									>
@@ -796,25 +857,150 @@ function MemberMasterReport() {
 										<span>Fetch Members</span>
 									</button>
 								</div>
-							)}
-						</div>
-
-						{/* Fetch Members Button FOR SOCIETY MODE (Centered on Next Line) */}
-						{searchMode === "SOCIETY" && (
-							<div className="w-full flex items-center justify-center mt-5 pt-4 border-t border-slate-200/70 dark:border-slate-700/60">
-								<button
-									disabled={!isFetchEnabled}
-									className={`h-[40px] px-8 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 min-w-[200px] ${isFetchEnabled
-											? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
-											: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
-										}`}
-									onClick={handleSearchMembers}
-								>
-									<SearchOutlined className="text-sm" />
-									<span>Fetch Members</span>
-								</button>
 							</div>
 						)}
+
+						{/* PACS User Info Banner (user_type P) - Shows society and under which branch */}
+						{isPacsUser && (
+							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl">
+								<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs">
+									<div className="flex items-center gap-2">
+										<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+										<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+											Society (PACS):
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{userPacsName || "Current Society"} (Code: {userPacsCode})
+										</span>
+									</div>
+									<div className="text-slate-600 dark:text-slate-300">
+										<span className="font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider mr-1">
+											Under Branch:
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{parentBranch.name ? `${parentBranch.name} (Code: ${parentBranch.code})` : (userBranchName || "Loading...")}
+										</span>
+									</div>
+								</div>
+								<div className="flex items-center gap-3">
+									<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+										Society Member Master
+									</span>
+									<button
+										disabled={!isFetchEnabled}
+										className={`h-[38px] px-6 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
+											? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+											: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+											}`}
+										onClick={handleSearchMembers}
+									>
+										<SearchOutlined className="text-sm" />
+										<span>Fetch Members</span>
+									</button>
+								</div>
+							</div>
+						)}
+
+						{/* For Head Office (isHO): Original controls */}
+						{isHO && (
+							<>
+								<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-4">
+									{/* Search Mode Radio Buttons (CCB vs SOCIETY) */}
+									<div className={`w-full ${searchMode === "SOCIETY" ? "md:col-span-3" : "md:col-span-3"}`}>
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Search By Mode <span className="text-red-500">*</span>
+										</label>
+										<div className="h-[38px] flex items-center justify-center px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs">
+											<Radiobtn
+												data={searchModeOptions}
+												val={searchMode}
+												className="!mt-0 !mb-0 !shadow-none !p-0 inline-flex items-center gap-4 justify-center"
+												onChangeVal={(val) => handleSearchModeChange(val)}
+											/>
+										</div>
+									</div>
+
+									{/* Select Branch */}
+									<div className={`w-full ${searchMode === "SOCIETY" ? "md:col-span-4" : "md:col-span-6"}`}>
+										<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+											Select Branch <span className="text-red-500">*</span>
+										</label>
+										<TDInputTemplateBr
+											placeholder="Select Branch..."
+											type="text"
+											label=""
+											name="branch"
+											formControlName={selectedBranch && selectedBranch !== "undefined" ? selectedBranch.split(",")[0] : ""}
+											handleChange={handleBranchChange}
+											mode={2}
+											data={branchOptions}
+										/>
+									</div>
+
+									{/* Select PACS / Society (Big Section ONLY when searchMode === "SOCIETY") */}
+									{searchMode === "SOCIETY" && (
+										<div className="w-full md:col-span-5">
+											<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+												Select Society / PACS <span className="text-red-500">*</span>
+											</label>
+											<Spin spinning={loadingPacs} indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />}>
+												<TDInputTemplateBr
+													placeholder="Choose Society..."
+													type="text"
+													label=""
+													name="selectedPacs"
+													formControlName={selectedPacs}
+													handleChange={handlePacsChange}
+													mode={2}
+													disabled={!selectedBranch}
+													data={[{ code: "", name: "Select Society" }, ...pacsList]}
+												/>
+											</Spin>
+										</div>
+									)}
+
+									{/* Fetch Members Button FOR CCB MODE (Inline beside Branch) */}
+									{searchMode === "CCB" && (
+										<div className="w-full md:col-span-3 pb-[1px]">
+											<button
+												disabled={!isFetchEnabled}
+												className={`h-[38px] px-6 inline-flex items-center justify-center w-full text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 ${isFetchEnabled
+													? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+													: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+													}`}
+												onClick={handleSearchMembers}
+											>
+												<SearchOutlined className="text-sm" />
+												<span>Fetch Members</span>
+											</button>
+										</div>
+									)}
+								</div>
+
+								{/* Fetch Members Button FOR SOCIETY MODE (Centered on Next Line) */}
+								{searchMode === "SOCIETY" && (
+									<div className="w-full flex items-center justify-center mt-5 pt-4 border-t border-slate-200/70 dark:border-slate-700/60">
+										<button
+											disabled={!isFetchEnabled}
+											className={`h-[40px] px-8 inline-flex items-center justify-center text-xs font-bold text-white rounded-xl transition-all duration-200 shadow-md gap-2 min-w-[200px] ${isFetchEnabled
+												? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 border border-teal-600 cursor-pointer active:scale-95 shadow-teal-500/20"
+												: "bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-400 cursor-not-allowed opacity-60 active:scale-100"
+												}`}
+											onClick={handleSearchMembers}
+										>
+											<SearchOutlined className="text-sm" />
+											<span>Fetch Members</span>
+										</button>
+									</div>
+								)}
+							</>
+						)}
+
+						{/*
+						{(!isHO) && (
+							// Select branch and CCB / Society mode commented off for user_type B & P
+						)}
+						*/}
 					</div>
 
 					{/* Summary Statistics Cards */}
@@ -1060,11 +1246,10 @@ function MemberMasterReport() {
 												<button
 													key={pageNum}
 													onClick={() => setCurrentPage(pageNum)}
-													className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
-														currentPage === pageNum
-															? "bg-teal-600 border-teal-600 text-white shadow-sm"
-															: "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-													}`}
+													className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${currentPage === pageNum
+														? "bg-teal-600 border-teal-600 text-white shadow-sm"
+														: "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+														}`}
 												>
 													{pageNum}
 												</button>

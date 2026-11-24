@@ -51,9 +51,31 @@ function LoanTransactionReport() {
 	const rawUser = JSON.parse(localStorage.getItem("user_details"))
 	const userDetails = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
 
-	const isBranchUser = (userDetails?.user_type === "B" || userDetails?.branch_type === "B") && !isHeadOffice(userDetails?.brn_code || userDetails?.branch_id, userDetails?.branch_name)
+	const isHO =
+		userDetails?.user_type === "H" ||
+		userDetails?.branch_type === "H" ||
+		userDetails?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
+		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
+
+	const isPacsUser =
+		!isHO && (
+			userDetails?.user_type === "P" ||
+			userDetails?.user_type === "S" ||
+			userDetails?.branch_type === "P" ||
+			userDetails?.branch_type === "S" ||
+			Boolean(typeof window !== "undefined" && window?.location?.pathname?.includes("/homepacs"))
+		)
+
+	const isBranchUser = !isHO && !isPacsUser
+
 	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
-	const userBranchName = userDetails?.branch_name || ""
+	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || ""
+	const userBrnCode = userBranchCode
+	const userBrnName = userBranchName
+	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
+	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
 
 	// Filter States
 	const [searchMode, setSearchMode] = useState("CCB") // CCB vs SOCIETY vs SHG
@@ -64,7 +86,8 @@ function LoanTransactionReport() {
 	const [toDate, setToDate] = useState("")
 
 	const [branches, setBranches] = useState([])
-	const [selectedBranch, setSelectedBranch] = useState("")
+	const [selectedBranch, setSelectedBranch] = useState(() => (isBranchUser && userBranchCode ? `${userBranchCode},${userBranchName}` : ""))
+	const [parentBranch, setParentBranch] = useState({ code: "", name: "" })
 
 	const [pacsList, setPacsList] = useState([])
 	const [selectedPacs, setSelectedPacs] = useState("")
@@ -262,8 +285,44 @@ function LoanTransactionReport() {
 	}
 
 	useEffect(() => {
-		handleFetchBranchList()
-	}, [])
+		if (isHO) {
+			handleFetchBranchList()
+		}
+	}, [isHO])
+
+	// Fetch Parent Branch for PACS User
+	useEffect(() => {
+		const fetchParentBranchForPacs = async () => {
+			if (!isPacsUser || !userPacsCode) return
+			try {
+				const tokenValue = await getLocalStoreTokenDts(navigate)
+				const res = await axios.post(
+					`${url}/fetch_parent_branch_by_pacs`,
+					{ pacs_id: userPacsCode },
+					{
+						headers: {
+							Authorization: `${tokenValue?.token}`,
+							"Content-Type": "application/json",
+						},
+					}
+				)
+				if (res?.data?.suc === 1 && res?.data?.msg) {
+					const pBrn = res.data.msg
+					const parentCode = String(pBrn.branch_code || "")
+					const parentName = pBrn.branch_name || ""
+					setParentBranch({
+						code: parentCode,
+						name: parentName,
+					})
+					setSelectedBranch(`${parentCode},${parentName}`)
+				}
+			} catch (err) {
+				console.error("Fetch parent branch error for PACS:", err)
+			}
+		}
+
+		fetchParentBranchForPacs()
+	}, [isPacsUser, userPacsCode])
 
 	const currentSearchModeOptions = useMemo(() => {
 		return txnType === "R" ? searchModeRecovOptions : searchModeDisbOptions
@@ -305,8 +364,8 @@ function LoanTransactionReport() {
 	}, [txnType, searchMode])
 
 	const showBranchSelect = useMemo(() => {
-		return true
-	}, [])
+		return isHO
+	}, [isHO])
 
 	const showPacsSelect = useMemo(() => {
 		return false
@@ -534,9 +593,9 @@ function LoanTransactionReport() {
 
 	// Validation for Fetch button
 	const isFetchEnabled = useMemo(() => {
-		const hasBranch = Boolean(
-			selectedBranch && selectedBranch.trim() !== "" && selectedBranch.split(",")[0] !== ""
-		)
+		const hasBranch = isBranchUser
+			? Boolean(userBranchCode)
+			: (isPacsUser ? Boolean(parentBranch.code || userBranchCode) : Boolean(selectedBranch && selectedBranch.split(",")[0] !== ""))
 		const hasPacs = Boolean(selectedPacs && selectedPacs.trim() !== "")
 		const hasDates = Boolean(fromDate && toDate)
 
@@ -546,8 +605,8 @@ function LoanTransactionReport() {
 		if (showPacsSelect) {
 			return hasPacs && hasDates
 		}
-		return hasDates
-	}, [showBranchSelect, showPacsSelect, selectedBranch, selectedPacs, fromDate, toDate])
+		return hasBranch && hasDates
+	}, [showBranchSelect, showPacsSelect, selectedBranch, selectedPacs, fromDate, toDate, isBranchUser, isPacsUser, userBranchCode, parentBranch.code])
 
 	// Main Fetch Loan Transaction Report API Call
 	const handleSearchLoanTransactions = async () => {
@@ -560,8 +619,15 @@ function LoanTransactionReport() {
 		setFirst(0)
 		setSearchTerm("")
 
-		const selectedBrnCode = selectedBranch ? selectedBranch.split(",")[0] : userBranchCode
-		const selectedBrnName = selectedBranch ? selectedBranch.split(",")[1] : userBranchName
+		const effectiveBrnCode = isBranchUser
+			? userBranchCode
+			: (isPacsUser ? (parentBranch.code || userBranchCode) : (selectedBranch ? selectedBranch.split(",")[0] : userBranchCode))
+		const effectiveBrnName = isBranchUser
+			? userBranchName
+			: (isPacsUser ? (parentBranch.name || userBranchName) : (selectedBranch ? selectedBranch.split(",")[1] : userBranchName))
+
+		const selectedBrnCode = effectiveBrnCode
+		const selectedBrnName = effectiveBrnName
 		const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
 		const selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
 
@@ -1421,6 +1487,54 @@ function LoanTransactionReport() {
 
 					{/* Filter Card */}
 					<div className="bg-slate-50/90 dark:bg-slate-800/60 p-4 md:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm mb-6">
+						{/* Branch User Info Banner (user_type B) */}
+						{isBranchUser && (
+							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl mb-4">
+								<div className="flex items-center gap-3">
+									<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+									<div className="text-xs">
+										<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider mr-2">
+											Logged-in Branch:
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{userBranchName || "Current Branch"} (Code: {userBranchCode})
+										</span>
+									</div>
+								</div>
+								<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+									Branch Loan Transactions
+								</span>
+							</div>
+						)}
+
+						{/* PACS User Info Banner (user_type P) */}
+						{isPacsUser && (
+							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-xl mb-4">
+								<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs">
+									<div className="flex items-center gap-2">
+										<div className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></div>
+										<span className="font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+											Society (PACS):
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{userPacsName || "Current Society"} (Code: {userPacsCode})
+										</span>
+									</div>
+									<div className="text-slate-600 dark:text-slate-300">
+										<span className="font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider mr-1">
+											Under Branch:
+										</span>
+										<span className="font-semibold text-slate-800 dark:text-slate-100">
+											{parentBranch.name ? `${parentBranch.name} (Code: ${parentBranch.code})` : "Loading branch..."}
+										</span>
+									</div>
+								</div>
+								<span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+									Society Loan Transactions
+								</span>
+							</div>
+						)}
+
 						<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-4">
 							{/* --- ROW 1: 3 MODES & CONTROLS --- */}
 							{/* 1. Transaction Type (Disbursement / Recovery) */}
@@ -1517,7 +1631,7 @@ function LoanTransactionReport() {
 							)}
 
 							{/* Date Range: From Date */}
-							<div key="from_date_col" className="w-full md:col-span-4 mt-1">
+							<div key="from_date_col" className={`w-full ${showBranchSelect ? "md:col-span-4" : "md:col-span-6"} mt-1`}>
 								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
 									From Date <span className="text-red-500">*</span>
 								</label>
@@ -1533,7 +1647,7 @@ function LoanTransactionReport() {
 							</div>
 
 							{/* Date Range: To Date */}
-							<div key="to_date_col" className="w-full md:col-span-4 mt-1">
+							<div key="to_date_col" className={`w-full ${showBranchSelect ? "md:col-span-4" : "md:col-span-6"} mt-1`}>
 								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
 									To Date <span className="text-red-500">*</span>
 								</label>

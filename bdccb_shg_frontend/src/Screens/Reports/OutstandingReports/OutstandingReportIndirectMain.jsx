@@ -21,14 +21,72 @@ const reportTypeOptions = [
 
 function OutstandingReportIndirectMain() {
 	const navigate = useNavigate()
-	const rawUser = JSON.parse(localStorage.getItem("user_details"))
+	const rawUser = JSON.parse(localStorage.getItem("user_details")) || {}
 	const userDetails = Array.isArray(rawUser) ? rawUser[0] || {} : rawUser || {}
 
-	const userBrnCode = userDetails?.brn_code || userDetails?.[0]?.brn_code
-	const userBrnName = userDetails?.branch_name || userDetails?.[0]?.branch_name || ""
+	const isHO =
+		userDetails?.user_type === "H" ||
+		userDetails?.branch_type === "H" ||
+		userDetails?.brn_code == 112 ||
+		userDetails?.branch_id == 112 ||
+		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
+		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
+
+	const isPacsUser =
+		!isHO && (
+			userDetails?.user_type === "P" ||
+			userDetails?.user_type === "S" ||
+			userDetails?.branch_type === "P" ||
+			userDetails?.branch_type === "S" ||
+			Boolean(typeof window !== "undefined" && window?.location?.pathname?.includes("/homepacs"))
+		)
+
+	const isBranchUser = !isHO && !isPacsUser
+
+	const userBrnCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
+	const userBrnName = userDetails?.branch_name || userDetails?.brn_name || ""
+	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
+	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
 
 	const [branches, setBranches] = useState([])
-	const [branch, setBranch] = useState(() => "")
+	const [branch, setBranch] = useState(() =>
+		isBranchUser && userBrnCode
+			? `${userBrnCode},${userBrnName}`
+			: ""
+	)
+
+	// Fetch parent branch for PACS user so it stays pre-selected on their society's branch
+	useEffect(() => {
+		if (isPacsUser && userPacsCode) {
+			const fetchParentBranch = async () => {
+				try {
+					const tokenValue = await getLocalStoreTokenDts(navigate)
+					const res = await axios.post(
+						`${url}/fetch_parent_branch_by_pacs`,
+						{
+							pacs_id: userPacsCode,
+							tenant_id: String(userDetails?.tenant_id || 1),
+						},
+						{
+							headers: {
+								Authorization: `${tokenValue?.token}`,
+								"Content-Type": "application/json",
+							},
+						}
+					)
+					if (res?.data?.suc === 1 && res?.data?.msg) {
+						const parentBrn = res.data.msg
+						if (parentBrn.branch_code) {
+							setBranch(`${parentBrn.branch_code},${parentBrn.branch_name || ""}`)
+						}
+					}
+				} catch (err) {
+					console.error("Fetch parent branch for pacs error:", err)
+				}
+			}
+			fetchParentBranch()
+		}
+	}, [isPacsUser, userPacsCode])
 
 	// Option Type (Default: G for Groupwise, M for Memberwise)
 	const [reportType, setReportType] = useState("G")
@@ -97,12 +155,16 @@ function OutstandingReportIndirectMain() {
 			}
 		})
 
+		if (isPacsUser) {
+			return list
+		}
+
 		return [
 			{ code: "", name: "Select Branch" },
 			{ code: "0", name: "All Branch" },
 			...list,
 		]
-	}, [branches])
+	}, [branches, isPacsUser])
 
 	const handleBranchChange = (e) => {
 		const value = e?.target?.value !== undefined ? e.target.value : e
@@ -138,7 +200,12 @@ function OutstandingReportIndirectMain() {
 
 	// Search Handler for Indirect Outstanding Report
 	const handleSearchReport = async () => {
-		if (!branch || branch.trim() === "" || branch.split(",")[0] === "") {
+		const selectedBrnCode = isBranchUser ? userBrnCode : (branch ? branch.split(",")[0] : "")
+		const selectedBrnName = isBranchUser
+			? (userBrnName || "Branch")
+			: (selectedBrnCode === "0" ? "All Branch" : (branch.split(",")[1] || userBrnName))
+
+		if (!selectedBrnCode || selectedBrnCode.trim() === "") {
 			Message("warning", "Please select a Branch or All Branch")
 			setReportData([])
 			setMetadataDtls(null)
@@ -149,9 +216,6 @@ function OutstandingReportIndirectMain() {
 		setReportData([])
 		setMetadataDtls(null)
 		setCurrentPage(1)
-
-		const selectedBrnCode = branch.split(",")[0]
-		const selectedBrnName = selectedBrnCode === "0" ? "All Branch" : (branch.split(",")[1] || userBrnName)
 
 		const payload = {
 			branch_code: selectedBrnCode,
@@ -579,7 +643,7 @@ function OutstandingReportIndirectMain() {
 		printWindow.document.close()
 	}
 
-	const isBranchSelected = Boolean(branch && branch.trim() && branch.split(",")[0] !== "")
+	const isBranchSelected = isBranchUser ? Boolean(userBrnCode) : Boolean(branch && branch.trim() && branch.split(",")[0] !== "")
 	const canSubmit = isBranchSelected && Boolean(asOnDate)
 
 	return (
@@ -611,26 +675,55 @@ function OutstandingReportIndirectMain() {
 
 					{/* Control / Filter Card (Sequence: Select Branch -> Radio Option -> As on Date -> Search) */}
 					<div className="bg-slate-50/90 dark:bg-slate-800/60 p-5 md:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm mb-6">
-						<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-4">
-							{/* Select Branch (4 cols) */}
-							<div className="w-full md:col-span-4">
-								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-									Select Branch <span className="text-red-500">*</span>
-								</label>
-								<TDInputTemplateBr
-									placeholder="Select Branch..."
-									type="text"
-									label=""
-									name="branch"
-									formControlName={branch && branch !== "undefined" && branch.split(",")[0] !== "undefined" ? branch.split(",")[0] : ""}
-									handleChange={handleBranchChange}
-									mode={2}
-									data={branchOptions}
-								/>
+						{/* Branch user (user_type 'B') badge - Select Branch dropdown commented off / not shown */}
+						{isBranchUser ? (
+							<div className="flex items-center justify-between bg-teal-50/70 dark:bg-slate-800/80 px-4 py-2.5 rounded-xl border border-teal-200/70 dark:border-teal-800/50 mb-4">
+								<div className="flex items-center gap-2">
+									<span className="inline-flex items-center justify-center w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+									<span className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+										Logged-in Branch:
+									</span>
+									<span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+										{userBrnName || "Branch"} (Code: {userBrnCode})
+									</span>
+								</div>
+								<span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700">
+									Indirect Loan Outstanding
+								</span>
 							</div>
+						) : null}
 
-							{/* Select Option Radio Buttons (G / M - 3 cols) */}
-							<div className="w-full md:col-span-3">
+						<div className="grid grid-cols-1 md:grid-cols-12 items-end gap-4">
+							{/* Select Branch (4 cols) - Commented off / hidden for user_type B */}
+							{/*
+							{isBranchUser && (
+								<div className="w-full md:col-span-4">...</div>
+							)}
+							*/}
+							{!isBranchUser && (
+								<div className="w-full md:col-span-4">
+									<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+										Select Branch <span className="text-red-500">*</span>
+										{isPacsUser && (
+											<span className="text-[10px] lowercase font-normal text-slate-500 ml-1.5">(society's branch)</span>
+										)}
+									</label>
+									<TDInputTemplateBr
+										placeholder="Select Branch..."
+										type="text"
+										label=""
+										name="branch"
+										formControlName={branch && branch !== "undefined" && branch.split(",")[0] !== "undefined" ? branch.split(",")[0] : ""}
+										handleChange={handleBranchChange}
+										mode={2}
+										disabled={isPacsUser}
+										data={branchOptions}
+									/>
+								</div>
+							)}
+
+							{/* Select Option Radio Buttons (G / M) */}
+							<div className={`w-full ${isBranchUser ? "md:col-span-5" : "md:col-span-3"}`}>
 								<label className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5">
 									Select Option <span className="text-red-500">*</span>
 								</label>
@@ -646,8 +739,8 @@ function OutstandingReportIndirectMain() {
 								</div>
 							</div>
 
-							{/* As on Date (3 cols) */}
-							<div className="w-full md:col-span-3">
+							{/* As on Date */}
+							<div className={`w-full ${isBranchUser ? "md:col-span-5" : "md:col-span-3"}`}>
 								<TDInputTemplateBr
 									placeholder="As on Date"
 									type="date"

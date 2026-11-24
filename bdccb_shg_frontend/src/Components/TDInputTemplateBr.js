@@ -39,6 +39,7 @@ function TDInputTemplateBr(props) {
 					placeholder={props.placeholder}
 					onChange={props.handleChange}
 					onBlur={props?.handleBlur}
+					onKeyDown={props?.handleKeyDown}
 					disabled={props.disabled}
 				/>
 			)}
