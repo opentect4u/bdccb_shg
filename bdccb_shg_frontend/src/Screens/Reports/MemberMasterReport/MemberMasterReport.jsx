@@ -19,7 +19,6 @@ import {
 	BankOutlined,
 	IdcardOutlined,
 	CrownOutlined,
-	SafetyCertificateOutlined,
 } from "@ant-design/icons"
 import Radiobtn from "../../../Components/Radiobtn"
 import TDInputTemplateBr from "../../../Components/TDInputTemplateBr"
@@ -86,8 +85,8 @@ function MemberMasterReport() {
 	const isHO =
 		userDetails?.user_type === "H" ||
 		userDetails?.branch_type === "H" ||
-		userDetails?.brn_code == 112 ||
-		userDetails?.branch_id == 112 ||
+		String(userDetails?.brn_code || "") === "112" ||
+		String(userDetails?.branch_id || "") === "112" ||
 		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
 		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
 
@@ -104,11 +103,9 @@ function MemberMasterReport() {
 
 	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
 	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || ""
-	const userBrnCode = userBranchCode
 	const userBrnName = userBranchName
 	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
 	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
-	const userType = userDetails?.user_type || userDetails?.[0]?.user_type || "B"
 
 	// Form & Filter States
 	const [searchMode, setSearchMode] = useState(() => (isPacsUser ? "SOCIETY" : "CCB")) // CCB vs SOCIETY

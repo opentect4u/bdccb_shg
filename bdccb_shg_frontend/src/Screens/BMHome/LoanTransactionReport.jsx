@@ -54,8 +54,8 @@ function LoanTransactionReport() {
 	const isHO =
 		userDetails?.user_type === "H" ||
 		userDetails?.branch_type === "H" ||
-		userDetails?.brn_code == 112 ||
-		userDetails?.branch_id == 112 ||
+		String(userDetails?.brn_code || "") === "112" ||
+		String(userDetails?.branch_id || "") === "112" ||
 		String(userDetails?.branch_name || "").toLowerCase().includes("head office") ||
 		String(userDetails?.brn_name || "").toLowerCase().includes("head office")
 
@@ -72,8 +72,6 @@ function LoanTransactionReport() {
 
 	const userBranchCode = String(userDetails?.brn_code || userDetails?.branch_id || "")
 	const userBranchName = userDetails?.branch_name || userDetails?.brn_name || ""
-	const userBrnCode = userBranchCode
-	const userBrnName = userBranchName
 	const userPacsCode = String(userDetails?.pacs_id || userDetails?.branch_id || userDetails?.brn_code || "")
 	const userPacsName = userDetails?.branch_name || userDetails?.pacs_name || ""
 
@@ -81,7 +79,7 @@ function LoanTransactionReport() {
 	const [searchMode, setSearchMode] = useState("CCB") // CCB vs SOCIETY vs SHG
 	const [disburseTo, setDisburseTo] = useState("SOCIETY") // SOCIETY, GROUP, MEMBER (Only for Disbursement)
 	const [txnType, setTxnType] = useState("D") // D = Disbursement, R = Recovery
-	const [reportType, setReportType] = useState("GROUP") // GROUP vs MEMBER
+	const [reportType] = useState("GROUP") // GROUP vs MEMBER
 	const [fromDate, setFromDate] = useState("")
 	const [toDate, setToDate] = useState("")
 
@@ -628,9 +626,6 @@ function LoanTransactionReport() {
 
 		const selectedBrnCode = effectiveBrnCode
 		const selectedBrnName = effectiveBrnName
-		const selectedPacsObj = pacsList.find((p) => String(p.code) === String(selectedPacs))
-		const selectedPacsName = selectedPacsObj ? selectedPacsObj.name : ""
-
 		const tokenValue = await getLocalStoreTokenDts(navigate)
 
 		try {
