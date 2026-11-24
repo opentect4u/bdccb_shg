@@ -123,6 +123,7 @@ function MemberMasterReport() {
 	const [searchKeywords, setSearchKeywords] = useState("")
 	const [searchTerm, setSearchTerm] = useState("")
 	const [loading, setLoading] = useState(false)
+	const [hasSearched, setHasSearched] = useState(false)
 	const [memberData, setMemberData] = useState([])
 	const [metadataDtls, setMetadataDtls] = useState(null)
 
@@ -278,6 +279,7 @@ function MemberMasterReport() {
 		setMetadataDtls(null)
 		setCurrentPage(1)
 		setSearchTerm("")
+		setHasSearched(false)
 	}
 
 	const handleBranchChange = (e) => {
@@ -288,6 +290,7 @@ function MemberMasterReport() {
 			setSelectedPacs("")
 			setMemberData([])
 			setMetadataDtls(null)
+			setHasSearched(false)
 			return
 		}
 
@@ -299,6 +302,7 @@ function MemberMasterReport() {
 		setSelectedPacs("")
 		setMemberData([])
 		setMetadataDtls(null)
+		setHasSearched(false)
 
 		if (searchMode === "SOCIETY") {
 			handleFetchPacsList(brCode)
@@ -310,6 +314,7 @@ function MemberMasterReport() {
 		setSelectedPacs(value || "")
 		setMemberData([])
 		setMetadataDtls(null)
+		setHasSearched(false)
 	}
 
 	// Dynamic Validation for Fetch Members button:
@@ -339,6 +344,7 @@ function MemberMasterReport() {
 		if (!isFetchEnabled) return
 
 		setLoading(true)
+		setHasSearched(true)
 		setMemberData([])
 		setMetadataDtls(null)
 		setCurrentPage(1)
@@ -485,20 +491,6 @@ function MemberMasterReport() {
 		}
 		setLoading(false)
 	}
-
-	// Auto-fetch data on mount for Branch user
-	useEffect(() => {
-		if (isBranchUser && userBranchCode) {
-			handleSearchMembers()
-		}
-	}, [isBranchUser, userBranchCode])
-
-	// Auto-fetch data on mount for PACS user
-	useEffect(() => {
-		if (isPacsUser && userPacsCode && parentBranch.code) {
-			handleSearchMembers()
-		}
-	}, [isPacsUser, userPacsCode, parentBranch.code])
 
 	// Filter data by live search text (Member Code, Member Name, Group Code, Group Name, Phone, Account)
 	const filteredMemberData = useMemo(() => {
@@ -1003,291 +995,302 @@ function MemberMasterReport() {
 						*/}
 					</div>
 
-					{/* Summary Statistics Cards */}
-					{memberData.length > 0 && (
-						<div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-							<div className="p-4 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 rounded-2xl flex items-center gap-3">
-								<div className="p-2.5 bg-teal-600 text-white rounded-xl">
-									<UserOutlined className="text-xl" />
-								</div>
-								<div>
-									<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Members</p>
-									<h4 className="text-xl font-extrabold text-teal-700 dark:text-teal-400">{stats.total}</h4>
-								</div>
-							</div>
-
-							<div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl flex items-center gap-3">
-								<div className="p-2.5 bg-emerald-600 text-white rounded-xl">
-									<TeamOutlined className="text-xl" />
-								</div>
-								<div>
-									<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Groups</p>
-									<h4 className="text-xl font-extrabold text-emerald-700 dark:text-emerald-400">{stats.uniqueGroups}</h4>
-								</div>
-							</div>
-
-							<Popover content={leaderPopoverContent} title={null} placement="bottom">
-								<div className="p-4 bg-purple-50 dark:bg-purple-950/40 border-2 border-purple-400/80 dark:border-purple-600 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-purple-100/90 dark:hover:bg-purple-900/40 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/15 transition-all duration-200">
-									<div className="p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-xl shadow-md shadow-purple-500/30">
-										<CrownOutlined className="text-xl" />
-									</div>
-									<div className="flex-1">
-										<p className="text-xs text-purple-900 dark:text-purple-300 font-extrabold uppercase tracking-wide flex items-center justify-between">
-											<span>Group Leaders</span>
-											<span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" title="Interactive"></span>
-										</p>
-										<h4 className="text-xl font-black text-purple-700 dark:text-purple-400 mt-0.5">{stats.leaders}</h4>
-									</div>
-								</div>
-							</Popover>
-
-							<div className="p-4 bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/80 dark:border-cyan-800/60 rounded-2xl flex items-center gap-3">
-								<div className="p-2.5 bg-cyan-600 text-white rounded-xl">
-									<BankOutlined className="text-xl" />
-								</div>
-								<div>
-									<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">With Bank A/C</p>
-									<h4 className="text-xl font-extrabold text-cyan-700 dark:text-cyan-400">{stats.withAccount}</h4>
-								</div>
-							</div>
-						</div>
-					)}
-
-					{/* Results Table Section */}
-					{memberData.length !== 0 && (
-						<div className="bg-slate-50/50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-							<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-								<div>
-									<h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-										<span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
-										<span>Member Master Directory ({searchMode})</span>
-									</h3>
-									<p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-										{filteredMemberData.length} Member(s) Found {metadataDtls?.branch_name ? `for Branch: ${metadataDtls.branch_name}` : ""} {metadataDtls?.pacs_name ? `(${metadataDtls.pacs_name})` : ""}
-									</p>
-								</div>
-
-								{/* Instant Search Bar (Search member_code / member_name / group_code / group_name / phone) */}
-								<div className="relative w-full sm:w-80">
-									<input
-										type="text"
-										placeholder="Search member code / name / group / account..."
-										value={searchTerm}
-										onChange={(e) => {
-											setSearchTerm(e.target.value)
-											setCurrentPage(1)
-										}}
-										className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-xs text-slate-800 dark:text-slate-200"
-									/>
-									<SearchOutlined className="absolute left-3 top-3 text-slate-400 text-xs" />
-									{searchTerm && (
-										<button
-											onClick={() => setSearchTerm("")}
-											className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
-										>
-											✕
-										</button>
-									)}
-								</div>
-							</div>
-
-							{/* Table Container */}
-							<div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm max-h-[550px]">
-								<table className="w-full text-xs text-left text-slate-600 dark:text-slate-300">
-									<thead className="text-[11px] uppercase bg-slate-800 text-slate-100 dark:bg-slate-900 sticky top-0 z-10">
-										<tr>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Sl. No.</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider">Group Code & Name</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider">Member Code</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider">Member Name</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider">Guardian Name</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Gender</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Mobile No.</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Aadhaar No.</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Voter ID</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">PAN No.</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Member Savings A/C No.</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">IFSC Code</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Religion</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Caste</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Education</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Occupation</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Economic Activity</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Role</th>
-											<th scope="col" className="px-3 py-3 font-bold tracking-wider">Address & Pin</th>
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-										{currentData.map((item, i) => {
-											const isLeader = item?.gp_leader_flag === "Y"
-											const isAsstLeader = item?.asst_gp_leader_flag === "Y"
-											const genderText = formatGenderLabel(item?.gender)
-											const ecoAct = formatEconomicActivity(item?.economic_activity)
-
-											return (
-												<tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-													<td className="px-3 py-3 text-center font-medium text-slate-700 dark:text-slate-300">{indexOfFirstItem + i + 1}</td>
-													<td className="px-3 py-3 whitespace-nowrap">
-														<span className="font-mono text-[11px] text-teal-600 font-bold block">{item?.group_code || ""}</span>
-														<strong className="text-slate-800 dark:text-slate-200">{item?.group_name || "N/A"}</strong>
-													</td>
-													<td className="px-3 py-3 font-mono font-bold text-teal-600 whitespace-nowrap">{item?.member_code || "N/A"}</td>
-													<td className="px-3 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-														{item?.member_name || "N/A"}
-													</td>
-													<td className="px-3 py-3 whitespace-nowrap">{item?.gurdian_name || "N/A"}</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap">
-														<Tag color={getGenderTagColor(genderText)} className="font-semibold">
-															{genderText}
-														</Tag>
-													</td>
-													<td className="px-3 py-3 text-center font-mono whitespace-nowrap">{item?.phone_no || "N/A"}</td>
-													<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.aadhar_no || "N/A"}</td>
-													<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.voter_id || "N/A"}</td>
-													<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.pan_no || "N/A"}</td>
-													<td className="px-3 py-3 text-center font-mono whitespace-nowrap text-slate-800 dark:text-slate-200 font-semibold">
-														{item?.member_account_no || "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap text-slate-600 dark:text-slate-400">
-														{item?.ifsc || "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap">
-														{item?.religion && item?.religion !== "N/A" ? <Tag color="blue">{item.religion}</Tag> : "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap">
-														{item?.caste && item?.caste !== "N/A" ? <Tag color="geekblue">{item.caste}</Tag> : "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap text-slate-700 dark:text-slate-300">
-														{item?.education || "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">
-														{item?.occupation || "N/A"}
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap">
-														<Tag color={ecoAct === "Yes" ? "emerald" : "default"} className="font-bold">
-															{ecoAct}
-														</Tag>
-													</td>
-													<td className="px-3 py-3 text-center whitespace-nowrap">
-														{isLeader && (
-															<Tooltip title={`Group Leader of: ${item?.group_name || "N/A"} (Code: ${item?.group_code || "N/A"})`}>
-																<Tag color="gold" className="font-bold cursor-pointer hover:scale-105 transition-transform">Leader 👑</Tag>
-															</Tooltip>
-														)}
-														{isAsstLeader && (
-															<Tooltip title={`Assistant Leader of: ${item?.group_name || "N/A"} (Code: ${item?.group_code || "N/A"})`}>
-																<Tag color="purple" className="font-bold cursor-pointer hover:scale-105 transition-transform">Asst. Leader</Tag>
-															</Tooltip>
-														)}
-														{!isLeader && !isAsstLeader && <Tag color="default">Member</Tag>}
-													</td>
-													<td className="px-3 py-3 text-[11px]">
-														<div>{item?.address || "N/A"}</div>
-														{item?.pin_no && item?.pin_no !== "N/A" && (
-															<span className="text-[10px] text-slate-400">PIN: {item.pin_no}</span>
-														)}
-													</td>
-												</tr>
-											)
-										})}
-									</tbody>
-								</table>
-							</div>
-
-							{/* Pagination Bar */}
-							{filteredMemberData.length > 0 && (
-								<div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800 mt-2">
-									<div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-										<span>
-											Showing <strong className="font-semibold text-slate-900 dark:text-slate-100">{indexOfFirstItem + 1}</strong> to{" "}
-											<strong className="font-semibold text-slate-900 dark:text-slate-100">{Math.min(indexOfLastItem, totalRecords)}</strong> of{" "}
-											<strong className="font-semibold text-slate-900 dark:text-slate-100">{totalRecords}</strong> entries
-										</span>
-										<div className="flex items-center gap-1.5 ml-2">
-											<span className="text-slate-500">Per page:</span>
-											<select
-												value={itemsPerPage}
-												onChange={(e) => {
-													setItemsPerPage(Number(e.target.value))
-													setCurrentPage(1)
-												}}
-												className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-teal-500"
-											>
-												<option value={10}>10</option>
-												<option value={25}>25</option>
-												<option value={50}>50</option>
-												<option value={100}>100</option>
-											</select>
+					{/* Details Section: Shown ONLY after user clicks "Fetch Members" */}
+					{hasSearched && (
+						<>
+							{/* Summary Statistics Cards */}
+							{memberData.length > 0 && (
+								<div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+									<div className="p-4 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/60 rounded-2xl flex items-center gap-3">
+										<div className="p-2.5 bg-teal-600 text-white rounded-xl">
+											<UserOutlined className="text-xl" />
+										</div>
+										<div>
+											<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Members</p>
+											<h4 className="text-xl font-extrabold text-teal-700 dark:text-teal-400">{stats.total}</h4>
 										</div>
 									</div>
 
-									<div className="flex items-center gap-1.5">
-										<button
-											disabled={currentPage === 1}
-											onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-											className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-										>
-											Prev
-										</button>
+									<div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl flex items-center gap-3">
+										<div className="p-2.5 bg-emerald-600 text-white rounded-xl">
+											<TeamOutlined className="text-xl" />
+										</div>
+										<div>
+											<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Groups</p>
+											<h4 className="text-xl font-extrabold text-emerald-700 dark:text-emerald-400">{stats.uniqueGroups}</h4>
+										</div>
+									</div>
 
-										{Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-											let pageNum = currentPage
-											if (totalPages <= 5) {
-												pageNum = index + 1
-											} else if (currentPage <= 3) {
-												pageNum = index + 1
-											} else if (currentPage >= totalPages - 2) {
-												pageNum = totalPages - 4 + index
-											} else {
-												pageNum = currentPage - 2 + index
-											}
+									<Popover content={leaderPopoverContent} title={null} placement="bottom">
+										<div className="p-4 bg-purple-50 dark:bg-purple-950/40 border-2 border-purple-400/80 dark:border-purple-600 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-purple-100/90 dark:hover:bg-purple-900/40 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/15 transition-all duration-200">
+											<div className="p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-xl shadow-md shadow-purple-500/30">
+												<CrownOutlined className="text-xl" />
+											</div>
+											<div className="flex-1">
+												<p className="text-xs text-purple-900 dark:text-purple-300 font-extrabold uppercase tracking-wide flex items-center justify-between">
+													<span>Group Leaders</span>
+													<span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" title="Interactive"></span>
+												</p>
+												<h4 className="text-xl font-black text-purple-700 dark:text-purple-400 mt-0.5">{stats.leaders}</h4>
+											</div>
+										</div>
+									</Popover>
 
-											return (
-												<button
-													key={pageNum}
-													onClick={() => setCurrentPage(pageNum)}
-													className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${currentPage === pageNum
-														? "bg-teal-600 border-teal-600 text-white shadow-sm"
-														: "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-														}`}
-												>
-													{pageNum}
-												</button>
-											)
-										})}
-
-										<button
-											disabled={currentPage === totalPages}
-											onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-											className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-										>
-											Next
-										</button>
+									<div className="p-4 bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/80 dark:border-cyan-800/60 rounded-2xl flex items-center gap-3">
+										<div className="p-2.5 bg-cyan-600 text-white rounded-xl">
+											<BankOutlined className="text-xl" />
+										</div>
+										<div>
+											<p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">With Bank A/C</p>
+											<h4 className="text-xl font-extrabold text-cyan-700 dark:text-cyan-400">{stats.withAccount}</h4>
+										</div>
 									</div>
 								</div>
 							)}
-						</div>
-					)}
 
-					{/* Export & Print Action Buttons */}
-					{memberData.length !== 0 && (
-						<div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-							<button
-								onClick={handleExcelExport}
-								className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-400 dark:border-emerald-800 rounded-xl shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
-							>
-								<FileExcelOutlined className="text-sm" />
-								<span>Download Excel</span>
-							</button>
+							{/* Results Table Section */}
+							{memberData.length !== 0 && (
+								<div className="bg-slate-50/50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+									<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+										<div>
+											<h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+												<span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+												<span>Member Master Directory ({searchMode})</span>
+											</h3>
+											<p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+												{filteredMemberData.length} Member(s) Found {metadataDtls?.branch_name ? `for Branch: ${metadataDtls.branch_name}` : ""} {metadataDtls?.pacs_name ? `(${metadataDtls.pacs_name})` : ""}
+											</p>
+										</div>
 
-							<button
-								onClick={handlePrintReport}
-								className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-300 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 dark:text-teal-400 dark:border-teal-800 rounded-xl shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
-							>
-								<PrinterOutlined className="text-sm" />
-								<span>Print Report</span>
-							</button>
-						</div>
+										{/* Instant Search Bar (Search member_code / member_name / group_code / group_name / phone) */}
+										<div className="relative w-full sm:w-80">
+											<input
+												type="text"
+												placeholder="Search member code / name / group / account..."
+												value={searchTerm}
+												onChange={(e) => {
+													setSearchTerm(e.target.value)
+													setCurrentPage(1)
+												}}
+												className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-xs text-slate-800 dark:text-slate-200"
+											/>
+											<SearchOutlined className="absolute left-3 top-3 text-slate-400 text-xs" />
+											{searchTerm && (
+												<button
+													onClick={() => setSearchTerm("")}
+													className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
+												>
+													✕
+												</button>
+											)}
+										</div>
+									</div>
+
+									{/* Table Container */}
+									<div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm max-h-[550px]">
+										<table className="w-full text-xs text-left text-slate-600 dark:text-slate-300">
+											<thead className="text-[11px] uppercase bg-slate-800 text-slate-100 dark:bg-slate-900 sticky top-0 z-10">
+												<tr>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Sl. No.</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider">Group Code & Name</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider">Member Code</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider">Member Name</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider">Guardian Name</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Gender</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Mobile No.</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Aadhaar No.</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Voter ID</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">PAN No.</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Member Savings A/C No.</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">IFSC Code</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Religion</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Caste</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Education</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Occupation</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Economic Activity</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider text-center">Role</th>
+													<th scope="col" className="px-3 py-3 font-bold tracking-wider">Address & Pin</th>
+												</tr>
+											</thead>
+											<tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+												{currentData.map((item, i) => {
+													const isLeader = item?.gp_leader_flag === "Y"
+													const isAsstLeader = item?.asst_gp_leader_flag === "Y"
+													const genderText = formatGenderLabel(item?.gender)
+													const ecoAct = formatEconomicActivity(item?.economic_activity)
+
+													return (
+														<tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+															<td className="px-3 py-3 text-center font-medium text-slate-700 dark:text-slate-300">{indexOfFirstItem + i + 1}</td>
+															<td className="px-3 py-3 whitespace-nowrap">
+																<span className="font-mono text-[11px] text-teal-600 font-bold block">{item?.group_code || ""}</span>
+																<strong className="text-slate-800 dark:text-slate-200">{item?.group_name || "N/A"}</strong>
+															</td>
+															<td className="px-3 py-3 font-mono font-bold text-teal-600 whitespace-nowrap">{item?.member_code || "N/A"}</td>
+															<td className="px-3 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+																{item?.member_name || "N/A"}
+															</td>
+															<td className="px-3 py-3 whitespace-nowrap">{item?.gurdian_name || "N/A"}</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap">
+																<Tag color={getGenderTagColor(genderText)} className="font-semibold">
+																	{genderText}
+																</Tag>
+															</td>
+															<td className="px-3 py-3 text-center font-mono whitespace-nowrap">{item?.phone_no || "N/A"}</td>
+															<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.aadhar_no || "N/A"}</td>
+															<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.voter_id || "N/A"}</td>
+															<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap">{item?.pan_no || "N/A"}</td>
+															<td className="px-3 py-3 text-center font-mono whitespace-nowrap text-slate-800 dark:text-slate-200 font-semibold">
+																{item?.member_account_no || "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center font-mono text-[11px] whitespace-nowrap text-slate-600 dark:text-slate-400">
+																{item?.ifsc || "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap">
+																{item?.religion && item?.religion !== "N/A" ? <Tag color="blue">{item.religion}</Tag> : "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap">
+																{item?.caste && item?.caste !== "N/A" ? <Tag color="geekblue">{item.caste}</Tag> : "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap text-slate-700 dark:text-slate-300">
+																{item?.education || "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">
+																{item?.occupation || "N/A"}
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap">
+																<Tag color={ecoAct === "Yes" ? "emerald" : "default"} className="font-bold">
+																	{ecoAct}
+																</Tag>
+															</td>
+															<td className="px-3 py-3 text-center whitespace-nowrap">
+																{isLeader && (
+																	<Tooltip title={`Group Leader of: ${item?.group_name || "N/A"} (Code: ${item?.group_code || "N/A"})`}>
+																		<Tag color="gold" className="font-bold cursor-pointer hover:scale-105 transition-transform">Leader 👑</Tag>
+																	</Tooltip>
+																)}
+																{isAsstLeader && (
+																	<Tooltip title={`Assistant Leader of: ${item?.group_name || "N/A"} (Code: ${item?.group_code || "N/A"})`}>
+																		<Tag color="purple" className="font-bold cursor-pointer hover:scale-105 transition-transform">Asst. Leader</Tag>
+																	</Tooltip>
+																)}
+																{!isLeader && !isAsstLeader && <Tag color="default">Member</Tag>}
+															</td>
+															<td className="px-3 py-3 text-[11px]">
+																<div>{item?.address || "N/A"}</div>
+																{item?.pin_no && item?.pin_no !== "N/A" && (
+																	<span className="text-[10px] text-slate-400">PIN: {item.pin_no}</span>
+																)}
+															</td>
+														</tr>
+													)
+												})}
+											</tbody>
+										</table>
+									</div>
+
+									{/* Pagination Bar */}
+									{filteredMemberData.length > 0 && (
+										<div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800 mt-2">
+											<div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+												<span>
+													Showing <strong className="font-semibold text-slate-900 dark:text-slate-100">{indexOfFirstItem + 1}</strong> to{" "}
+													<strong className="font-semibold text-slate-900 dark:text-slate-100">{Math.min(indexOfLastItem, totalRecords)}</strong> of{" "}
+													<strong className="font-semibold text-slate-900 dark:text-slate-100">{totalRecords}</strong> entries
+												</span>
+												<div className="flex items-center gap-1.5 ml-2">
+													<span className="text-slate-500">Per page:</span>
+													<select
+														value={itemsPerPage}
+														onChange={(e) => {
+															setItemsPerPage(Number(e.target.value))
+															setCurrentPage(1)
+														}}
+														className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-teal-500"
+													>
+														<option value={10}>10</option>
+														<option value={25}>25</option>
+														<option value={50}>50</option>
+														<option value={100}>100</option>
+													</select>
+												</div>
+											</div>
+
+											<div className="flex items-center gap-1.5">
+												<button
+													disabled={currentPage === 1}
+													onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+													className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+												>
+													Prev
+												</button>
+
+												{Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+													let pageNum = currentPage
+													if (totalPages <= 5) {
+														pageNum = index + 1
+													} else if (currentPage <= 3) {
+														pageNum = index + 1
+													} else if (currentPage >= totalPages - 2) {
+														pageNum = totalPages - 4 + index
+													} else {
+														pageNum = currentPage - 2 + index
+													}
+
+													return (
+														<button
+															key={pageNum}
+															onClick={() => setCurrentPage(pageNum)}
+															className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${currentPage === pageNum
+																? "bg-teal-600 border-teal-600 text-white shadow-sm"
+																: "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+																}`}
+														>
+															{pageNum}
+														</button>
+													)
+												})}
+
+												<button
+													disabled={currentPage === totalPages}
+													onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+													className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+												>
+													Next
+												</button>
+											</div>
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Export & Print Action Buttons */}
+							{memberData.length !== 0 && (
+								<div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+									<button
+										onClick={handleExcelExport}
+										className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-400 dark:border-emerald-800 rounded-xl shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
+									>
+										<FileExcelOutlined className="text-sm" />
+										<span>Download Excel</span>
+									</button>
+
+									<button
+										onClick={handlePrintReport}
+										className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-300 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 dark:text-teal-400 dark:border-teal-800 rounded-xl shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
+									>
+										<PrinterOutlined className="text-sm" />
+										<span>Print Report</span>
+									</button>
+								</div>
+							)}
+
+							{memberData.length === 0 && !loading && (
+								<div className="p-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 font-medium">
+									No member records found for the selected criteria.
+								</div>
+							)}
+						</>
 					)}
 				</main>
 			</Spin>
